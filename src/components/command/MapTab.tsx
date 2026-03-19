@@ -51,7 +51,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       attributionControl: false,
     });
 
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
     mapRef.current = map;
 
     return () => {
