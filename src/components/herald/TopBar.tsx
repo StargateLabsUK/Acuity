@@ -29,7 +29,7 @@ export function TopBar({ micStatus, aiStatus, syncStatus }: TopBarProps) {
         className="w-2 h-2 rounded-full"
         style={{ backgroundColor: ok ? 'hsl(var(--primary))' : warn ? '#FF9500' : '#FF3B30' }}
       />
-      <span className="text-xs md:text-base text-foreground tracking-wide">{label}</span>
+      <span className="text-lg md:text-lg text-foreground tracking-wide">{label}</span>
     </div>
   );
 
@@ -42,7 +42,7 @@ export function TopBar({ micStatus, aiStatus, syncStatus }: TopBarProps) {
         {dot('MIC', micStatus === 'granted')}
         {dot('AI', aiStatus === 'ok')}
         {dot('SYNC', syncStatus === 'ok', syncStatus === 'offline')}
-        <span className="text-xs md:text-base text-foreground">{utc}</span>
+        <span className="text-lg md:text-lg text-foreground">{utc}</span>
       </div>
     </div>
   );

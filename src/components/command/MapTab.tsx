@@ -32,7 +32,6 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       const map = mapRef.current;
       if (!map || report.lat == null || report.lng == null) return;
       map.flyTo({ center: [report.lng, report.lat], zoom: 13, duration: 1500 });
-      // Open the marker popup
       const marker = markersRef.current.get(report.id);
       if (marker) {
         marker.togglePopup();
@@ -40,7 +39,6 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     },
   }));
 
-  // Init map
   useEffect(() => {
     if (!containerRef.current || !MAPBOX_TOKEN) return;
 
@@ -153,7 +151,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
   if (!MAPBOX_TOKEN) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-foreground opacity-50 text-sm tracking-widest">
+        <p className="text-foreground opacity-50 text-lg tracking-widest">
           MAPBOX TOKEN NOT CONFIGURED
         </p>
       </div>
@@ -180,8 +178,8 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
                 className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: PRIORITY_COLORS[p] }}
               />
-              <span className="text-xs text-foreground font-bold tracking-wider">{p}</span>
-              <span className="text-xs text-foreground opacity-70">{label}</span>
+              <span className="text-lg text-foreground font-bold tracking-wider">{p}</span>
+              <span className="text-lg text-foreground opacity-70">{label}</span>
             </div>
           ))}
         </div>

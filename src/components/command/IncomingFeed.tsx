@@ -33,7 +33,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="px-3 pt-3 pb-2 flex-shrink-0">
-        <div className="text-sm md:text-lg text-foreground tracking-[0.25em] mb-2 font-bold">
+        <div className="text-lg md:text-lg text-foreground tracking-[0.25em] mb-2 font-bold">
           INCOMING TRANSMISSIONS
         </div>
         <div className="flex gap-1">
@@ -44,7 +44,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className="text-sm md:text-lg font-bold tracking-wide rounded-sm px-2 py-0.5 bg-transparent cursor-pointer transition-colors"
+                className="text-lg md:text-lg font-bold tracking-wide rounded-sm px-2 py-0.5 bg-transparent cursor-pointer transition-colors"
                 style={{
                   color: active ? col : 'hsl(var(--foreground))',
                   border: `1px solid ${active ? col : 'hsl(var(--border))'}`,
@@ -62,7 +62,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <span className="animate-breathe text-[32px]">📻</span>
-            <span className="text-sm md:text-lg text-foreground tracking-[0.2em]">AWAITING TRANSMISSIONS</span>
+            <span className="text-lg md:text-lg text-foreground tracking-[0.2em]">AWAITING TRANSMISSIONS</span>
           </div>
         ) : (
           filtered.map((r) => {
@@ -82,12 +82,12 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-base md:text-lg">{SERVICE_EMOJIS[getService(r)] ?? '📻'}</span>
-                  <span className="flex-1 truncate text-sm md:text-lg text-foreground">
+                  <span className="text-lg md:text-lg">{SERVICE_EMOJIS[getService(r)] ?? '📻'}</span>
+                  <span className="flex-1 truncate text-lg md:text-lg text-foreground">
                     {getHeadline(r)}
                   </span>
                   <span
-                    className="text-sm md:text-lg font-bold rounded-sm px-1.5 md:px-2 py-0.5"
+                    className="text-lg md:text-lg font-bold rounded-sm px-1.5 md:px-2 py-0.5"
                     style={{
                       color: col,
                       border: `1px solid ${col}66`,
@@ -97,17 +97,17 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3 mt-1 flex-wrap">
-                  <span className="text-xs md:text-lg text-foreground">{getTime(r)}</span>
+                  <span className="text-lg md:text-lg text-foreground">{getTime(r)}</span>
                   {getCallsign(r) && (
                     <span
-                      className="text-xs md:text-sm font-semibold rounded-sm px-1.5 py-0.5"
+                      className="text-lg md:text-lg font-semibold rounded-sm px-1.5 py-0.5"
                       style={{ color: col, border: `1px solid ${col}66` }}
                     >
                       {getCallsign(r)}
                     </span>
                   )}
                   {getIncident(r) && (
-                    <span className="text-xs md:text-sm font-semibold text-foreground border border-border rounded-sm px-1.5 py-0.5">
+                    <span className="text-lg md:text-lg font-semibold text-foreground border border-border rounded-sm px-1.5 py-0.5">
                       #{getIncident(r)}
                     </span>
                   )}

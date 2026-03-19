@@ -143,7 +143,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
 
-      recorder.start(1000); // collect in 1s chunks
+      recorder.start(1000);
       recordingStartRef.current = Date.now();
       setRecordingDuration(0);
       setMaxReached(false);
@@ -152,7 +152,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         setRecordingDuration(Date.now() - recordingStartRef.current);
       }, 200);
 
-      // Max duration auto-stop
       maxTimerRef.current = setTimeout(() => {
         setMaxReached(true);
         setTimeout(() => stopRecordingAndProcess(), 1000);
@@ -329,22 +328,22 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             }}
           >
             <span style={{ fontSize: 28 }}>🎙️</span>
-            <span style={{ color: '#3DFF8C', fontSize: 9, letterSpacing: '0.2em', marginTop: 4, fontWeight: 700 }}>
+            <span style={{ color: '#3DFF8C', fontSize: 18, letterSpacing: '0.2em', marginTop: 4, fontWeight: 700 }}>
               READY
             </span>
           </div>
         </button>
 
-        <p style={{ color: '#1E3028', fontSize: 10, letterSpacing: '0.2em', marginTop: 16, textAlign: 'center' }}>
+        <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.2em', marginTop: 16, textAlign: 'center' }}>
           TAP TO START RECORDING
         </p>
 
         {error && (
-          <p className="mt-2" style={{ color: '#FF9500', fontSize: 10, letterSpacing: '0.2em' }}>{error}</p>
+          <p className="mt-2" style={{ color: '#FF9500', fontSize: 18, letterSpacing: '0.2em' }}>{error}</p>
         )}
 
         <div className="w-full max-w-lg mt-6 md:mt-8">
-          <p style={{ color: '#1E3028', fontSize: 9, letterSpacing: '0.25em', marginBottom: 8 }}>
+          <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.25em', marginBottom: 8 }}>
             TEST TRANSMISSIONS
           </p>
           {TEST_TRANSMISSIONS.map((t, i) => (
@@ -356,10 +355,10 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               }}
               className="w-full text-left p-3 mb-2 border border-border bg-transparent rounded-sm"
             >
-              <span className="text-sm md:text-base text-foreground font-semibold">
+              <span className="text-lg md:text-lg text-foreground font-semibold">
                 {t.emoji} {t.label}
               </span>
-              <p className="text-xs md:text-sm text-foreground mt-1 leading-relaxed line-clamp-2">
+              <p className="text-lg md:text-lg text-foreground mt-1 leading-relaxed line-clamp-2">
                 {t.text}
               </p>
             </button>
@@ -392,18 +391,16 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         </div>
 
         {maxReached && (
-          <p className="mb-4" style={{ color: '#FF9500', fontSize: 10, letterSpacing: '0.2em', fontWeight: 700 }}>
+          <p className="mb-4" style={{ color: '#FF9500', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
             MAX DURATION REACHED
           </p>
         )}
 
         <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
-          {/* Pulse ring */}
           <div
             className="absolute inset-0 rounded-full animate-pulse-ring"
             style={{ border: '2px solid #FF3B30' }}
           />
-          {/* Outer circle */}
           <div
             className="absolute inset-0 rounded-full"
             style={{
@@ -411,7 +408,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               boxShadow: '0 0 40px rgba(255,59,48,0.2)',
             }}
           />
-          {/* Inner circle */}
           <div
             className="flex flex-col items-center justify-center"
             style={{
@@ -423,17 +419,16 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             }}
           >
             <span style={{ fontSize: 32, filter: 'drop-shadow(0 0 8px #FF3B30)' }}>🎙️</span>
-            <span style={{ color: '#FF3B30', fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', marginTop: 2 }}>
+            <span style={{ color: '#FF3B30', fontSize: 18, fontWeight: 700, letterSpacing: '0.2em', marginTop: 2 }}>
               RECORDING
             </span>
           </div>
         </div>
 
-        {/* Duration counter */}
         <p
           style={{
             color: '#FF3B30',
-            fontSize: 12,
+            fontSize: 18,
             fontVariantNumeric: 'tabular-nums',
             marginTop: 16,
           }}
@@ -441,7 +436,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           {formatDuration(recordingDuration)}
         </p>
 
-        <p style={{ color: '#FF3B30', fontSize: 10, letterSpacing: '0.2em', marginTop: 8 }}>
+        <p style={{ color: '#FF3B30', fontSize: 18, letterSpacing: '0.2em', marginTop: 8 }}>
           TAP TO STOP AND PROCESS
         </p>
       </div>
@@ -461,11 +456,11 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             borderTopColor: '#3DFF8C',
           }}
         />
-        <p style={{ color: '#1E3028', fontSize: 10, letterSpacing: '0.2em', marginTop: 16, textAlign: 'center' }}>
+        <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.2em', marginTop: 16, textAlign: 'center' }}>
           RUNNING INTELLIGENCE ASSESSMENT
         </p>
         {capturedDuration > 0 && (
-          <p style={{ color: '#1E3028', fontSize: 9, marginTop: 8 }}>
+          <p style={{ color: '#1E3028', fontSize: 18, marginTop: 8 }}>
             CAPTURED: {formatDuration(capturedDuration)}
           </p>
         )}
@@ -478,13 +473,13 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               borderRadius: 4,
             }}
           >
-            <p className="line-clamp-3 text-center" style={{ color: '#2A4038', fontSize: 12, fontStyle: 'italic' }}>
+            <p className="line-clamp-3 text-center" style={{ color: '#2A4038', fontSize: 18, fontStyle: 'italic' }}>
               "{transcript}"
             </p>
           </div>
         )}
         {error && (
-          <p className="mt-2" style={{ color: '#FF9500', fontSize: 10 }}>{error}</p>
+          <p className="mt-2" style={{ color: '#FF9500', fontSize: 18 }}>{error}</p>
         )}
       </div>
     );
@@ -507,13 +502,13 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             <span className="font-heading text-3xl md:text-5xl" style={{ color: pc }}>{assessment.priority}</span>
             <span className="font-heading text-lg md:text-[28px]" style={{ color: pc }}>{assessment.priority_label}</span>
           </div>
-          <span className="text-sm md:text-base text-foreground uppercase font-bold">{assessment.service}</span>
+          <span className="text-lg md:text-lg text-foreground uppercase font-bold">{assessment.service}</span>
         </div>
 
         {/* Edited indicator */}
         {hasEdits && (
           <div className="mx-3 md:mx-4 mt-2 flex items-center gap-1">
-            <span style={{ fontSize: 9, color: '#FF9500', letterSpacing: '0.2em', fontWeight: 700 }}>✏️ EDITED</span>
+            <span style={{ fontSize: 18, color: '#FF9500', letterSpacing: '0.2em', fontWeight: 700 }}>✏️ EDITED</span>
           </div>
         )}
 
@@ -523,7 +518,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             value={editHeadline}
             onChange={(e) => setEditHeadline(e.target.value)}
             placeholder="Tap to edit"
-            className="w-full bg-transparent text-sm md:text-base text-foreground leading-relaxed p-3 md:p-4 resize-none outline-none"
+            className="w-full bg-transparent text-lg md:text-lg text-foreground leading-relaxed p-3 md:p-4 resize-none outline-none"
             style={{ minHeight: 48 }}
             onFocus={(e) => { e.currentTarget.style.background = 'rgba(61,255,140,0.04)'; }}
             onBlur={(e) => { e.currentTarget.style.background = 'transparent'; }}
@@ -535,16 +530,16 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mx-3 md:mx-4 mt-3">
           {/* Protocol fields */}
           <div>
-            <p className="text-xs md:text-sm font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>PROTOCOL FIELDS</p>
+            <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>PROTOCOL FIELDS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
               {Object.entries(editStructured).map(([k, v]) => (
                 <div key={k} className="mb-2">
-                  <p className="text-sm md:text-base font-bold" style={{ color: pc }}>{k}</p>
+                  <p className="text-lg md:text-lg font-bold" style={{ color: pc }}>{k}</p>
                   <input
                     type="text"
                     value={v}
                     onChange={(e) => setEditStructured((prev) => ({ ...prev, [k]: e.target.value }))}
-                    className="w-full bg-transparent text-sm md:text-base text-foreground outline-none py-0.5"
+                    className="w-full bg-transparent text-lg md:text-lg text-foreground outline-none py-0.5"
                     style={{ borderBottom: '1px solid transparent' }}
                     placeholder="Tap to edit"
                     onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; }}
@@ -557,11 +552,11 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
           {/* Actions */}
           <div>
-            <p className="text-xs md:text-sm font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>IMMEDIATE ACTIONS</p>
+            <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>IMMEDIATE ACTIONS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
               {editActions.map((a, i) => (
                 <div key={i} className="flex gap-2 mb-1.5 items-start">
-                  <span className="text-sm md:text-base font-bold flex-shrink-0 mt-0.5" style={{ color: pc }}>{i + 1}.</span>
+                  <span className="text-lg md:text-lg font-bold flex-shrink-0 mt-0.5" style={{ color: pc }}>{i + 1}.</span>
                   <input
                     type="text"
                     value={a}
@@ -570,27 +565,27 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
                       next[i] = e.target.value;
                       setEditActions(next);
                     }}
-                    className="flex-1 bg-transparent text-sm md:text-base text-foreground outline-none"
+                    className="flex-1 bg-transparent text-lg md:text-lg text-foreground outline-none"
                     style={{ borderBottom: '1px solid transparent' }}
                     onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; }}
                     onBlur={(e) => { e.currentTarget.style.borderBottom = '1px solid transparent'; }}
                   />
                   <button
                     onClick={() => setEditActions(editActions.filter((_, idx) => idx !== i))}
-                    className="text-xs opacity-50 hover:opacity-100 flex-shrink-0 mt-0.5"
+                    className="text-lg opacity-50 hover:opacity-100 flex-shrink-0 mt-0.5"
                     style={{ color: '#FF3B30' }}
                   >✕</button>
                 </div>
               ))}
               <button
                 onClick={() => setEditActions([...editActions, ''])}
-                className="text-xs mt-2 px-2 py-1 rounded-sm"
+                className="text-lg mt-2 px-2 py-1 rounded-sm"
                 style={{ color: 'hsl(var(--primary))', border: '1px solid rgba(61,255,140,0.2)' }}
               >+ ADD ACTION</button>
               {assessment.transmit_to && (
                 <>
                   <div className="border-t border-border my-2" />
-                  <p className="text-sm md:text-base text-foreground">
+                  <p className="text-lg md:text-lg text-foreground">
                     <span className="font-bold" style={{ color: pc }}>TRANSMIT TO:</span> {assessment.transmit_to}
                   </p>
                 </>
@@ -601,13 +596,13 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
         {/* Formatted report — editable */}
         <div className="mx-3 md:mx-4 mt-3">
-          <p className="text-xs md:text-sm font-bold text-foreground tracking-[0.1em] mb-2">FORMATTED REPORT</p>
+          <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.1em] mb-2">FORMATTED REPORT</p>
           <div className="border border-border rounded bg-card">
             <textarea
               ref={textareaRef}
               value={editFormattedReport}
               onChange={(e) => setEditFormattedReport(e.target.value)}
-              className="w-full bg-transparent text-sm md:text-base text-foreground leading-7 whitespace-pre-wrap p-3 md:p-4 resize-none outline-none"
+              className="w-full bg-transparent text-lg md:text-lg text-foreground leading-7 whitespace-pre-wrap p-3 md:p-4 resize-none outline-none"
               style={{ minHeight: 100 }}
               onFocus={(e) => { e.currentTarget.style.background = 'rgba(61,255,140,0.04)'; }}
               onBlur={(e) => { e.currentTarget.style.background = 'transparent'; }}
@@ -617,11 +612,11 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
         {/* Raw transcript — NOT editable */}
         <div className="mx-3 md:mx-4 mt-3">
-          <p className="text-xs md:text-sm font-bold text-foreground tracking-[0.1em] mb-2">RAW TRANSMISSION</p>
+          <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.1em] mb-2">RAW TRANSMISSION</p>
           <div className="p-3 md:p-4 border border-border rounded bg-card">
-            <p className="text-sm md:text-base text-foreground italic">"{transcript}"</p>
+            <p className="text-lg md:text-lg text-foreground italic">"{transcript}"</p>
             {assessment.confidence != null && (
-              <p className="text-sm md:text-base text-foreground mt-2 opacity-70">
+              <p className="text-lg md:text-lg text-foreground mt-2 opacity-70">
                 Confidence: {Math.round(assessment.confidence * 100)}%
               </p>
             )}
@@ -632,11 +627,11 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         <div className="fixed bottom-12 md:bottom-14 left-0 right-0 flex gap-3 px-3 md:px-4 pb-2 pt-2 bg-background">
           <button
             onClick={handleDiscard}
-            className="flex-1 font-heading py-3 md:py-4 bg-transparent border border-border text-foreground text-sm md:text-base font-bold rounded-sm"
+            className="flex-1 font-heading py-3 md:py-4 bg-transparent border border-border text-foreground text-lg md:text-lg font-bold rounded-sm"
           >DISCARD</button>
           <button
             onClick={handleConfirm}
-            className="font-heading py-3 md:py-4 text-base md:text-lg font-bold rounded-sm"
+            className="font-heading py-3 md:py-4 text-lg md:text-lg font-bold rounded-sm"
             style={{
               flex: 3,
               background: `${pc}1A`,
@@ -656,7 +651,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       <div className="flex flex-col items-center justify-center flex-1 px-4">
         <button
           onClick={() => setState('idle')}
-          className="w-full max-w-xs font-heading py-3 md:py-4 text-sm md:text-base font-bold rounded-sm"
+          className="w-full max-w-xs font-heading py-3 md:py-4 text-lg md:text-lg font-bold rounded-sm"
           style={{
             background: 'rgba(61,255,140,0.06)',
             border: '1px solid rgba(61,255,140,0.2)',

@@ -32,7 +32,7 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
         border: `1px solid ${color}`,
       }}
     >
-      <span className="text-sm md:text-lg font-bold" style={{ color }}>
+      <span className="text-lg md:text-lg font-bold" style={{ color }}>
         {label} · {count}
       </span>
     </div>
@@ -41,10 +41,10 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
   return (
     <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-3 flex-shrink-0 border-b border-border bg-card">
       <div className="flex flex-col">
-        <span className="font-heading text-base md:text-2xl text-foreground tracking-[0.08em]">
+        <span className="font-heading text-lg md:text-2xl text-foreground tracking-[0.08em]">
           HERALD COMMAND
         </span>
-        <span className="text-xs md:text-lg text-foreground tracking-wide hidden sm:block">
+        <span className="text-lg md:text-lg text-foreground tracking-wide hidden sm:block">
           REAL-TIME FIELD INTELLIGENCE
         </span>
       </div>
@@ -64,11 +64,11 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
               animation: connected ? 'breathe 2s ease-in-out infinite' : 'none',
             }}
           />
-          <span className="text-sm md:text-lg tracking-wide" style={{ color: connected ? 'hsl(var(--primary))' : '#FF3B30' }}>
+          <span className="text-lg md:text-lg tracking-wide" style={{ color: connected ? 'hsl(var(--primary))' : '#FF3B30' }}>
             {connected ? 'LIVE' : 'OFF'}
           </span>
         </div>
-        <span className="text-xs md:text-lg text-foreground">{utc}</span>
+        <span className="text-lg md:text-lg text-foreground">{utc}</span>
       </div>
     </div>
   );

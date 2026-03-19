@@ -18,7 +18,7 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
   return (
     <button
       onClick={copy}
-      className="text-sm md:text-base text-foreground border border-border px-3 py-1 rounded-sm bg-transparent cursor-pointer tracking-wide hover:border-primary transition-colors"
+      className="text-lg md:text-lg text-foreground border border-border px-3 py-1 rounded-sm bg-transparent cursor-pointer tracking-wide hover:border-primary transition-colors"
     >
       {copied ? 'COPIED' : label}
     </button>
@@ -30,12 +30,12 @@ export function ReportsTab({ reports }: ReportsTabProps) {
 
   return (
     <div className="flex-1 overflow-auto px-3 md:px-4 py-3">
-      <p className="text-sm md:text-base text-foreground tracking-[0.1em] mb-3 font-bold">
+      <p className="text-lg md:text-lg text-foreground tracking-[0.1em] mb-3 font-bold">
         CONFIRMED TRANSMISSIONS
       </p>
 
       {reports.length === 0 && (
-        <p className="text-center mt-12 text-sm md:text-base text-foreground opacity-50">
+        <p className="text-center mt-12 text-lg md:text-lg text-foreground opacity-50">
           No confirmed reports yet
         </p>
       )}
@@ -67,17 +67,17 @@ export function ReportsTab({ reports }: ReportsTabProps) {
                 ) : (
                   <ChevronRight size={18} className="text-foreground opacity-50 flex-shrink-0" />
                 )}
-                <span className="text-base md:text-xl">{emoji}</span>
+                <span className="text-lg md:text-xl">{emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm md:text-base text-foreground">
+                  <p className="truncate text-lg md:text-lg text-foreground">
                     {(a?.headline as string) || r.headline || 'Report'}
                   </p>
-                  <p className="text-xs md:text-sm text-foreground opacity-70">
+                  <p className="text-lg md:text-lg text-foreground opacity-70">
                     {new Date(r.timestamp).toISOString().replace('T', ' ').slice(0, 19)}Z
                   </p>
                 </div>
                 <span
-                  className="font-heading px-1.5 md:px-2 py-0.5 text-sm md:text-base font-bold rounded-sm"
+                  className="font-heading px-1.5 md:px-2 py-0.5 text-lg md:text-lg font-bold rounded-sm"
                   style={{
                     color: pc,
                     border: `1px solid ${pc}`,
@@ -107,26 +107,26 @@ export function ReportsTab({ reports }: ReportsTabProps) {
                       {priorityLabel}
                     </span>
                   </div>
-                  <span className="text-sm md:text-xl text-foreground uppercase font-bold">
+                  <span className="text-lg md:text-xl text-foreground uppercase font-bold">
                     {a.service as string}
                   </span>
                 </div>
 
                 {/* Headline */}
                 <div className="mt-4 p-3 md:p-4 border border-border rounded bg-card">
-                  <p className="text-sm md:text-xl text-foreground leading-relaxed font-medium">{a.headline as string}</p>
+                  <p className="text-lg md:text-xl text-foreground leading-relaxed font-medium">{a.headline as string}</p>
                 </div>
 
                 {/* Full Transcript */}
                 <div className="mt-4">
-                  <p className="text-xs md:text-base font-bold text-foreground tracking-[0.2em] mb-2">
+                  <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.2em] mb-2">
                     FULL TRANSCRIPT
                   </p>
                   <div className="p-3 md:p-4 border border-border rounded bg-card">
-                    <p className="text-sm md:text-base text-foreground leading-7 italic">
+                    <p className="text-lg md:text-lg text-foreground leading-7 italic">
                       &ldquo;{r.transcript ?? 'N/A'}&rdquo;
                     </p>
-                    <div className="text-xs md:text-base text-foreground mt-2 opacity-70">
+                    <div className="text-lg md:text-lg text-foreground mt-2 opacity-70">
                       CONFIDENCE: {Math.round(confidence * 100)}%
                     </div>
                   </div>
@@ -136,15 +136,15 @@ export function ReportsTab({ reports }: ReportsTabProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   {Object.keys(structured).length > 0 && (
                     <div>
-                      <p className="text-xs md:text-base font-bold tracking-[0.2em] mb-2" style={{ color: pc }}>
+                      <p className="text-lg md:text-lg font-bold tracking-[0.2em] mb-2" style={{ color: pc }}>
                         PROTOCOL FIELDS
                       </p>
                       <div className="p-3 md:p-4 border border-border rounded bg-card">
                         <div className="flex flex-col gap-2 md:gap-3">
                           {Object.entries(structured).map(([k, v]) => (
                             <div key={k}>
-                              <div className="text-sm md:text-base font-bold mb-0.5" style={{ color: pc }}>{k}</div>
-                              <div className="text-sm md:text-base text-foreground leading-relaxed">{v ?? '—'}</div>
+                              <div className="text-lg md:text-lg font-bold mb-0.5" style={{ color: pc }}>{k}</div>
+                              <div className="text-lg md:text-lg text-foreground leading-relaxed">{v ?? '—'}</div>
                             </div>
                           ))}
                         </div>
@@ -154,22 +154,22 @@ export function ReportsTab({ reports }: ReportsTabProps) {
 
                   {actions.length > 0 && (
                     <div>
-                      <p className="text-xs md:text-base font-bold tracking-[0.2em] mb-2" style={{ color: pc }}>
+                      <p className="text-lg md:text-lg font-bold tracking-[0.2em] mb-2" style={{ color: pc }}>
                         IMMEDIATE ACTIONS
                       </p>
                       <div className="p-3 md:p-4 border border-border rounded bg-card">
                         <div className="flex flex-col gap-1.5 md:gap-2">
                           {actions.map((action, i) => (
                             <div key={i} className="flex gap-2 md:gap-3">
-                              <span className="text-sm md:text-base font-bold min-w-[20px]" style={{ color: pc }}>{i + 1}.</span>
-                              <span className="text-sm md:text-base text-foreground leading-relaxed">{action}</span>
+                              <span className="text-lg md:text-lg font-bold min-w-[20px]" style={{ color: pc }}>{i + 1}.</span>
+                              <span className="text-lg md:text-lg text-foreground leading-relaxed">{action}</span>
                             </div>
                           ))}
                         </div>
                         {transmitTo && (
                           <>
                             <div className="border-t border-border my-3" />
-                            <div className="text-sm md:text-base text-foreground">
+                            <div className="text-lg md:text-lg text-foreground">
                               <span className="font-bold" style={{ color: pc }}>TRANSMIT TO:</span> {transmitTo}
                             </div>
                           </>
@@ -183,13 +183,13 @@ export function ReportsTab({ reports }: ReportsTabProps) {
                 {formattedReport && (
                   <div className="mt-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs md:text-base font-bold text-foreground tracking-[0.2em]">
+                      <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.2em]">
                         FORMATTED REPORT
                       </p>
                       <CopyBtn text={formattedReport} label="COPY" />
                     </div>
                     <div className="p-3 md:p-4 border border-border rounded bg-card">
-                      <div className="text-sm md:text-base text-foreground leading-7 whitespace-pre-wrap">
+                      <div className="text-lg md:text-lg text-foreground leading-7 whitespace-pre-wrap">
                         {formattedReport}
                       </div>
                     </div>

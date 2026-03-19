@@ -64,7 +64,7 @@ export default function Command() {
     return (
       <button
         onClick={() => setMobileTab(id)}
-        className="flex-1 h-12 font-heading text-[10px] font-bold tracking-[0.08em]"
+        className="flex-1 h-12 font-heading text-lg font-bold tracking-[0.08em]"
         style={{
           color: active ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
           borderTop: active ? '2px solid hsl(var(--primary))' : '2px solid transparent',
