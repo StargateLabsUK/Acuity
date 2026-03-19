@@ -46,12 +46,12 @@ function DetailCard({ children, className = '' }: { children: React.ReactNode; c
 export function ReportDetail({ report }: Props) {
   if (!report) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <span className="font-heading text-5xl text-card">
-          HERALD COMMAND
+      <div className="flex flex-col items-center justify-center h-full text-center">
+        <span className="font-heading text-5xl text-foreground tracking-[0.08em]">
+          HERALD
         </span>
-        <span className="text-lg text-foreground tracking-[0.2em] mt-2">
-          SELECT A TRANSMISSION
+        <span className="text-sm tracking-[0.2em] mt-2" style={{ color: '#4A6058' }}>
+          Select a transmission
         </span>
       </div>
     );
