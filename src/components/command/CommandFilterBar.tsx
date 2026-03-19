@@ -61,9 +61,14 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
     onFilterChange({ service: s, callsign: c, timeRange: t });
   };
 
-  // Close on outside click
+  // Update dropdown position and handle outside clicks
   useEffect(() => {
     if (!open) return;
+    // Find the closest header bar (parent with border-b)
+    const header = ref.current?.closest('.border-b');
+    if (header) {
+      setDropdownTop(header.getBoundingClientRect().bottom);
+    }
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
