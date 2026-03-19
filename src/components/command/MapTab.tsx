@@ -45,7 +45,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     mapboxgl.accessToken = MAPBOX_TOKEN;
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: 'mapbox://styles/mapbox/navigation-night-v1',
       center: [-2.5, 54.5],
       zoom: 6,
       attributionControl: false,
