@@ -98,31 +98,63 @@ export function LiveTab({
   processAudioRef.current = processTransmission;
 
   if (state === 'idle') {
+    const micReady = micStatus === 'granted';
+
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-4 overflow-auto">
-        {/* Outer circle */}
-        <div
-          className="relative flex items-center justify-center"
-          style={{ width: 160, height: 160, borderRadius: '50%', border: '1px solid #1E3028' }}
-        >
-          {/* Inner circle */}
-          <div
-            className="flex flex-col items-center justify-center animate-breathe"
-            style={{
-              width: 90,
-              height: 90,
-              borderRadius: '50%',
-              border: '1px solid rgba(61,255,140,0.15)',
-            }}
-          >
-            <span style={{ fontSize: 28 }}>🎙️</span>
-            <span style={{ fontSize: 9, color: '#3DFF8C', letterSpacing: '0.2em', marginTop: 4 }}>
-              LISTENING
-            </span>
-          </div>
-        </div>
-
-        <p style={{ fontSize: 10, color: '#1E3028', marginTop: 16 }}>HERALD IS LISTENING</p>
+        {!micReady ? (
+          <>
+            {/* Tap to enable mic */}
+            <button
+              onClick={initMic}
+              className="relative flex items-center justify-center"
+              style={{ width: 160, height: 160, borderRadius: '50%', border: '1px solid #1E3028', background: 'transparent' }}
+            >
+              <div
+                className="flex flex-col items-center justify-center"
+                style={{
+                  width: 90,
+                  height: 90,
+                  borderRadius: '50%',
+                  border: micStatus === 'denied' ? '1px solid rgba(255,59,48,0.3)' : '1px solid rgba(61,255,140,0.15)',
+                }}
+              >
+                <span style={{ fontSize: 28 }}>🎙️</span>
+                <span style={{ fontSize: 9, color: micStatus === 'denied' ? '#FF3B30' : '#3DFF8C', letterSpacing: '0.2em', marginTop: 4 }}>
+                  {micStatus === 'denied' ? 'DENIED' : 'TAP'}
+                </span>
+              </div>
+            </button>
+            <p style={{ fontSize: 10, color: micStatus === 'denied' ? '#FF3B30' : '#3DFF8C', marginTop: 16 }}>
+              {micStatus === 'denied' ? 'MICROPHONE ACCESS DENIED' : 'TAP TO ENABLE MICROPHONE'}
+            </p>
+          </>
+        ) : (
+          <>
+            {/* Outer circle */}
+            <div
+              className="relative flex items-center justify-center"
+              style={{ width: 160, height: 160, borderRadius: '50%', border: '1px solid #1E3028' }}
+            >
+              {/* Inner circle */}
+              <div
+                className="flex flex-col items-center justify-center animate-breathe"
+                style={{
+                  width: 90,
+                  height: 90,
+                  borderRadius: '50%',
+                  border: '1px solid rgba(61,255,140,0.15)',
+                }}
+              >
+                <span style={{ fontSize: 28 }}>🎙️</span>
+                <span style={{ fontSize: 9, color: '#3DFF8C', letterSpacing: '0.2em', marginTop: 4 }}>
+                  LISTENING
+                </span>
+              </div>
+            </div>
+            <p style={{ fontSize: 10, color: '#1E3028', marginTop: 16 }}>HERALD IS LISTENING</p>
+          </>
+        )}
 
         {error && (
           <p style={{ fontSize: 11, color: '#FF9500', marginTop: 8 }}>{error}</p>
