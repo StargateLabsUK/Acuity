@@ -75,6 +75,7 @@ function ExpandButton({ expanded, onClick }: { expanded: boolean; onClick: () =>
 }
 
 export default function Command() {
+  const { session: authSession, user, loading: authLoading, signIn, signOut } = useAuth();
   const {
     reports,
     todayReports,
@@ -83,6 +84,21 @@ export default function Command() {
     uniqueDevices,
     connected,
   } = useHeraldCommand();
+
+  // Auth gates
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#080B10' }}>
+        <div
+          className="animate-spin-herald rounded-full"
+          style={{ width: 32, height: 32, border: '2px solid #0F1820', borderTopColor: '#3DFF8C' }}
+        />
+      </div>
+    );
+  }
+  if (!authSession || !user) {
+    return <AuthScreen variant="command" onSignIn={signIn} />;
+  }
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
