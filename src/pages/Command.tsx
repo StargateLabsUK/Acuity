@@ -194,7 +194,7 @@ export default function Command() {
     />
   );
 
-  const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} filterSlot={filterSlot} />;
+  const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} filterSlot={filterSlot} onSignOut={signOut} />;
 
   // EXPANDED FULL-PAGE OVERLAY (desktop & tablet)
   if (expandedPanel && viewMode !== 'mobile') {
