@@ -24,7 +24,7 @@ export function ShiftInfoBar({ session, onEndShift, onSignOut, position }: Props
 
   return (
     <>
-      <div className="flex-shrink-0 flex flex-col items-center py-3 gap-1" style={{ background: '#1A1E24' }}>
+      <div className="flex-shrink-0 flex flex-col items-center py-2 gap-0.5" style={{ background: '#1A1E24' }}>
         <span style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase' as const }}>
           {SERVICE_LABELS[session.service] ?? session.service.toUpperCase()}
         </span>
