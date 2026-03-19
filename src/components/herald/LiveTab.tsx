@@ -329,16 +329,31 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         <button
           onClick={startRecording}
           className="relative flex items-center justify-center bg-transparent"
-          style={{ width: 200, height: 200 }}
+          style={{ width: 260, height: 260 }}
         >
-          <svg width="200" height="200" viewBox="0 0 200 200" className="absolute inset-0">
-            <circle cx="100" cy="100" r="70" fill="none" stroke="#3DFF8C" strokeWidth="1" opacity="0.15"
-              style={{ animation: 'wave-idle 3s ease-in-out infinite' } as React.CSSProperties} />
-            <circle cx="100" cy="100" r="62" fill="none" stroke="#3DFF8C" strokeWidth="0.5" opacity="0.1"
-              style={{ animation: 'wave-idle-2 3.5s ease-in-out infinite' } as React.CSSProperties} />
+          <svg width="260" height="260" viewBox="0 0 260 260" className="absolute inset-0">
+            {/* Outer glow ring */}
+            <circle cx="130" cy="130" r="120" fill="none" stroke="#1E90FF" strokeWidth="0.5" opacity="0.2" />
+            {/* Main dotted particle ring */}
+            <circle cx="130" cy="130" r="105" fill="none" stroke="#1E90FF" strokeWidth="1.5"
+              strokeDasharray="3 8" opacity="0.6" />
+            {/* Inner dotted ring */}
+            <circle cx="130" cy="130" r="90" fill="none" stroke="#1E90FF" strokeWidth="1"
+              strokeDasharray="2 12" opacity="0.35" />
+            {/* Faint inner glow */}
+            <circle cx="130" cy="130" r="75" fill="none" stroke="#1E90FF" strokeWidth="0.5"
+              strokeDasharray="1 10" opacity="0.2" />
+            {/* Center glow */}
+            <circle cx="130" cy="130" r="50" fill="url(#centerGlow)" />
+            <defs>
+              <radialGradient id="centerGlow">
+                <stop offset="0%" stopColor="#1E90FF" stopOpacity="0.08" />
+                <stop offset="100%" stopColor="#1E90FF" stopOpacity="0" />
+              </radialGradient>
+            </defs>
           </svg>
           <div className="flex flex-col items-center justify-center z-10">
-            <span style={{ color: '#3DFF8C', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
+            <span style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
               START
             </span>
           </div>
