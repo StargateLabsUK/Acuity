@@ -85,7 +85,18 @@ export default function Command() {
     connected,
   } = useHeraldCommand();
 
-  // Auth gates
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
+  const [filters, setFilters] = useState<CommandFilters>({
+    service: '',
+    callsign: '',
+    timeRange: 'today',
+  });
+  const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
+  const viewMode = useViewMode();
+  const mapRef = useRef<MapTabHandle>(null);
+
+  // Auth gates (after all hooks)
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ background: '#080B10' }}>
@@ -99,17 +110,6 @@ export default function Command() {
   if (!authSession || !user) {
     return <AuthScreen variant="command" onSignIn={signIn} />;
   }
-
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
-  const [filters, setFilters] = useState<CommandFilters>({
-    service: '',
-    callsign: '',
-    timeRange: 'today',
-  });
-  const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
-  const viewMode = useViewMode();
-  const mapRef = useRef<MapTabHandle>(null);
 
   const filteredReports = useMemo(() => applyFilters(reports, filters), [reports, filters]);
   const selectedReport = filteredReports.find((r) => r.id === selectedId) ?? null;
