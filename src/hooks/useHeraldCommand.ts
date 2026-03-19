@@ -66,6 +66,8 @@ export function useHeraldCommand() {
         { event: 'INSERT', schema: 'public', table: 'herald_reports' },
         (payload) => {
           const r = payload.new as any;
+          // Only show confirmed (heralded) reports
+          if (!r.confirmed_at) return;
           const report: CommandReport = {
             ...r,
             assessment: r.assessment ? (r.assessment as Assessment) : null,
