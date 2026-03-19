@@ -44,6 +44,7 @@ export function LiveTab({
       setError('');
       setTranscript('');
       setAssessment(null);
+      setCurrentReportId(null);
 
       await new Promise((r) => setTimeout(r, 300));
       setExternalState('processing');
@@ -62,6 +63,22 @@ export function LiveTab({
         setAssessment(result);
         onAiStatus('ok');
 
+        // Save report immediately (unconfirmed)
+        const report: HeraldReport = {
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          transcript: finalTranscript,
+          assessment: result,
+          synced: false,
+          confirmed_at: null as unknown as string,
+          headline: result.headline,
+          priority: result.priority,
+          service: result.service,
+        };
+        saveReport(report);
+        setCurrentReportId(report.id);
+        onReportSaved();
+
         await new Promise((r) => setTimeout(r, isTest ? 2000 : 500));
         setExternalState('ready');
       } catch {
@@ -73,7 +90,7 @@ export function LiveTab({
         }, 3000);
       }
     },
-    [getAudioBase64, onAiStatus, setExternalState]
+    [getAudioBase64, onAiStatus, setExternalState, onReportSaved]
   );
 
   const handleConfirm = useCallback(() => {
