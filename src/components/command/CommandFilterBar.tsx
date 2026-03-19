@@ -42,9 +42,9 @@ const selectStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   color: '#4A6058',
-  fontSize: 18,
+  fontSize: 20,
   letterSpacing: '0.15em',
-  marginBottom: 4,
+  marginBottom: 6,
   display: 'block',
   fontWeight: 700,
 };
