@@ -332,10 +332,10 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           style={{ width: 200, height: 200 }}
         >
           <svg width="200" height="200" viewBox="0 0 200 200" className="absolute inset-0">
-            <circle cx="100" cy="100" fill="none" stroke="#3DFF8C" strokeWidth="1" opacity="0.15"
-              style={{ r: 70, animation: 'wave-idle 3s ease-in-out infinite' }} />
-            <circle cx="100" cy="100" fill="none" stroke="#3DFF8C" strokeWidth="0.5" opacity="0.1"
-              style={{ r: 62, animation: 'wave-idle-2 3.5s ease-in-out infinite' }} />
+            <circle cx="100" cy="100" r="70" fill="none" stroke="#3DFF8C" strokeWidth="1" opacity="0.15"
+              style={{ animation: 'wave-idle 3s ease-in-out infinite' } as React.CSSProperties} />
+            <circle cx="100" cy="100" r="62" fill="none" stroke="#3DFF8C" strokeWidth="0.5" opacity="0.1"
+              style={{ animation: 'wave-idle-2 3.5s ease-in-out infinite' } as React.CSSProperties} />
           </svg>
           <div className="flex flex-col items-center justify-center z-10">
             <span style={{ fontSize: 32 }}>🎙️</span>
