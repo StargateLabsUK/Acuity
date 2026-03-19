@@ -27,11 +27,11 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
       {/* Top row: Transmissions + By Service */}
       <div className="grid grid-cols-3 md:grid-cols-5 gap-0">
         {/* Total Transmissions */}
-        <div className="px-3 py-2.5 md:px-4 md:py-3 border-r border-b md:border-b-0 border-border flex flex-col items-center justify-center">
+        <div className="px-3 py-2.5 md:px-4 md:py-3 border-r border-b md:border-b-0 border-border flex flex-col">
           <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
             TODAY
           </div>
-          <div className="font-heading text-4xl md:text-6xl text-foreground font-bold leading-none">
+          <div className="font-heading text-4xl md:text-6xl text-foreground font-bold leading-none flex-1 flex items-center justify-center">
             {todayReports.length}
           </div>
         </div>
