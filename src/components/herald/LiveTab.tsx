@@ -15,6 +15,9 @@ interface LiveTabProps {
   setExternalState: (s: LiveState) => void;
   micStatus: 'pending' | 'granted' | 'denied';
   initMic: () => Promise<void>;
+  startCapture: () => void;
+  stopCapture: () => void;
+  isCapturing: boolean;
 }
 
 export function LiveTab({
