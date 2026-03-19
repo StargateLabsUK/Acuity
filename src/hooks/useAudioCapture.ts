@@ -101,6 +101,14 @@ export function useAudioCapture(
     setIsCapturing(true);
   }, []);
 
+  const stopCapture = useCallback(() => {
+    if (capturingRef.current) {
+      capturingRef.current = false;
+      setIsCapturing(false);
+      onSilence();
+    }
+  }, [onSilence]);
+
   const getAudioBase64 = useCallback(async () => {
     if (capturedRef.current.length === 0) return null;
     const total = capturedRef.current.reduce((a, b) => a + b.length, 0);
