@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 
 interface Props {
   services: string[];
@@ -27,10 +28,11 @@ const TIME_OPTIONS = [
 ];
 
 const selectStyle: React.CSSProperties = {
+  width: '100%',
   background: '#0D1117',
   border: '1px solid #0F1820',
   color: '#C8D0CC',
-  padding: '6px 10px',
+  padding: '10px 12px',
   borderRadius: 3,
   fontSize: 18,
   outline: 'none',
@@ -38,50 +40,125 @@ const selectStyle: React.CSSProperties = {
   WebkitAppearance: 'none' as const,
 };
 
+const labelStyle: React.CSSProperties = {
+  color: '#4A6058',
+  fontSize: 18,
+  letterSpacing: '0.15em',
+  marginBottom: 4,
+  display: 'block',
+  fontWeight: 700,
+};
+
 export function CommandFilterBar({ services, callsigns, onFilterChange }: Props) {
+  const [open, setOpen] = useState(false);
   const [service, setService] = useState('');
   const [callsign, setCallsign] = useState('');
   const [timeRange, setTimeRange] = useState<'today' | '24h' | 'all'>('today');
+  const ref = useRef<HTMLDivElement>(null);
 
   const update = (s: string, c: string, t: 'today' | '24h' | 'all') => {
     onFilterChange({ service: s, callsign: c, timeRange: t });
   };
 
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const hasActiveFilter = service !== '' || callsign !== '' || timeRange !== 'today';
+
   return (
-    <div
-      className="flex items-center gap-2 px-3 py-2 flex-shrink-0 overflow-x-auto"
-      style={{ background: '#0D1117', borderBottom: '1px solid #0F1820' }}
-    >
-      <select
-        value={service}
-        onChange={(e) => { setService(e.target.value); update(e.target.value, callsign, timeRange); }}
-        style={selectStyle}
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 px-2 py-1 rounded-sm cursor-pointer transition-colors"
+        style={{
+          color: hasActiveFilter ? '#3DFF8C' : 'hsl(var(--foreground))',
+          border: `1px solid ${hasActiveFilter ? 'rgba(61,255,140,0.4)' : 'hsl(var(--border))'}`,
+          background: hasActiveFilter ? 'rgba(61,255,140,0.08)' : 'transparent',
+        }}
       >
-        {SERVICE_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
+        <SlidersHorizontal size={18} />
+        <span className="text-lg font-bold tracking-wide">FILTERS</span>
+      </button>
 
-      <select
-        value={callsign}
-        onChange={(e) => { setCallsign(e.target.value); update(service, e.target.value, timeRange); }}
-        style={selectStyle}
-      >
-        <option value="">ALL UNITS</option>
-        {callsigns.map((c) => (
-          <option key={c} value={c}>{c}</option>
-        ))}
-      </select>
+      {open && (
+        <div
+          className="absolute top-full right-0 mt-2 z-50 rounded-lg shadow-xl"
+          style={{
+            background: '#0D1117',
+            border: '1px solid #0F1820',
+            padding: 16,
+            minWidth: 280,
+          }}
+        >
+          <div className="mb-4">
+            <label style={labelStyle}>SERVICE</label>
+            <select
+              value={service}
+              onChange={(e) => { setService(e.target.value); update(e.target.value, callsign, timeRange); }}
+              style={selectStyle}
+            >
+              {SERVICE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
 
-      <select
-        value={timeRange}
-        onChange={(e) => { const v = e.target.value as 'today' | '24h' | 'all'; setTimeRange(v); update(service, callsign, v); }}
-        style={selectStyle}
-      >
-        {TIME_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
+          <div className="mb-4">
+            <label style={labelStyle}>UNIT</label>
+            <select
+              value={callsign}
+              onChange={(e) => { setCallsign(e.target.value); update(service, e.target.value, timeRange); }}
+              style={selectStyle}
+            >
+              <option value="">ALL UNITS</option>
+              {callsigns.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-4">
+            <label style={labelStyle}>TIME RANGE</label>
+            <select
+              value={timeRange}
+              onChange={(e) => { const v = e.target.value as 'today' | '24h' | 'all'; setTimeRange(v); update(service, callsign, v); }}
+              style={selectStyle}
+            >
+              {TIME_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {hasActiveFilter && (
+            <button
+              onClick={() => {
+                setService('');
+                setCallsign('');
+                setTimeRange('today');
+                update('', '', 'today');
+              }}
+              className="w-full text-lg font-bold tracking-wide py-2 rounded-sm cursor-pointer"
+              style={{
+                color: '#FF9500',
+                border: '1px solid rgba(255,149,0,0.3)',
+                background: 'rgba(255,149,0,0.08)',
+              }}
+            >
+              RESET FILTERS
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
