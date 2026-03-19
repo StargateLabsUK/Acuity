@@ -71,7 +71,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       const p = getReportPriority(r);
       const color = PRIORITY_COLORS[p] ?? '#34C759';
       const radius = PRIORITY_RADIUS[p] ?? 8;
-      const emoji = SERVICE_EMOJIS[r.assessment?.service ?? r.service ?? 'unknown'] ?? '📻';
+      const label = SERVICE_LABELS[r.assessment?.service ?? r.service ?? 'unknown'] ?? 'UNK';
 
       const el = document.createElement('div');
       el.style.width = `${radius * 2}px`;

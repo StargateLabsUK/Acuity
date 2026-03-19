@@ -59,7 +59,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
       {reports.map((r) => {
         const a = r.assessment as unknown as Record<string, unknown> | null;
         const pc = PRIORITY_COLORS[a?.priority as string] || PRIORITY_COLORS[r.priority as string] || 'hsl(var(--foreground))';
-        const emoji = SERVICE_EMOJIS[a?.service as string] || SERVICE_EMOJIS[r.service as string] || '📻';
+        const serviceLabel = SERVICE_LABELS[a?.service as string] || SERVICE_LABELS[r.service as string] || 'UNKNOWN';
         const expanded = expandedId === r.id;
         const structured = (a?.structured as Record<string, string>) ?? {};
         const actions = (a?.actions as string[]) ?? [];

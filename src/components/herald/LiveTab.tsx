@@ -500,7 +500,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   // ─── STATE 4: READY ───
   if (state === 'ready' && assessment) {
     const pc = PRIORITY_COLORS[assessment.priority] || 'hsl(var(--foreground))';
-    const emoji = SERVICE_EMOJIS[assessment.service] || '📻';
+    const serviceLabel = SERVICE_LABELS[assessment.service] || assessment.service.toUpperCase();
 
     return (
       <div className="flex flex-col flex-1 overflow-auto pb-20">

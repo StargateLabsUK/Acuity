@@ -127,7 +127,7 @@ export function TrainingTab({ reports }: Props) {
                 {/* Top row */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{SERVICE_EMOJIS[service] ?? '📻'}</span>
+                    <span className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{SERVICE_LABELS[service] ?? service}</span>
                     <span className="text-lg font-bold text-foreground">{callsign}</span>
                   </div>
                   <span className="text-lg text-foreground opacity-70">{time}</span>

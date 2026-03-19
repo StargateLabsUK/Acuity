@@ -58,7 +58,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
           <div className="flex flex-col gap-0.5">
             {Object.entries(serviceCounts).map(([s, c]) => (
               <div key={s} className="flex items-center justify-between">
-                <span className="text-lg md:text-lg text-foreground">{SERVICE_EMOJIS[s] ?? '📻'} {s.toUpperCase()}</span>
+                <span className="text-lg md:text-lg text-foreground">{SERVICE_LABELS[s] ?? s.toUpperCase()}</span>
                 <span className="text-lg md:text-lg text-foreground font-bold">{c}</span>
               </div>
             ))}

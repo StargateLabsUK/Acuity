@@ -61,7 +61,7 @@ export function ReportDetail({ report }: Props) {
   const priority = a?.priority ?? report.priority ?? 'P3';
   const col = PRIORITY_COLORS[priority] ?? '#34C759';
   const service = a?.service ?? report.service ?? 'unknown';
-  const emoji = SERVICE_EMOJIS[service] ?? '📻';
+  const serviceLabel = SERVICE_LABELS[service] ?? service.toUpperCase();
   const ts = new Date(report.created_at ?? report.timestamp);
   const timeStr = ts.getUTCHours().toString().padStart(2, '0') + ':' +
     ts.getUTCMinutes().toString().padStart(2, '0') + ':' +
