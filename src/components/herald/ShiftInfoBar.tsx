@@ -18,11 +18,12 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
   };
 
   if (position === 'top') {
-    return (
-      <div
-        className="flex flex-col items-center flex-shrink-0 py-2"
-        style={{ background: '#1A1E24', borderBottom: '1px solid #0F1820' }}
-      >
+    return null;
+  }
+
+  return (
+    <>
+      <div className="flex-shrink-0 flex flex-col items-center py-3 gap-1" style={{ background: '#1A1E24' }}>
         <span style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase' as const }}>
           {SERVICE_LABELS[session.service] ?? session.service.toUpperCase()}
         </span>
@@ -35,16 +36,10 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
             {session.station}
           </span>
         )}
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="flex-shrink-0 flex justify-center py-2 mb-4" style={{ background: '#1A1E24' }}>
         <button
           onClick={() => setConfirming(true)}
           style={{
+            marginTop: 8,
             padding: '8px 24px',
             background: '#FF3B30',
             color: '#FFFFFF',
