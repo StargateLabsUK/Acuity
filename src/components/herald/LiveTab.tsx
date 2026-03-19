@@ -369,7 +369,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               className="w-full text-left p-3 mb-2 border border-border bg-transparent rounded-sm"
             >
               <span className="text-lg md:text-lg text-foreground font-semibold">
-                {t.emoji} {t.label}
+                {t.label}
               </span>
               <p className="text-lg md:text-lg text-foreground mt-1 leading-relaxed line-clamp-2">
                 {t.text}
