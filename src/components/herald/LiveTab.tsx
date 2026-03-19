@@ -345,12 +345,12 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           </div>
         </button>
 
-        <p style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', marginTop: 20, textAlign: 'center', fontWeight: 700 }}>
+        <p style={{ color: '#FFFFFF', fontSize: 14, letterSpacing: '0.2em', marginTop: 20, textAlign: 'center', fontWeight: 700 }}>
           TAP TO START RECORDING
         </p>
 
         {error && (
-          <p className="mt-2" style={{ color: '#FF9500', fontSize: 18, letterSpacing: '0.2em' }}>{error}</p>
+          <p className="mt-2" style={{ color: '#FF9500', fontSize: 14, letterSpacing: '0.2em' }}>{error}</p>
         )}
 
       </div>
