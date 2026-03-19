@@ -23,6 +23,8 @@ export function LiveTab({
   onReportSaved,
   externalState,
   setExternalState,
+  micStatus,
+  initMic,
 }: LiveTabProps) {
   const state = externalState || 'idle';
   const [transcript, setTranscript] = useState('');
