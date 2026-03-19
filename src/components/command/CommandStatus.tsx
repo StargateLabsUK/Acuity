@@ -66,7 +66,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
             {Object.entries(serviceCounts).map(([s, c]) => (
               <div key={s} className="flex items-center justify-between">
                 <span className="text-lg md:text-lg text-foreground">{SERVICE_LABELS[s] ?? s.toUpperCase()}</span>
-                <span className="font-heading text-2xl md:text-3xl text-foreground font-bold">{c}</span>
+                <span className="font-heading text-lg text-foreground font-bold">{c}</span>
               </div>
             ))}
             {Object.keys(serviceCounts).length === 0 && (
