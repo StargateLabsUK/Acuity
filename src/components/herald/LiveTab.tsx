@@ -147,6 +147,7 @@ export function LiveTab({
             headline: result.headline,
             priority: result.priority,
             service: result.service,
+            ...(await getLocation()),
           };
           saveReport(report);
           setCurrentReportId(report.id);
