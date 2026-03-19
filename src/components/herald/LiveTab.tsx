@@ -135,6 +135,8 @@ export function LiveTab({
       hasStartedProcessing.current = false;
     }
   }, [state, getAudioBase64, onAiStatus, setExternalState]);
+
+  if (state === 'idle') {
     const micReady = micStatus === 'granted';
 
     return (
