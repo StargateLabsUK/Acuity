@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { saveSession } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
+import { getStationsForService } from '@/lib/uk-stations';
 
 const SERVICE_OPTIONS = [
-  { value: 'ambulance', emoji: '🚑', label: '🚑 Ambulance' },
-  { value: 'police', emoji: '👮', label: '👮 Police' },
-  { value: 'fire', emoji: '🚒', label: '🚒 Fire & Rescue' },
-  { value: 'military', emoji: '⚔️', label: '⚔️ Military' },
-  { value: 'other', emoji: '📻', label: 'Other' },
+  { value: 'ambulance', label: 'Ambulance' },
+  { value: 'police', label: 'Police' },
+  { value: 'fire', label: 'Fire & Rescue' },
+  { value: 'military', label: 'Military' },
+  { value: 'other', label: 'Other' },
 ];
 
 interface Props {
@@ -41,16 +42,21 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const [station, setStation] = useState('');
 
   const canSubmit = service !== '' && callsign.trim() !== '';
+  const stationOptions = getStationsForService(service);
+
+  const handleServiceChange = (val: string) => {
+    setService(val);
+    setStation(''); // reset station when service changes
+  };
 
   const handleBeginShift = () => {
     if (!canSubmit) return;
-    const opt = SERVICE_OPTIONS.find((o) => o.value === service);
     const session: HeraldSession = {
       service,
-      service_emoji: opt?.emoji ?? '📻',
+      service_emoji: '',
       callsign: callsign.trim(),
       operator_id: collarNumber.trim() || null,
-      station: station.trim() || null,
+      station: station || null,
       session_date: new Date().toISOString().slice(0, 10),
       shift_started: new Date().toISOString(),
     };
@@ -94,7 +100,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
           <label style={labelStyle}>SERVICE</label>
           <select
             value={service}
-            onChange={(e) => setService(e.target.value)}
+            onChange={(e) => handleServiceChange(e.target.value)}
             style={{
               ...inputStyle,
               color: service ? '#C8D0CC' : '#1E3028',
@@ -133,16 +139,25 @@ export function ShiftLogin({ onShiftStarted }: Props) {
           />
         </div>
 
-        {/* STATION */}
+        {/* STATION / TRUST */}
         <div className="mb-8">
           <label style={labelStyle}>STATION / TRUST</label>
-          <input
-            type="text"
+          <select
             value={station}
             onChange={(e) => setStation(e.target.value)}
-            placeholder="Optional"
-            style={inputStyle}
-          />
+            style={{
+              ...inputStyle,
+              color: station ? '#C8D0CC' : '#1E3028',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+            }}
+            disabled={!service}
+          >
+            <option value="">{service ? 'Select station / trust' : 'Select a service first'}</option>
+            {stationOptions.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
         </div>
 
         {/* BEGIN SHIFT */}

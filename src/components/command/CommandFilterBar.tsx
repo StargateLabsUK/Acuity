@@ -14,10 +14,10 @@ export interface CommandFilters {
 
 const SERVICE_OPTIONS = [
   { value: '', label: 'ALL SERVICES' },
-  { value: 'ambulance', label: '🚑 Ambulance' },
-  { value: 'police', label: '👮 Police' },
-  { value: 'fire', label: '🚒 Fire & Rescue' },
-  { value: 'military', label: '⚔️ Military' },
+  { value: 'ambulance', label: 'Ambulance' },
+  { value: 'police', label: 'Police' },
+  { value: 'fire', label: 'Fire & Rescue' },
+  { value: 'military', label: 'Military' },
 ];
 
 const TIME_OPTIONS = [

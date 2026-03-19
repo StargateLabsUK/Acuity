@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Assessment, LiveState } from '@/lib/herald-types';
-import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_EMOJIS } from '@/lib/herald-types';
+import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 import { transcribeAudio, assessTranscript } from '@/lib/herald-api';
 import { saveReport, updateReport } from '@/lib/herald-storage';
 import { computeDiff } from '@/lib/herald-diff';
@@ -369,7 +369,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               className="w-full text-left p-3 mb-2 border border-border bg-transparent rounded-sm"
             >
               <span className="text-lg md:text-lg text-foreground font-semibold">
-                {t.emoji} {t.label}
+                {t.label}
               </span>
               <p className="text-lg md:text-lg text-foreground mt-1 leading-relaxed line-clamp-2">
                 {t.text}
@@ -500,7 +500,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   // ─── STATE 4: READY ───
   if (state === 'ready' && assessment) {
     const pc = PRIORITY_COLORS[assessment.priority] || 'hsl(var(--foreground))';
-    const emoji = SERVICE_EMOJIS[assessment.service] || '📻';
+    const serviceLabel = SERVICE_LABELS[assessment.service] || assessment.service.toUpperCase();
 
     return (
       <div className="flex flex-col flex-1 overflow-auto pb-20">
@@ -509,7 +509,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           style={{ background: `${pc}1F`, borderBottom: `2px solid ${pc}` }}
         >
           <div className="flex items-baseline gap-2 md:gap-3">
-            <span className="text-2xl md:text-4xl">{emoji}</span>
+            <span className="text-lg md:text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{serviceLabel}</span>
             <span className="font-heading text-3xl md:text-5xl" style={{ color: pc }}>{assessment.priority}</span>
             <span className="font-heading text-lg md:text-[28px]" style={{ color: pc }}>{assessment.priority_label}</span>
           </div>

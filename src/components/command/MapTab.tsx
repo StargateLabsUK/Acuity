@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
-import { PRIORITY_COLORS, SERVICE_EMOJIS } from '@/lib/herald-types';
+import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -71,7 +71,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       const p = getReportPriority(r);
       const color = PRIORITY_COLORS[p] ?? '#34C759';
       const radius = PRIORITY_RADIUS[p] ?? 8;
-      const emoji = SERVICE_EMOJIS[r.assessment?.service ?? r.service ?? 'unknown'] ?? '📻';
+      const label = SERVICE_LABELS[r.assessment?.service ?? r.service ?? 'unknown'] ?? 'UNK';
 
       const el = document.createElement('div');
       el.style.width = `${radius * 2}px`;
@@ -98,8 +98,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
         <div style="font-family:Inter,sans-serif;color:#E6EDF3;padding:4px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
             <span style="background:${color};color:#fff;font-weight:700;padding:2px 8px;border-radius:4px;font-size:13px;">${p}</span>
-            <span style="font-size:16px;">${emoji}</span>
-            <span style="font-size:13px;text-transform:uppercase;font-weight:600;">${service}</span>
+            <span style="font-size:13px;text-transform:uppercase;font-weight:600;">${label}</span>
           </div>
           <p style="font-size:13px;line-height:1.4;margin:0 0 6px;">${headline}</p>
           <div style="font-size:11px;opacity:0.7;">${timeStr}${callsign ? ` · ${callsign}` : ''}</div>

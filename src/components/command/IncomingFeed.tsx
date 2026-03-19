@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
-import { SERVICE_EMOJIS, PRIORITY_COLORS } from '@/lib/herald-types';
+import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
 
 interface Props {
   reports: CommandReport[];
@@ -82,7 +82,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-lg md:text-lg">{SERVICE_EMOJIS[getService(r)] ?? '📻'}</span>
+                  <span className="text-lg md:text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{SERVICE_LABELS[getService(r)] ?? getService(r)}</span>
                   <span className="flex-1 truncate text-lg md:text-lg text-foreground">
                     {getHeadline(r)}
                   </span>

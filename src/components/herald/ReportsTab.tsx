@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import type { HeraldReport } from '@/lib/herald-types';
-import { PRIORITY_COLORS, SERVICE_EMOJIS } from '@/lib/herald-types';
+import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 
 interface ReportsTabProps {
@@ -33,7 +33,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
   if (reports.length === 0 && session) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-4">
-        <span className="text-[48px] mb-4">{session.service_emoji}</span>
+        <span className="text-lg uppercase font-bold mb-4" style={{ color: '#4A6058' }}>{SERVICE_LABELS[session.service] ?? session.service}</span>
         <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.2em', marginBottom: 8 }}>
           NO REPORTS THIS SHIFT
         </p>
@@ -59,7 +59,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
       {reports.map((r) => {
         const a = r.assessment as unknown as Record<string, unknown> | null;
         const pc = PRIORITY_COLORS[a?.priority as string] || PRIORITY_COLORS[r.priority as string] || 'hsl(var(--foreground))';
-        const emoji = SERVICE_EMOJIS[a?.service as string] || SERVICE_EMOJIS[r.service as string] || '📻';
+        const serviceLabel = SERVICE_LABELS[a?.service as string] || SERVICE_LABELS[r.service as string] || 'UNKNOWN';
         const expanded = expandedId === r.id;
         const structured = (a?.structured as Record<string, string>) ?? {};
         const actions = (a?.actions as string[]) ?? [];
@@ -83,7 +83,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
                 ) : (
                   <ChevronRight size={18} className="text-foreground opacity-50 flex-shrink-0" />
                 )}
-                <span className="text-lg md:text-xl">{emoji}</span>
+                <span className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{serviceLabel}</span>
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-lg md:text-lg text-foreground">
                     {(a?.headline as string) || r.headline || 'Report'}
@@ -115,7 +115,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
                   }}
                 >
                   <div className="flex items-baseline gap-2 md:gap-3">
-                    <span className="text-2xl md:text-[40px]">{emoji}</span>
+                    <span className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{serviceLabel}</span>
                     <span className="font-heading text-3xl md:text-5xl leading-none" style={{ color: pc }}>
                       {a.priority as string}
                     </span>
