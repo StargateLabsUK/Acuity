@@ -54,7 +54,7 @@ export function ReportsTab({ reports }: ReportsTabProps) {
         return (
           <div
             key={r.id}
-            className="mb-2 border border-border rounded"
+            className="mb-3 rounded-lg border border-border bg-card shadow-sm overflow-hidden"
           >
             <button
               onClick={() => setExpandedId(expanded ? null : r.id)}
