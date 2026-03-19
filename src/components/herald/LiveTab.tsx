@@ -36,6 +36,7 @@ export function LiveTab({
   const [transcript, setTranscript] = useState('');
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [error, setError] = useState('');
+  const [currentReportId, setCurrentReportId] = useState<string | null>(null);
 
   const processTransmission = useCallback(
     async (text: string, isTest: boolean) => {
