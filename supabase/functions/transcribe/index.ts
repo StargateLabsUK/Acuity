@@ -20,9 +20,11 @@ Deno.serve(async (req) => {
       bytes[i] = binaryStr.charCodeAt(i);
     }
 
-    const blob = new Blob([bytes], { type: mimeType || 'audio/wav' });
+    const mime = mimeType || 'audio/wav';
+    const ext = mime.includes('webm') ? 'webm' : mime.includes('ogg') ? 'ogg' : 'wav';
+    const blob = new Blob([bytes], { type: mime });
     const formData = new FormData();
-    formData.append('file', blob, 'audio.wav');
+    formData.append('file', blob, `audio.${ext}`);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
 
