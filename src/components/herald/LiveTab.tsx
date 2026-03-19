@@ -166,25 +166,21 @@ export function LiveTab({
           <>
             <button
               onClick={initMic}
-              className="relative flex items-center justify-center"
-              style={{ width: 160, height: 160, borderRadius: '50%', border: '1px solid #FFFFFF', background: 'transparent' }}
+              className="relative flex items-center justify-center w-32 h-32 md:w-40 md:h-40 rounded-full border border-foreground bg-transparent"
             >
               <div
-                className="flex flex-col items-center justify-center"
+                className="flex flex-col items-center justify-center w-20 h-20 md:w-[90px] md:h-[90px] rounded-full"
                 style={{
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
                   border: micStatus === 'denied' ? '1px solid rgba(255,59,48,0.3)' : '1px solid rgba(61,255,140,0.15)',
                 }}
               >
-                <span style={{ fontSize: 28 }}>🎙️</span>
-                <span style={{ fontSize: 18, color: micStatus === 'denied' ? '#FF3B30' : '#3DFF8C', letterSpacing: '0.2em', marginTop: 4 }}>
+                <span className="text-2xl md:text-3xl">🎙️</span>
+                <span className="text-sm md:text-base tracking-[0.2em] mt-1" style={{ color: micStatus === 'denied' ? '#FF3B30' : 'hsl(var(--primary))' }}>
                   {micStatus === 'denied' ? 'DENIED' : 'TAP'}
                 </span>
               </div>
             </button>
-            <p style={{ fontSize: 18, color: micStatus === 'denied' ? '#FF3B30' : '#3DFF8C', marginTop: 16 }}>
+            <p className="text-sm md:text-base mt-4" style={{ color: micStatus === 'denied' ? '#FF3B30' : 'hsl(var(--primary))' }}>
               {micStatus === 'denied' ? 'MICROPHONE ACCESS DENIED' : 'TAP TO ENABLE MICROPHONE'}
             </p>
           </>
@@ -198,57 +194,46 @@ export function LiveTab({
                   startCapture();
                 }
               }}
-              className="relative flex items-center justify-center"
-              style={{ width: 160, height: 160, borderRadius: '50%', border: `2px solid ${isCapturing ? '#FF3B30' : '#FFFFFF'}`, background: 'transparent' }}
+              className="relative flex items-center justify-center w-32 h-32 md:w-40 md:h-40 rounded-full bg-transparent"
+              style={{ border: `2px solid ${isCapturing ? '#FF3B30' : 'hsl(var(--foreground))'}` }}
             >
               <div
-                className={`flex flex-col items-center justify-center ${isCapturing ? 'animate-pulse' : 'animate-breathe'}`}
+                className={`flex flex-col items-center justify-center w-20 h-20 md:w-[90px] md:h-[90px] rounded-full ${isCapturing ? 'animate-pulse' : 'animate-breathe'}`}
                 style={{
-                  width: 90,
-                  height: 90,
-                  borderRadius: '50%',
                   border: `1px solid ${isCapturing ? 'rgba(255,59,48,0.4)' : 'rgba(61,255,140,0.15)'}`,
                   background: isCapturing ? 'radial-gradient(circle, rgba(255,59,48,0.1), transparent)' : 'transparent',
                 }}
               >
-                <span style={{ fontSize: 28 }}>{isCapturing ? '⏹️' : '🎙️'}</span>
-                <span style={{ fontSize: 18, color: isCapturing ? '#FF3B30' : '#3DFF8C', letterSpacing: '0.2em', marginTop: 4, fontWeight: 700 }}>
+                <span className="text-2xl md:text-3xl">{isCapturing ? '⏹️' : '🎙️'}</span>
+                <span className="text-sm md:text-base tracking-[0.2em] mt-1 font-bold" style={{ color: isCapturing ? '#FF3B30' : 'hsl(var(--primary))' }}>
                   {isCapturing ? 'STOP' : 'RECORD'}
                 </span>
               </div>
             </button>
-            <p style={{ fontSize: 18, color: isCapturing ? '#FF3B30' : '#FFFFFF', marginTop: 16 }}>
+            <p className="text-sm md:text-base mt-4" style={{ color: isCapturing ? '#FF3B30' : 'hsl(var(--foreground))' }}>
               {isCapturing ? 'TAP TO STOP RECORDING' : 'TAP TO START RECORDING'}
             </p>
           </>
         )}
 
         {error && (
-          <p style={{ fontSize: 18, color: '#FF9500', marginTop: 8 }}>{error}</p>
+          <p className="text-sm md:text-base mt-2" style={{ color: '#FF9500' }}>{error}</p>
         )}
 
-        <div className="w-full mt-8">
-          <p style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.1em', marginBottom: 8 }}>
+        <div className="w-full max-w-lg mt-6 md:mt-8">
+          <p className="text-sm md:text-base text-foreground tracking-[0.1em] mb-2">
             TEST TRANSMISSIONS
           </p>
           {TEST_TRANSMISSIONS.map((t, i) => (
             <button
               key={i}
               onClick={() => processTransmission(t.text, true)}
-              className="w-full text-left p-3 mb-2"
-              style={{
-                border: '1px solid #0F1820',
-                background: 'transparent',
-                borderRadius: 2,
-              }}
+              className="w-full text-left p-3 mb-2 border border-border bg-transparent rounded-sm"
             >
-              <span style={{ fontSize: 18, color: '#FFFFFF', fontWeight: 600 }}>
+              <span className="text-sm md:text-base text-foreground font-semibold">
                 {t.label}
               </span>
-              <p
-                style={{ fontSize: 18, color: '#FFFFFF', marginTop: 4, lineHeight: 1.4 }}
-                className="line-clamp-2"
-              >
+              <p className="text-xs md:text-sm text-foreground mt-1 leading-relaxed line-clamp-2">
                 {t.text}
               </p>
             </button>
@@ -263,29 +248,18 @@ export function LiveTab({
       <div className="flex flex-col items-center justify-center flex-1">
         <div className="relative flex items-center justify-center">
           <div
-            className="absolute animate-pulse-ring"
-            style={{
-              width: 160,
-              height: 160,
-              borderRadius: '50%',
-              border: '2px solid #FF3B30',
-            }}
+            className="absolute animate-pulse-ring w-32 h-32 md:w-40 md:h-40 rounded-full"
+            style={{ border: '2px solid #FF3B30' }}
           />
           <div
-            className="flex flex-col items-center justify-center"
+            className="flex flex-col items-center justify-center w-32 h-32 md:w-40 md:h-40 rounded-full"
             style={{
-              width: 160,
-              height: 160,
-              borderRadius: '50%',
               border: '2px solid #FF3B30',
               background: 'radial-gradient(circle, rgba(255,59,48,0.12), transparent)',
             }}
           >
-            <span style={{ fontSize: 28, filter: 'drop-shadow(0 0 8px #FF3B30)' }}>🎙️</span>
-            <span
-              className="animate-pulse"
-              style={{ fontSize: 18, color: '#FF3B30', letterSpacing: '0.1em', fontWeight: 700, marginTop: 4 }}
-            >
+            <span className="text-2xl md:text-3xl" style={{ filter: 'drop-shadow(0 0 8px #FF3B30)' }}>🎙️</span>
+            <span className="animate-pulse text-sm md:text-base tracking-[0.1em] font-bold mt-1" style={{ color: '#FF3B30' }}>
               CAPTURING
             </span>
           </div>
@@ -296,25 +270,22 @@ export function LiveTab({
 
   if (state === 'processing') {
     return (
-      <div className="flex flex-col items-center justify-center flex-1">
+      <div className="flex flex-col items-center justify-center flex-1 px-4">
         <div
-          className="animate-spin-herald"
+          className="animate-spin-herald w-10 h-10 md:w-12 md:h-12 rounded-full"
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: '50%',
-            border: '2px solid #0F1820',
-            borderTopColor: '#3DFF8C',
+            border: '2px solid hsl(var(--border))',
+            borderTopColor: 'hsl(var(--primary))',
           }}
         />
-        <p style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.2em', marginTop: 16 }}>
+        <p className="text-sm md:text-base text-foreground tracking-[0.2em] mt-4 text-center">
           RUNNING INTELLIGENCE ASSESSMENT
         </p>
-        <p style={{ fontSize: 18, color: '#FFFFFF', marginTop: 8, opacity: 0.5 }}>
+        <p className="text-xs md:text-sm text-foreground mt-2 opacity-50 text-center">
           THIS MAY TAKE 15-30 SECONDS
         </p>
         {transcript && (
-          <p style={{ fontSize: 18, color: '#FFFFFF', fontStyle: 'italic', marginTop: 12, textAlign: 'center', padding: '0 24px' }}>
+          <p className="text-sm md:text-base text-foreground italic mt-3 text-center px-4">
             "{transcript}"
           </p>
         )}
@@ -323,118 +294,116 @@ export function LiveTab({
   }
 
   if (state === 'ready' && assessment) {
-    const pc = PRIORITY_COLORS[assessment.priority] || '#FFFFFF';
+    const pc = PRIORITY_COLORS[assessment.priority] || 'hsl(var(--foreground))';
     const emoji = SERVICE_EMOJIS[assessment.service] || '📻';
 
     return (
       <div className="flex flex-col flex-1 overflow-auto pb-20">
         {/* Priority banner */}
         <div
-          className="flex items-center justify-between px-4 flex-shrink-0"
+          className="flex items-center justify-between px-3 md:px-4 flex-shrink-0 py-3 md:py-4"
           style={{
-            height: 80,
             background: `${pc}1F`,
             borderBottom: `2px solid ${pc}`,
           }}
         >
           <div>
-            <div className="flex items-center gap-3">
-              <span style={{ fontSize: 36 }}>{emoji}</span>
-              <span className="font-heading" style={{ fontSize: 42, color: pc }}>
+            <div className="flex items-baseline gap-2 md:gap-3">
+              <span className="text-2xl md:text-4xl">{emoji}</span>
+              <span className="font-heading text-3xl md:text-5xl" style={{ color: pc }}>
                 {assessment.priority}
               </span>
+              <span className="font-heading text-lg md:text-[28px]" style={{ color: pc }}>
+                {assessment.priority_label}
+              </span>
             </div>
-            <span style={{ fontSize: 18, color: pc, opacity: 0.8 }}>{assessment.priority_label}</span>
           </div>
-          <span style={{ fontSize: 18, color: '#FFFFFF', textTransform: 'uppercase' }}>
+          <span className="text-sm md:text-base text-foreground uppercase font-bold">
             {assessment.service}
           </span>
         </div>
 
         {/* Headline */}
-        <div className="mx-4 mt-3 p-3.5" style={{ border: '1px solid #0F1820', borderRadius: 2 }}>
-          <p style={{ fontSize: 18, color: '#FFFFFF' }}>{assessment.headline}</p>
+        <div className="mx-3 md:mx-4 mt-3 p-3 md:p-4 border border-border rounded bg-card">
+          <p className="text-sm md:text-base text-foreground leading-relaxed">{assessment.headline}</p>
         </div>
 
-        {/* Two column grid */}
-        <div className="grid grid-cols-2 gap-3 mx-4 mt-3">
+        {/* Two column grid - stacks on mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mx-3 md:mx-4 mt-3">
           {/* Protocol fields */}
-          <div className="p-3" style={{ border: '1px solid #0F1820', borderRadius: 2 }}>
-            <p style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.1em', marginBottom: 8 }}>PROTOCOL FIELDS</p>
-            {assessment.structured && Object.entries(assessment.structured).map(([k, v]) => (
-              <div key={k} className="mb-2">
-                <p style={{ fontSize: 18, color: '#FFFFFF', fontWeight: 700 }}>{k}</p>
-                <p style={{ fontSize: 18, color: '#FFFFFF' }}>{v}</p>
-              </div>
-            ))}
+          <div>
+            <p className="text-xs md:text-sm font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>PROTOCOL FIELDS</p>
+            <div className="p-3 md:p-4 border border-border rounded bg-card">
+              {assessment.structured && Object.entries(assessment.structured).map(([k, v]) => (
+                <div key={k} className="mb-2">
+                  <p className="text-sm md:text-base font-bold" style={{ color: pc }}>{k}</p>
+                  <p className="text-sm md:text-base text-foreground">{v}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Actions */}
-          <div className="p-3" style={{ border: '1px solid #0F1820', borderRadius: 2 }}>
-            <p style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.1em', marginBottom: 8 }}>IMMEDIATE ACTIONS</p>
-            {assessment.actions?.map((a, i) => (
-              <div key={i} className="flex gap-2 mb-1.5">
-                <span style={{ fontSize: 18, color: pc, fontWeight: 700 }}>{i + 1}.</span>
-                <span style={{ fontSize: 18, color: '#FFFFFF' }}>{a}</span>
-              </div>
-            ))}
-            {assessment.transmit_to && (
-              <>
-                <div style={{ borderTop: '1px solid #0F1820', margin: '8px 0' }} />
-                <p style={{ fontSize: 18, color: '#FFFFFF' }}>TRANSMIT TO: {assessment.transmit_to}</p>
-              </>
-            )}
+          <div>
+            <p className="text-xs md:text-sm font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>IMMEDIATE ACTIONS</p>
+            <div className="p-3 md:p-4 border border-border rounded bg-card">
+              {assessment.actions?.map((a, i) => (
+                <div key={i} className="flex gap-2 mb-1.5">
+                  <span className="text-sm md:text-base font-bold" style={{ color: pc }}>{i + 1}.</span>
+                  <span className="text-sm md:text-base text-foreground">{a}</span>
+                </div>
+              ))}
+              {assessment.transmit_to && (
+                <>
+                  <div className="border-t border-border my-2" />
+                  <p className="text-sm md:text-base text-foreground">
+                    <span className="font-bold" style={{ color: pc }}>TRANSMIT TO:</span> {assessment.transmit_to}
+                  </p>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Formatted report */}
-        <div className="mx-4 mt-3 p-3" style={{ border: '1px solid #0F1820', borderRadius: 2 }}>
-          <p style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.1em', marginBottom: 8 }}>FORMATTED REPORT</p>
-          <pre style={{ fontSize: 18, color: '#FFFFFF', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
-            {assessment.formatted_report}
-          </pre>
+        <div className="mx-3 md:mx-4 mt-3">
+          <p className="text-xs md:text-sm font-bold text-foreground tracking-[0.1em] mb-2">FORMATTED REPORT</p>
+          <div className="p-3 md:p-4 border border-border rounded bg-card">
+            <div className="text-sm md:text-base text-foreground leading-7 whitespace-pre-wrap">
+              {assessment.formatted_report}
+            </div>
+          </div>
         </div>
 
         {/* Raw transcript */}
-        <div className="mx-4 mt-3 p-3" style={{ border: '1px solid #0F1820', borderRadius: 2 }}>
-          <p style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.1em', marginBottom: 8 }}>RAW TRANSMISSION</p>
-          <p style={{ fontSize: 18, color: '#FFFFFF', fontStyle: 'italic' }}>"{transcript}"</p>
-          {assessment.confidence && (
-            <p style={{ fontSize: 18, color: '#FFFFFF', marginTop: 4 }}>
-              Confidence: {Math.round(assessment.confidence * 100)}%
-            </p>
-          )}
+        <div className="mx-3 md:mx-4 mt-3">
+          <p className="text-xs md:text-sm font-bold text-foreground tracking-[0.1em] mb-2">RAW TRANSMISSION</p>
+          <div className="p-3 md:p-4 border border-border rounded bg-card">
+            <p className="text-sm md:text-base text-foreground italic">"{transcript}"</p>
+            {assessment.confidence && (
+              <p className="text-sm md:text-base text-foreground mt-2 opacity-70">
+                Confidence: {Math.round(assessment.confidence * 100)}%
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Action buttons */}
-        <div className="fixed bottom-14 left-0 right-0 flex gap-3 px-4 pb-2 pt-2" style={{ background: '#080B10' }}>
+        <div className="fixed bottom-12 md:bottom-14 left-0 right-0 flex gap-3 px-3 md:px-4 pb-2 pt-2 bg-background">
           <button
             onClick={handleDiscard}
-            className="flex-1 font-heading"
-            style={{
-              padding: 16,
-              background: 'transparent',
-              border: '1px solid #0F1820',
-              color: '#FFFFFF',
-              fontSize: 18,
-              fontWeight: 700,
-              borderRadius: 2,
-            }}
+            className="flex-1 font-heading py-3 md:py-4 bg-transparent border border-border text-foreground text-sm md:text-base font-bold rounded-sm"
           >
             DISCARD
           </button>
           <button
             onClick={handleConfirm}
-            className="font-heading"
+            className="font-heading py-3 md:py-4 text-base md:text-lg font-bold rounded-sm"
             style={{
               flex: 3,
-              padding: 16,
               background: `${pc}1A`,
               border: `2px solid ${pc}`,
               color: pc,
-              fontSize: 20,
-              fontWeight: 700,
-              borderRadius: 2,
               boxShadow: `0 0 24px ${pc}33`,
             }}
           >
@@ -447,19 +416,14 @@ export function LiveTab({
 
   if (state === 'confirmed') {
     return (
-      <div className="flex flex-col items-center justify-center flex-1">
+      <div className="flex flex-col items-center justify-center flex-1 px-4">
         <button
           onClick={() => setExternalState('idle')}
-          className="w-full mx-4 font-heading"
+          className="w-full max-w-xs font-heading py-3 md:py-4 text-sm md:text-base font-bold rounded-sm"
           style={{
-            padding: 16,
             background: 'rgba(61,255,140,0.06)',
             border: '1px solid rgba(61,255,140,0.2)',
-            color: '#3DFF8C',
-            fontSize: 18,
-            fontWeight: 700,
-            borderRadius: 2,
-            maxWidth: 320,
+            color: 'hsl(var(--primary))',
           }}
         >
           ✓ HERALDED — RETURN TO LISTEN

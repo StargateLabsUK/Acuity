@@ -37,8 +37,7 @@ const Index = () => {
 
   return (
     <div
-      className="flex flex-col h-screen overflow-hidden"
-      style={{ background: 'var(--herald-bg)' }}
+      className="flex flex-col h-screen overflow-hidden bg-background"
     >
       <TopBar micStatus={micStatus} aiStatus={aiStatus} syncStatus={syncStatus} />
 

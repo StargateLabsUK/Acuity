@@ -26,25 +26,25 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
 
   const pill = (label: string, count: number, color: string) => (
     <div
-      className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm"
+      className="flex items-center gap-1 px-2 py-0.5 rounded-sm"
       style={{
         background: `${color}10`,
         border: `1px solid ${color}`,
       }}
     >
-      <span className="text-lg font-bold" style={{ color }}>
+      <span className="text-sm md:text-lg font-bold" style={{ color }}>
         {label} · {count}
       </span>
     </div>
   );
 
   return (
-    <div className="flex items-center justify-between px-5 py-3 flex-shrink-0 border-b border-border bg-card">
+    <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-3 flex-shrink-0 border-b border-border bg-card">
       <div className="flex flex-col">
-        <span className="font-heading text-2xl text-foreground tracking-[0.08em]">
+        <span className="font-heading text-base md:text-2xl text-foreground tracking-[0.08em]">
           HERALD COMMAND
         </span>
-        <span className="text-lg text-foreground tracking-wide">
+        <span className="text-xs md:text-lg text-foreground tracking-wide hidden sm:block">
           REAL-TIME FIELD INTELLIGENCE
         </span>
       </div>
@@ -55,7 +55,7 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
         {pill('P3', priorityCounts.P3, '#34C759')}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         <div className="flex items-center gap-1.5">
           <div
             className="w-2 h-2 rounded-full"
@@ -64,11 +64,11 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
               animation: connected ? 'breathe 2s ease-in-out infinite' : 'none',
             }}
           />
-          <span className="text-lg tracking-wide" style={{ color: connected ? 'hsl(var(--primary))' : '#FF3B30' }}>
-            {connected ? 'LIVE' : 'OFFLINE'}
+          <span className="text-sm md:text-lg tracking-wide" style={{ color: connected ? 'hsl(var(--primary))' : '#FF3B30' }}>
+            {connected ? 'LIVE' : 'OFF'}
           </span>
         </div>
-        <span className="text-lg text-foreground">{utc}</span>
+        <span className="text-xs md:text-lg text-foreground">{utc}</span>
       </div>
     </div>
   );

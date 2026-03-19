@@ -33,7 +33,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="px-3 pt-3 pb-2 flex-shrink-0">
-        <div className="text-lg text-foreground tracking-[0.25em] mb-2 font-bold">
+        <div className="text-sm md:text-lg text-foreground tracking-[0.25em] mb-2 font-bold">
           INCOMING TRANSMISSIONS
         </div>
         <div className="flex gap-1">
@@ -44,7 +44,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className="text-lg font-bold tracking-wide rounded-sm px-2.5 py-0.5 bg-transparent cursor-pointer transition-colors"
+                className="text-sm md:text-lg font-bold tracking-wide rounded-sm px-2 py-0.5 bg-transparent cursor-pointer transition-colors"
                 style={{
                   color: active ? col : 'hsl(var(--foreground))',
                   border: `1px solid ${active ? col : 'hsl(var(--border))'}`,
@@ -62,7 +62,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <span className="animate-breathe text-[32px]">📻</span>
-            <span className="text-lg text-foreground tracking-[0.2em]">AWAITING TRANSMISSIONS</span>
+            <span className="text-sm md:text-lg text-foreground tracking-[0.2em]">AWAITING TRANSMISSIONS</span>
           </div>
         ) : (
           filtered.map((r) => {
@@ -77,18 +77,18 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                 style={{
                   border: `1px solid ${selected ? col : 'hsl(var(--border))'}`,
                   borderLeft: `3px solid ${col}`,
-                  padding: '12px 14px',
+                  padding: '10px 12px',
                   background: r.isNew ? `${col}24` : selected ? `${col}0A` : 'transparent',
                   transform: r.isNew ? 'scale(1.02)' : 'scale(1)',
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{SERVICE_EMOJIS[getService(r)] ?? '📻'}</span>
-                  <span className="flex-1 truncate text-lg text-foreground">
+                  <span className="text-base md:text-lg">{SERVICE_EMOJIS[getService(r)] ?? '📻'}</span>
+                  <span className="flex-1 truncate text-sm md:text-lg text-foreground">
                     {getHeadline(r)}
                   </span>
                   <span
-                    className="text-lg font-bold rounded-sm px-2 py-0.5"
+                    className="text-sm md:text-lg font-bold rounded-sm px-1.5 md:px-2 py-0.5"
                     style={{
                       color: col,
                       border: `1px solid ${col}66`,
@@ -97,23 +97,20 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                     {p}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                  <span className="text-lg text-foreground">{getTime(r)}</span>
+                <div className="flex items-center gap-2 md:gap-3 mt-1 flex-wrap">
+                  <span className="text-xs md:text-lg text-foreground">{getTime(r)}</span>
                   {getCallsign(r) && (
                     <span
-                      className="text-sm font-semibold rounded-sm px-2 py-0.5"
+                      className="text-xs md:text-sm font-semibold rounded-sm px-1.5 py-0.5"
                       style={{ color: col, border: `1px solid ${col}66` }}
                     >
                       {getCallsign(r)}
                     </span>
                   )}
                   {getIncident(r) && (
-                    <span className="text-sm font-semibold text-foreground border border-border rounded-sm px-2 py-0.5">
+                    <span className="text-xs md:text-sm font-semibold text-foreground border border-border rounded-sm px-1.5 py-0.5">
                       #{getIncident(r)}
                     </span>
-                  )}
-                  {r.operator_id && (
-                    <span className="text-lg text-foreground">{r.operator_id}</span>
                   )}
                 </div>
               </button>

@@ -9,13 +9,10 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
     return (
       <button
         onClick={() => onTabChange(id)}
-        className="flex-1 h-14 font-heading text-sm tracking-widest"
+        className="flex-1 h-12 md:h-14 font-heading text-base md:text-lg tracking-widest font-bold bg-transparent"
         style={{
-          color: active ? '#3DFF8C' : '#FFFFFF',
-          borderBottom: active ? '2px solid #3DFF8C' : '2px solid transparent',
-          fontWeight: 700,
-          background: 'transparent',
-          fontSize: 18,
+          color: active ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+          borderBottom: active ? '2px solid hsl(var(--primary))' : '2px solid transparent',
         }}
       >
         {label}
@@ -24,10 +21,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   };
 
   return (
-    <div
-      className="flex flex-shrink-0"
-      style={{ borderTop: '1px solid #0F1820' }}
-    >
+    <div className="flex flex-shrink-0 border-t border-border">
       {tab('live', 'LIVE')}
       {tab('reports', 'REPORTS')}
     </div>

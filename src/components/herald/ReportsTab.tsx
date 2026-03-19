@@ -17,16 +17,7 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
   return (
     <button
       onClick={copy}
-      style={{
-        fontSize: 18,
-        color: '#FFFFFF',
-        border: '1px solid #0F1820',
-        padding: '6px 14px',
-        borderRadius: 2,
-        background: 'transparent',
-        cursor: 'pointer',
-        letterSpacing: '0.05em',
-      }}
+      className="text-sm md:text-base text-foreground border border-border px-3 py-1 rounded-sm bg-transparent cursor-pointer tracking-wide hover:border-primary transition-colors"
     >
       {copied ? 'COPIED' : label}
     </button>
@@ -37,20 +28,20 @@ export function ReportsTab({ reports }: ReportsTabProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
-    <div className="flex-1 overflow-auto px-4 py-3">
-      <p style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.1em', marginBottom: 12 }}>
+    <div className="flex-1 overflow-auto px-3 md:px-4 py-3">
+      <p className="text-sm md:text-base text-foreground tracking-[0.1em] mb-3 font-bold">
         CONFIRMED TRANSMISSIONS
       </p>
 
       {reports.length === 0 && (
-        <p className="text-center mt-12" style={{ fontSize: 18, color: '#FFFFFF' }}>
+        <p className="text-center mt-12 text-sm md:text-base text-foreground opacity-50">
           No confirmed reports yet
         </p>
       )}
 
       {reports.map((r) => {
         const a = r.assessment as unknown as Record<string, unknown> | null;
-        const pc = PRIORITY_COLORS[a?.priority as string] || PRIORITY_COLORS[r.priority as string] || '#FFFFFF';
+        const pc = PRIORITY_COLORS[a?.priority as string] || PRIORITY_COLORS[r.priority as string] || 'hsl(var(--foreground))';
         const emoji = SERVICE_EMOJIS[a?.service as string] || SERVICE_EMOJIS[r.service as string] || '📻';
         const expanded = expandedId === r.id;
         const structured = (a?.structured as Record<string, string>) ?? {};
@@ -63,31 +54,27 @@ export function ReportsTab({ reports }: ReportsTabProps) {
         return (
           <div
             key={r.id}
-            className="mb-2"
-            style={{ border: '1px solid #0F1820', borderRadius: 4 }}
+            className="mb-2 border border-border rounded"
           >
             <button
               onClick={() => setExpandedId(expanded ? null : r.id)}
               className="w-full text-left p-3"
             >
-              <div className="flex items-center gap-3">
-                <span style={{ fontSize: 20 }}>{emoji}</span>
+              <div className="flex items-center gap-2 md:gap-3">
+                <span className="text-base md:text-xl">{emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate" style={{ fontSize: 18, color: '#FFFFFF' }}>
+                  <p className="truncate text-sm md:text-base text-foreground">
                     {(a?.headline as string) || r.headline || 'Report'}
                   </p>
-                  <p style={{ fontSize: 18, color: '#FFFFFF' }}>
+                  <p className="text-xs md:text-sm text-foreground opacity-70">
                     {new Date(r.timestamp).toISOString().replace('T', ' ').slice(0, 19)}Z
                   </p>
                 </div>
                 <span
-                  className="font-heading px-2 py-0.5"
+                  className="font-heading px-1.5 md:px-2 py-0.5 text-sm md:text-base font-bold rounded-sm"
                   style={{
-                    fontSize: 18,
-                    fontWeight: 700,
                     color: pc,
                     border: `1px solid ${pc}`,
-                    borderRadius: 2,
                   }}
                 >
                   {(a?.priority as string) || r.priority}
@@ -96,68 +83,62 @@ export function ReportsTab({ reports }: ReportsTabProps) {
             </button>
 
             {expanded && a && (
-              <div className="px-3 pb-4" style={{ borderTop: '1px solid #0F1820' }}>
-                {/* Priority Banner — P1 IMMEDIATE inline */}
+              <div className="px-3 pb-4 border-t border-border">
+                {/* Priority Banner */}
                 <div
-                  className="flex items-center justify-between px-4 mt-3"
+                  className="flex items-center justify-between mt-3 px-3 md:px-4 py-3 md:py-4 rounded"
                   style={{
-                    padding: '18px 20px',
                     background: `${pc}1F`,
                     borderBottom: `3px solid ${pc}`,
-                    borderRadius: 2,
                   }}
                 >
-                  <div className="flex items-center gap-4">
-                    <span style={{ fontSize: 40 }}>{emoji}</span>
-                    <div className="flex items-baseline gap-3">
-                      <span className="font-heading" style={{ fontSize: 48, color: pc, lineHeight: 1 }}>
-                        {a.priority as string}
-                      </span>
-                      <span className="font-heading" style={{ fontSize: 28, color: pc, letterSpacing: '0.05em' }}>
-                        {priorityLabel}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span style={{ fontSize: 20, color: '#FFFFFF', textTransform: 'uppercase', fontWeight: 700 }}>
-                      {a.service as string}
+                  <div className="flex items-baseline gap-2 md:gap-3">
+                    <span className="text-2xl md:text-[40px]">{emoji}</span>
+                    <span className="font-heading text-3xl md:text-5xl leading-none" style={{ color: pc }}>
+                      {a.priority as string}
+                    </span>
+                    <span className="font-heading text-lg md:text-[28px]" style={{ color: pc }}>
+                      {priorityLabel}
                     </span>
                   </div>
+                  <span className="text-sm md:text-xl text-foreground uppercase font-bold">
+                    {a.service as string}
+                  </span>
                 </div>
 
                 {/* Headline */}
-                <div className="mt-4 p-4" style={{ border: '1px solid #0F1820', borderRadius: 4, background: '#0D1117' }}>
-                  <p style={{ fontSize: 20, color: '#FFFFFF', lineHeight: 1.6, fontWeight: 500 }}>{a.headline as string}</p>
+                <div className="mt-4 p-3 md:p-4 border border-border rounded bg-card">
+                  <p className="text-sm md:text-xl text-foreground leading-relaxed font-medium">{a.headline as string}</p>
                 </div>
 
                 {/* Full Transcript */}
-                <div className="mt-5">
-                  <p style={{ fontSize: 18, fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.2em', marginBottom: 10 }}>
+                <div className="mt-4">
+                  <p className="text-xs md:text-base font-bold text-foreground tracking-[0.2em] mb-2">
                     FULL TRANSCRIPT
                   </p>
-                  <div className="p-4" style={{ border: '1px solid #0F1820', borderRadius: 4, background: '#0D1117' }}>
-                    <p style={{ fontSize: 18, color: '#FFFFFF', lineHeight: 1.7, fontStyle: 'italic' }}>
+                  <div className="p-3 md:p-4 border border-border rounded bg-card">
+                    <p className="text-sm md:text-base text-foreground leading-7 italic">
                       &ldquo;{r.transcript ?? 'N/A'}&rdquo;
                     </p>
-                    <div style={{ fontSize: 18, color: '#FFFFFF', marginTop: 10, opacity: 0.7 }}>
+                    <div className="text-xs md:text-base text-foreground mt-2 opacity-70">
                       CONFIDENCE: {Math.round(confidence * 100)}%
                     </div>
                   </div>
                 </div>
 
-                {/* Protocol Fields & Actions — titles outside boxes, in priority colour */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                {/* Protocol Fields & Actions */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   {Object.keys(structured).length > 0 && (
                     <div>
-                      <p style={{ fontSize: 18, fontWeight: 700, color: pc, letterSpacing: '0.2em', marginBottom: 10 }}>
+                      <p className="text-xs md:text-base font-bold tracking-[0.2em] mb-2" style={{ color: pc }}>
                         PROTOCOL FIELDS
                       </p>
-                      <div className="p-4" style={{ border: '1px solid #0F1820', borderRadius: 4, background: '#0D1117' }}>
-                        <div className="flex flex-col gap-3">
+                      <div className="p-3 md:p-4 border border-border rounded bg-card">
+                        <div className="flex flex-col gap-2 md:gap-3">
                           {Object.entries(structured).map(([k, v]) => (
                             <div key={k}>
-                              <div style={{ fontSize: 18, fontWeight: 700, color: pc, letterSpacing: '0.05em', marginBottom: 2 }}>{k}</div>
-                              <div style={{ fontSize: 18, color: '#FFFFFF', lineHeight: 1.5 }}>{v ?? '—'}</div>
+                              <div className="text-sm md:text-base font-bold mb-0.5" style={{ color: pc }}>{k}</div>
+                              <div className="text-sm md:text-base text-foreground leading-relaxed">{v ?? '—'}</div>
                             </div>
                           ))}
                         </div>
@@ -167,23 +148,23 @@ export function ReportsTab({ reports }: ReportsTabProps) {
 
                   {actions.length > 0 && (
                     <div>
-                      <p style={{ fontSize: 18, fontWeight: 700, color: pc, letterSpacing: '0.2em', marginBottom: 10 }}>
+                      <p className="text-xs md:text-base font-bold tracking-[0.2em] mb-2" style={{ color: pc }}>
                         IMMEDIATE ACTIONS
                       </p>
-                      <div className="p-4" style={{ border: '1px solid #0F1820', borderRadius: 4, background: '#0D1117' }}>
-                        <div className="flex flex-col gap-2">
+                      <div className="p-3 md:p-4 border border-border rounded bg-card">
+                        <div className="flex flex-col gap-1.5 md:gap-2">
                           {actions.map((action, i) => (
-                            <div key={i} className="flex gap-3">
-                              <span style={{ fontSize: 18, fontWeight: 700, color: pc, minWidth: 24 }}>{i + 1}.</span>
-                              <span style={{ fontSize: 18, color: '#FFFFFF', lineHeight: 1.5 }}>{action}</span>
+                            <div key={i} className="flex gap-2 md:gap-3">
+                              <span className="text-sm md:text-base font-bold min-w-[20px]" style={{ color: pc }}>{i + 1}.</span>
+                              <span className="text-sm md:text-base text-foreground leading-relaxed">{action}</span>
                             </div>
                           ))}
                         </div>
                         {transmitTo && (
                           <>
-                            <div style={{ borderTop: '1px solid #0F1820', margin: '14px 0' }} />
-                            <div style={{ fontSize: 18, color: '#FFFFFF' }}>
-                              <span style={{ fontWeight: 700, color: pc }}>TRANSMIT TO:</span> {transmitTo}
+                            <div className="border-t border-border my-3" />
+                            <div className="text-sm md:text-base text-foreground">
+                              <span className="font-bold" style={{ color: pc }}>TRANSMIT TO:</span> {transmitTo}
                             </div>
                           </>
                         )}
@@ -194,17 +175,17 @@ export function ReportsTab({ reports }: ReportsTabProps) {
 
                 {/* Formatted Report */}
                 {formattedReport && (
-                  <div className="mt-5">
+                  <div className="mt-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p style={{ fontSize: 18, fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.2em' }}>
+                      <p className="text-xs md:text-base font-bold text-foreground tracking-[0.2em]">
                         FORMATTED REPORT
                       </p>
                       <CopyBtn text={formattedReport} label="COPY" />
                     </div>
-                    <div className="p-4" style={{ border: '1px solid #0F1820', borderRadius: 4, background: '#0D1117' }}>
-                      <pre style={{ fontSize: 18, color: '#FFFFFF', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+                    <div className="p-3 md:p-4 border border-border rounded bg-card">
+                      <div className="text-sm md:text-base text-foreground leading-7 whitespace-pre-wrap">
                         {formattedReport}
-                      </pre>
+                      </div>
                     </div>
                   </div>
                 )}
