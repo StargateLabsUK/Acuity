@@ -33,6 +33,7 @@ export function MapTab({ reports, onSelectReport }: Props) {
       style: 'mapbox://styles/mapbox/dark-v11',
       center: [-2.5, 54.5],
       zoom: 6,
+      attributionControl: false,
     });
 
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
