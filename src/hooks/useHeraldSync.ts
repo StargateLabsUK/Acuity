@@ -39,6 +39,10 @@ export function useHeraldSync() {
             final_assessment: (report as any).final_assessment ?? null,
             diff: (report as any).diff ?? null,
             edited: (report as any).edited ?? false,
+            session_callsign: report.session_callsign ?? null,
+            session_operator_id: report.session_operator_id ?? null,
+            session_service: report.session_service ?? null,
+            session_station: report.session_station ?? null,
           });
           if (ok) {
             markSynced(report.id);

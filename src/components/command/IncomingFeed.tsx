@@ -96,18 +96,35 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                     {p}
                   </span>
                 </div>
+                {/* Session tags */}
                 <div className="flex items-center gap-2 md:gap-3 mt-1 flex-wrap">
                   <span className="text-lg md:text-lg text-foreground">{getTime(r)}</span>
-                  {getCallsign(r) && (
+                  {r.session_callsign && (
                     <span
-                      className="text-lg md:text-lg font-semibold rounded-sm px-1.5 py-0.5"
+                      className="text-lg font-semibold rounded-sm px-1.5 py-0.5"
+                      style={{
+                        color: '#3DFF8C',
+                        border: '1px solid rgba(61,255,140,0.2)',
+                      }}
+                    >
+                      {r.session_callsign}
+                    </span>
+                  )}
+                  {r.session_operator_id && (
+                    <span className="text-lg" style={{ color: '#1E3028' }}>
+                      {r.session_operator_id}
+                    </span>
+                  )}
+                  {getCallsign(r) && !r.session_callsign && (
+                    <span
+                      className="text-lg font-semibold rounded-sm px-1.5 py-0.5"
                       style={{ color: col, border: `1px solid ${col}66` }}
                     >
                       {getCallsign(r)}
                     </span>
                   )}
                   {getIncident(r) && (
-                    <span className="text-lg md:text-lg font-semibold text-foreground border border-border rounded-sm px-1.5 py-0.5">
+                    <span className="text-lg font-semibold text-foreground border border-border rounded-sm px-1.5 py-0.5">
                       #{getIncident(r)}
                     </span>
                   )}

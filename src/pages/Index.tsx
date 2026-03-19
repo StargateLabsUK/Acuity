@@ -3,14 +3,19 @@ import { TopBar } from '@/components/herald/TopBar';
 import { BottomNav } from '@/components/herald/BottomNav';
 import { LiveTab } from '@/components/herald/LiveTab';
 import { ReportsTab } from '@/components/herald/ReportsTab';
+import { ShiftLogin } from '@/components/herald/ShiftLogin';
+import { ShiftInfoBar } from '@/components/herald/ShiftInfoBar';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
 import { getReports } from '@/lib/herald-storage';
+import { getSession } from '@/lib/herald-session';
 import type { HeraldReport } from '@/lib/herald-types';
+import type { HeraldSession } from '@/lib/herald-session';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<'live' | 'reports'>('live');
   const [aiStatus, setAiStatus] = useState<'ok' | 'error'>('ok');
   const [reports, setReports] = useState<HeraldReport[]>([]);
+  const [session, setSession] = useState<HeraldSession | null>(getSession());
   const syncStatus = useHeraldSync();
 
   useEffect(() => {
@@ -21,9 +26,32 @@ const Index = () => {
     setReports(getReports());
   }, []);
 
+  const handleShiftStarted = useCallback((s: HeraldSession) => {
+    setSession(s);
+  }, []);
+
+  const handleEndShift = useCallback(() => {
+    setSession(null);
+  }, []);
+
+  // Filter reports to current session
+  const sessionReports = session
+    ? reports.filter(
+        (r) =>
+          r.session_callsign === session.callsign &&
+          new Date(r.timestamp).toISOString().slice(0, 10) === session.session_date
+      )
+    : reports;
+
+  // No active session — show shift login
+  if (!session) {
+    return <ShiftLogin onShiftStarted={handleShiftStarted} />;
+  }
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <TopBar micStatus="granted" aiStatus={aiStatus} syncStatus={syncStatus} />
+      <ShiftInfoBar session={session} onEndShift={handleEndShift} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {activeTab === 'live' ? (
@@ -32,7 +60,7 @@ const Index = () => {
             onReportSaved={refreshReports}
           />
         ) : (
-          <ReportsTab reports={reports} />
+          <ReportsTab reports={sessionReports} session={session} />
         )}
       </div>
 

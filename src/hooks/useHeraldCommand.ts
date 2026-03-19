@@ -18,6 +18,10 @@ export interface CommandReport {
   lat: number | null;
   lng: number | null;
   location_accuracy: number | null;
+  session_callsign: string | null;
+  session_operator_id: string | null;
+  session_service: string | null;
+  session_station: string | null;
   isNew?: boolean;
 }
 
@@ -40,6 +44,10 @@ export function useHeraldCommand() {
       const parsed: CommandReport[] = (data ?? []).map((r) => ({
         ...r,
         assessment: r.assessment ? (r.assessment as unknown as Assessment) : null,
+        session_callsign: (r as any).session_callsign ?? null,
+        session_operator_id: (r as any).session_operator_id ?? null,
+        session_service: (r as any).session_service ?? null,
+        session_station: (r as any).session_station ?? null,
       }));
       setReports(parsed);
     } catch {
@@ -60,11 +68,14 @@ export function useHeraldCommand() {
           const report: CommandReport = {
             ...r,
             assessment: r.assessment ? (r.assessment as Assessment) : null,
+            session_callsign: r.session_callsign ?? null,
+            session_operator_id: r.session_operator_id ?? null,
+            session_service: r.session_service ?? null,
+            session_station: r.session_station ?? null,
             isNew: true,
           };
           setReports((prev) => [report, ...prev]);
 
-          // Clear isNew flag after animation
           setTimeout(() => {
             setReports((prev) =>
               prev.map((p) => (p.id === report.id ? { ...p, isNew: false } : p))

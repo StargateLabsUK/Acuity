@@ -13,6 +13,10 @@ export interface HeraldReport {
   lat?: number;
   lng?: number;
   location_accuracy?: number;
+  session_callsign?: string;
+  session_operator_id?: string;
+  session_service?: string;
+  session_station?: string;
 }
 
 export interface Assessment {

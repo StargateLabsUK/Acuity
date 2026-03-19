@@ -2,9 +2,11 @@ import { useState, useCallback } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import type { HeraldReport } from '@/lib/herald-types';
 import { PRIORITY_COLORS, SERVICE_EMOJIS } from '@/lib/herald-types';
+import type { HeraldSession } from '@/lib/herald-session';
 
 interface ReportsTabProps {
   reports: HeraldReport[];
+  session?: HeraldSession;
 }
 
 function CopyBtn({ text, label }: { text: string; label: string }) {
@@ -25,8 +27,22 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
   );
 }
 
-export function ReportsTab({ reports }: ReportsTabProps) {
+export function ReportsTab({ reports, session }: ReportsTabProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  if (reports.length === 0 && session) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-4">
+        <span className="text-[48px] mb-4">{session.service_emoji}</span>
+        <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.2em', marginBottom: 8 }}>
+          NO REPORTS THIS SHIFT
+        </p>
+        <p style={{ color: '#1E3028', fontSize: 18 }}>
+          {session.callsign} · {session.session_date}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-auto px-3 md:px-4 py-3">

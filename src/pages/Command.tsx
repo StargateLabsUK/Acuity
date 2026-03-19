@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import * as React from 'react';
 import { useHeraldCommand } from '@/hooks/useHeraldCommand';
 import { CommandTopBar } from '@/components/command/CommandTopBar';
@@ -7,6 +7,8 @@ import { ReportDetail } from '@/components/command/ReportDetail';
 import { CommandStatus } from '@/components/command/CommandStatus';
 import { MapTab } from '@/components/command/MapTab';
 import { TrainingTab } from '@/components/command/TrainingTab';
+import { CommandFilterBar } from '@/components/command/CommandFilterBar';
+import type { CommandFilters } from '@/components/command/CommandFilterBar';
 import type { MapTabHandle } from '@/components/command/MapTab';
 
 type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training';
@@ -28,6 +30,40 @@ function useViewMode(): ViewMode {
   return mode;
 }
 
+function applyFilters(
+  reports: ReturnType<typeof useHeraldCommand>['reports'],
+  filters: CommandFilters
+) {
+  let filtered = [...reports];
+
+  // Service filter
+  if (filters.service) {
+    filtered = filtered.filter(
+      (r) => (r.assessment?.service ?? r.service ?? r.session_service) === filters.service
+    );
+  }
+
+  // Callsign filter
+  if (filters.callsign) {
+    filtered = filtered.filter((r) => r.session_callsign === filters.callsign);
+  }
+
+  // Time range filter
+  if (filters.timeRange === 'today') {
+    const today = new Date().toDateString();
+    filtered = filtered.filter(
+      (r) => new Date(r.created_at ?? r.timestamp).toDateString() === today
+    );
+  } else if (filters.timeRange === '24h') {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    filtered = filtered.filter(
+      (r) => new Date(r.created_at ?? r.timestamp).getTime() > cutoff
+    );
+  }
+
+  return filtered;
+}
+
 export default function Command() {
   const {
     reports,
@@ -40,19 +76,64 @@ export default function Command() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
+  const [filters, setFilters] = useState<CommandFilters>({
+    service: '',
+    callsign: '',
+    timeRange: 'today',
+  });
   const viewMode = useViewMode();
   const mapRef = useRef<MapTabHandle>(null);
 
-  const selectedReport = reports.find((r) => r.id === selectedId) ?? null;
+  const filteredReports = useMemo(() => applyFilters(reports, filters), [reports, filters]);
+  const selectedReport = filteredReports.find((r) => r.id === selectedId) ?? null;
+
+  // Get unique callsigns from today's reports for filter dropdown
+  const uniqueCallsigns = useMemo(() => {
+    const set = new Set<string>();
+    todayReports.forEach((r) => {
+      if (r.session_callsign) set.add(r.session_callsign);
+    });
+    return Array.from(set).sort();
+  }, [todayReports]);
+
+  const uniqueServices = useMemo(() => {
+    const set = new Set<string>();
+    todayReports.forEach((r) => {
+      const s = r.assessment?.service ?? r.service ?? r.session_service;
+      if (s) set.add(s);
+    });
+    return Array.from(set).sort();
+  }, [todayReports]);
+
+  // Recompute stats from filtered reports
+  const filteredPriorityCounts = useMemo(() => {
+    const counts = { P1: 0, P2: 0, P3: 0 };
+    filteredReports.forEach((r) => {
+      const p = r.assessment?.priority ?? r.priority;
+      if (p === 'P1') counts.P1++;
+      else if (p === 'P2') counts.P2++;
+      else if (p === 'P3') counts.P3++;
+    });
+    return counts;
+  }, [filteredReports]);
+
+  const filteredServiceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredReports.forEach((r) => {
+      const s = r.assessment?.service ?? r.service ?? 'unknown';
+      counts[s] = (counts[s] || 0) + 1;
+    });
+    return counts;
+  }, [filteredReports]);
 
   const handleSelect = useCallback((id: string) => {
     setSelectedId(id);
     if (viewMode === 'mobile') setMobileTab('detail');
-    const report = reports.find((r) => r.id === id);
+    const report = filteredReports.find((r) => r.id === id);
     if (report && mapRef.current) {
       mapRef.current.flyToReport(report);
     }
-  }, [viewMode, reports]);
+  }, [viewMode, filteredReports]);
 
   const handleMapSelect = useCallback((id: string) => {
     setSelectedId(id);
@@ -76,30 +157,39 @@ export default function Command() {
     );
   };
 
+  const filterBar = (
+    <CommandFilterBar
+      services={uniqueServices}
+      callsigns={uniqueCallsigns}
+      onFilterChange={setFilters}
+    />
+  );
+
   // DESKTOP
   if (viewMode === 'desktop') {
     return (
       <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
+        {filterBar}
         <div className="flex flex-col flex-1 overflow-hidden p-3 gap-3">
           <div className="flex-shrink-0 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
             <CommandStatus
-              todayReports={todayReports}
-              priorityCounts={priorityCounts}
-              serviceCounts={serviceCounts}
+              todayReports={filteredReports}
+              priorityCounts={filteredPriorityCounts}
+              serviceCounts={filteredServiceCounts}
               uniqueDevices={uniqueDevices}
               connected={connected}
             />
           </div>
           <div className="flex flex-1 overflow-hidden min-w-0 gap-3">
             <div className="flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
-              <IncomingFeed reports={reports} selectedId={selectedId} onSelect={handleSelect} />
+              <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
             </div>
             <div className="flex flex-col overflow-hidden min-w-0 w-1/3">
               <ReportDetail report={selectedReport} />
             </div>
             <div className="flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
-              <MapTab ref={mapRef} reports={reports} onSelectReport={handleMapSelect} />
+              <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
             </div>
           </div>
         </div>
@@ -112,13 +202,14 @@ export default function Command() {
     return (
       <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
+        {filterBar}
         <div className="flex flex-col flex-1 overflow-hidden p-2 gap-2">
           <div className="flex-shrink-0 h-[40%] rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-            <MapTab ref={mapRef} reports={reports} onSelectReport={handleMapSelect} />
+            <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
           </div>
           <div className="flex flex-1 overflow-hidden min-w-0 gap-2">
             <div className="flex flex-col overflow-hidden min-w-0 w-2/5 rounded-lg border border-border bg-card shadow-sm">
-              <IncomingFeed reports={reports} selectedId={selectedId} onSelect={handleSelect} />
+              <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
             </div>
             <div className="flex flex-col overflow-hidden min-w-0 w-3/5">
               <ReportDetail report={selectedReport} />
@@ -133,11 +224,12 @@ export default function Command() {
   return (
     <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
       <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
+      {filterBar}
       <div className="flex-1 overflow-hidden">
         {mobileTab === 'feed' && (
           <div className="h-full p-2">
             <div className="h-full rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-              <IncomingFeed reports={reports} selectedId={selectedId} onSelect={handleSelect} />
+              <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
             </div>
           </div>
         )}
@@ -146,9 +238,9 @@ export default function Command() {
           <div className="h-full overflow-y-auto p-2">
             <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
               <CommandStatus
-                todayReports={todayReports}
-                priorityCounts={priorityCounts}
-                serviceCounts={serviceCounts}
+                todayReports={filteredReports}
+                priorityCounts={filteredPriorityCounts}
+                serviceCounts={filteredServiceCounts}
                 uniqueDevices={uniqueDevices}
                 connected={connected}
               />
@@ -157,12 +249,12 @@ export default function Command() {
         )}
         {mobileTab === 'map' && (
           <div className="h-full">
-            <MapTab ref={mapRef} reports={reports} onSelectReport={handleMapSelect} />
+            <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
           </div>
         )}
         {mobileTab === 'training' && (
           <div className="h-full">
-            <TrainingTab reports={reports} />
+            <TrainingTab reports={filteredReports} />
           </div>
         )}
       </div>

@@ -4,9 +4,10 @@ import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_EMOJIS } from '@/lib/heral
 import { transcribeAudio, assessTranscript } from '@/lib/herald-api';
 import { saveReport, updateReport } from '@/lib/herald-storage';
 import { computeDiff } from '@/lib/herald-diff';
+import { getSession } from '@/lib/herald-session';
 import type { HeraldReport } from '@/lib/herald-types';
 
-const MAX_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_DURATION_MS = 5 * 60 * 1000;
 
 function getLocation(): Promise<{ lat?: number; lng?: number; location_accuracy?: number }> {
   return new Promise((resolve) => {
@@ -46,6 +47,17 @@ function formatDuration(ms: number): string {
   return `${m}:${s}`;
 }
 
+function getSessionFields() {
+  const session = getSession();
+  if (!session) return {};
+  return {
+    session_callsign: session.callsign,
+    session_operator_id: session.operator_id ?? undefined,
+    session_service: session.service,
+    session_station: session.station ?? undefined,
+  };
+}
+
 interface LiveTabProps {
   onAiStatus: (s: 'ok' | 'error') => void;
   onReportSaved: () => void;
@@ -61,7 +73,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const [capturedDuration, setCapturedDuration] = useState(0);
   const [maxReached, setMaxReached] = useState(false);
 
-  // Editable state
   const [editHeadline, setEditHeadline] = useState('');
   const [editStructured, setEditStructured] = useState<Record<string, string>>({});
   const [editActions, setEditActions] = useState<string[]>([]);
@@ -69,7 +80,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const [originalAssessment, setOriginalAssessment] = useState<Assessment | null>(null);
   const [hasEdits, setHasEdits] = useState(false);
 
-  // Recording refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -78,7 +88,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Initialize editable state when assessment arrives
   useEffect(() => {
     if (assessment && state === 'ready') {
       setEditHeadline(assessment.headline || '');
@@ -89,7 +98,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     }
   }, [assessment, state]);
 
-  // Track edits
   const buildFinalAssessment = useCallback((): Assessment => {
     return {
       ...assessment!,
@@ -107,7 +115,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setHasEdits(diff.has_edits);
   }, [editHeadline, editStructured, editActions, editFormattedReport, originalAssessment, assessment, buildFinalAssessment]);
 
-  // Auto-resize textarea
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (textareaRef.current) {
@@ -187,6 +194,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           onAiStatus('ok');
 
           const loc = await getLocation();
+          const sessionFields = getSessionFields();
           const report: HeraldReport = {
             id: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
@@ -198,6 +206,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             priority: result.priority,
             service: result.service,
             ...loc,
+            ...sessionFields,
           };
           saveReport(report);
           setCurrentReportId(report.id);
@@ -234,6 +243,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       onAiStatus('ok');
 
       const loc = await getLocation();
+      const sessionFields = getSessionFields();
       const report: HeraldReport = {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
@@ -245,6 +255,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         priority: result.priority,
         service: result.service,
         ...loc,
+        ...sessionFields,
       };
       saveReport(report);
       setCurrentReportId(report.id);
@@ -266,6 +277,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     const diff = computeDiff(originalAssessment, finalAssessment);
 
     const loc = await getLocation();
+    const sessionFields = getSessionFields();
 
     updateReport(currentReportId, {
       confirmed_at: new Date().toISOString(),
@@ -274,9 +286,9 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       priority: finalAssessment.priority,
       service: finalAssessment.service,
       ...loc,
+      ...sessionFields,
     });
 
-    // Store diff fields in localStorage
     try {
       const raw = localStorage.getItem('herald_reports');
       if (raw) {
@@ -290,6 +302,8 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           if (loc.lat) reports[idx].lat = loc.lat;
           if (loc.lng) reports[idx].lng = loc.lng;
           if (loc.location_accuracy) reports[idx].location_accuracy = loc.location_accuracy;
+          // Ensure session fields are on the report
+          Object.assign(reports[idx], sessionFields);
           localStorage.setItem('herald_reports', JSON.stringify(reports));
         }
       }
@@ -312,7 +326,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   if (state === 'idle') {
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-4 overflow-auto">
-        {/* Main tap target */}
         <button
           onClick={startRecording}
           className="relative flex items-center justify-center bg-transparent"
@@ -375,7 +388,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         className="flex flex-col items-center justify-center flex-1 px-4 cursor-pointer"
         onClick={stopRecordingAndProcess}
       >
-        {/* Top shimmer bar */}
         <div
           className="fixed top-0 left-0 right-0 z-50 overflow-hidden"
           style={{ height: 2, background: 'rgba(255,59,48,0.2)' }}
@@ -492,7 +504,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
     return (
       <div className="flex flex-col flex-1 overflow-auto pb-20">
-        {/* Priority banner */}
         <div
           className="flex items-center justify-between px-3 md:px-4 flex-shrink-0 py-3 md:py-4"
           style={{ background: `${pc}1F`, borderBottom: `2px solid ${pc}` }}
@@ -505,14 +516,12 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           <span className="text-lg md:text-lg text-foreground uppercase font-bold">{assessment.service}</span>
         </div>
 
-        {/* Edited indicator */}
         {hasEdits && (
           <div className="mx-3 md:mx-4 mt-2 flex items-center gap-1">
             <span style={{ fontSize: 18, color: '#FF9500', letterSpacing: '0.2em', fontWeight: 700 }}>✏️ EDITED</span>
           </div>
         )}
 
-        {/* Headline — editable */}
         <div className="mx-3 md:mx-4 mt-3 border border-border rounded bg-card">
           <textarea
             value={editHeadline}
@@ -526,9 +535,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           />
         </div>
 
-        {/* Two column grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mx-3 md:mx-4 mt-3">
-          {/* Protocol fields */}
           <div>
             <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>PROTOCOL FIELDS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
@@ -550,7 +557,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             </div>
           </div>
 
-          {/* Actions */}
           <div>
             <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>IMMEDIATE ACTIONS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
@@ -594,7 +600,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           </div>
         </div>
 
-        {/* Formatted report — editable */}
         <div className="mx-3 md:mx-4 mt-3">
           <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.1em] mb-2">FORMATTED REPORT</p>
           <div className="border border-border rounded bg-card">
@@ -610,7 +615,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           </div>
         </div>
 
-        {/* Raw transcript — NOT editable */}
         <div className="mx-3 md:mx-4 mt-3">
           <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.1em] mb-2">RAW TRANSMISSION</p>
           <div className="p-3 md:p-4 border border-border rounded bg-card">
@@ -623,7 +627,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           </div>
         </div>
 
-        {/* Action buttons */}
         <div className="fixed bottom-12 md:bottom-14 left-0 right-0 flex gap-3 px-3 md:px-4 pb-2 pt-2 bg-background">
           <button
             onClick={handleDiscard}
