@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Assessment, LiveState } from '@/lib/herald-types';
 import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_EMOJIS } from '@/lib/herald-types';
 import { transcribeAudio, assessTranscript } from '@/lib/herald-api';
-import { saveReport } from '@/lib/herald-storage';
+import { saveReport, updateReport } from '@/lib/herald-storage';
 import type { HeraldReport } from '@/lib/herald-types';
 
 interface LiveTabProps {
@@ -36,6 +36,7 @@ export function LiveTab({
   const [transcript, setTranscript] = useState('');
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [error, setError] = useState('');
+  const [currentReportId, setCurrentReportId] = useState<string | null>(null);
 
   const processTransmission = useCallback(
     async (text: string, isTest: boolean) => {
@@ -43,6 +44,7 @@ export function LiveTab({
       setError('');
       setTranscript('');
       setAssessment(null);
+      setCurrentReportId(null);
 
       await new Promise((r) => setTimeout(r, 300));
       setExternalState('processing');
@@ -61,6 +63,22 @@ export function LiveTab({
         setAssessment(result);
         onAiStatus('ok');
 
+        // Save report immediately (unconfirmed)
+        const report: HeraldReport = {
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          transcript: finalTranscript,
+          assessment: result,
+          synced: false,
+          confirmed_at: null as unknown as string,
+          headline: result.headline,
+          priority: result.priority,
+          service: result.service,
+        };
+        saveReport(report);
+        setCurrentReportId(report.id);
+        onReportSaved();
+
         await new Promise((r) => setTimeout(r, isTest ? 2000 : 500));
         setExternalState('ready');
       } catch {
@@ -72,31 +90,21 @@ export function LiveTab({
         }, 3000);
       }
     },
-    [getAudioBase64, onAiStatus, setExternalState]
+    [getAudioBase64, onAiStatus, setExternalState, onReportSaved]
   );
 
   const handleConfirm = useCallback(() => {
-    if (!assessment) return;
-    const report: HeraldReport = {
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      transcript,
-      assessment,
-      synced: false,
-      confirmed_at: new Date().toISOString(),
-      headline: assessment.headline,
-      priority: assessment.priority,
-      service: assessment.service,
-    };
-    saveReport(report);
+    if (!assessment || !currentReportId) return;
+    updateReport(currentReportId, { confirmed_at: new Date().toISOString() });
     onReportSaved();
     setExternalState('confirmed');
-  }, [assessment, transcript, onReportSaved, setExternalState]);
+  }, [assessment, currentReportId, onReportSaved, setExternalState]);
 
   const handleDiscard = useCallback(() => {
     setExternalState('idle');
     setAssessment(null);
     setTranscript('');
+    setCurrentReportId(null);
   }, [setExternalState]);
 
   // Listen for audio triggers from outside
@@ -118,6 +126,23 @@ export function LiveTab({
           const result = await assessTranscript(t);
           setAssessment(result);
           onAiStatus('ok');
+
+          // Save report immediately (unconfirmed)
+          const report: HeraldReport = {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            transcript: t,
+            assessment: result,
+            synced: false,
+            confirmed_at: null as unknown as string,
+            headline: result.headline,
+            priority: result.priority,
+            service: result.service,
+          };
+          saveReport(report);
+          setCurrentReportId(report.id);
+          onReportSaved();
+
           setExternalState('ready');
         } catch {
           onAiStatus('error');
@@ -134,7 +159,7 @@ export function LiveTab({
     if (state !== 'processing') {
       hasStartedProcessing.current = false;
     }
-  }, [state, getAudioBase64, onAiStatus, setExternalState]);
+  }, [state, getAudioBase64, onAiStatus, setExternalState, onReportSaved]);
 
   if (state === 'idle') {
     const micReady = micStatus === 'granted';

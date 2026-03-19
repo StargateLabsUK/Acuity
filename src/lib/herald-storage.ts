@@ -17,13 +17,17 @@ export function saveReport(report: HeraldReport): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
 }
 
-export function markSynced(id: string): void {
+export function updateReport(id: string, updates: Partial<HeraldReport>): void {
   const reports = getReports();
   const idx = reports.findIndex((r) => r.id === id);
   if (idx !== -1) {
-    reports[idx].synced = true;
+    reports[idx] = { ...reports[idx], ...updates };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
   }
+}
+
+export function markSynced(id: string): void {
+  updateReport(id, { synced: true });
 }
 
 export function getUnsyncedReports(): HeraldReport[] {
