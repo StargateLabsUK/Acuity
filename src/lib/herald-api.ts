@@ -7,11 +7,11 @@ const headers = {
   Authorization: `Bearer ${SUPABASE_KEY}`,
 };
 
-export async function transcribeAudio(base64Audio: string): Promise<string> {
+export async function transcribeAudio(base64Audio: string, mimeType?: string): Promise<string> {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/transcribe`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ audio: base64Audio, mimeType: 'audio/wav' }),
+    body: JSON.stringify({ audio: base64Audio, mimeType: mimeType || 'audio/webm' }),
   });
   if (!res.ok) throw new Error('Transcription failed');
   const data = await res.json();
