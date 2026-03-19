@@ -114,7 +114,7 @@ export function AuthScreen({ variant, onSignIn }: Props) {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: '#1E3028',
+                color: '#FFFFFF',
                 padding: 0,
               }}
             >
