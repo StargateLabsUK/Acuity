@@ -63,23 +63,16 @@ export function AuthScreen({ variant, onSignIn }: Props) {
       style={{ background: '#080B10' }}
     >
       <form onSubmit={handleSubmit} className="w-full" style={{ maxWidth: variant === 'command' ? 400 : 340, padding: 24 }}>
-        {/* Wordmark */}
-        <h1
-          style={{
-            fontFamily: "'Barlow Condensed', 'Inter', sans-serif",
-            fontWeight: 800,
-            fontSize: 28,
-            color: '#FFFFFF',
-            textAlign: 'center',
-            marginBottom: 0,
-          }}
-        >
-          {variant === 'command' ? 'HERALD COMMAND' : 'HERALD'}
-        </h1>
+        {/* Wordmark — matches CommandTopBar */}
+        <div style={{ textAlign: 'center', marginBottom: 0 }}>
+          <span className="font-heading text-2xl text-foreground tracking-[0.08em]">
+            {variant === 'command' ? 'HERALD COMMAND' : 'HERALD'}
+          </span>
+        </div>
 
         <div style={{ height: 1, background: '#0F1820', margin: '20px 0' }} />
 
-        <p style={{ color: '#1E3028', fontSize: 9, letterSpacing: '0.25em', textAlign: 'center', marginBottom: 24 }}>
+        <p style={{ color: '#FFFFFF', fontSize: 9, letterSpacing: '0.25em', textAlign: 'center', marginBottom: 24 }}>
           {variant === 'command' ? 'COMMAND ACCESS' : 'FIELD ACCESS'}
         </p>
 
