@@ -1,9 +1,36 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { HeraldReport } from '@/lib/herald-types';
 import { PRIORITY_COLORS, SERVICE_EMOJIS } from '@/lib/herald-types';
 
 interface ReportsTabProps {
   reports: HeraldReport[];
+}
+
+function CopyBtn({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = useCallback(() => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [text]);
+
+  return (
+    <button
+      onClick={copy}
+      style={{
+        fontSize: 18,
+        color: '#FFFFFF',
+        border: '1px solid #0F1820',
+        padding: '6px 14px',
+        borderRadius: 2,
+        background: 'transparent',
+        cursor: 'pointer',
+        letterSpacing: '0.05em',
+      }}
+    >
+      {copied ? 'COPIED' : label}
+    </button>
+  );
 }
 
 export function ReportsTab({ reports }: ReportsTabProps) {
@@ -26,6 +53,12 @@ export function ReportsTab({ reports }: ReportsTabProps) {
         const pc = PRIORITY_COLORS[a?.priority as string] || PRIORITY_COLORS[r.priority as string] || '#FFFFFF';
         const emoji = SERVICE_EMOJIS[a?.service as string] || SERVICE_EMOJIS[r.service as string] || '📻';
         const expanded = expandedId === r.id;
+        const structured = (a?.structured as Record<string, string>) ?? {};
+        const actions = (a?.actions as string[]) ?? [];
+        const formattedReport = (a?.formatted_report as string) ?? '';
+        const priorityLabel = (a?.priority_label as string) ?? '';
+        const transmitTo = (a?.transmit_to as string) ?? '';
+        const confidence = (a?.confidence as number) ?? 0;
 
         return (
           <div
@@ -63,84 +96,116 @@ export function ReportsTab({ reports }: ReportsTabProps) {
             </button>
 
             {expanded && a && (
-              <div className="px-3 pb-3" style={{ borderTop: '1px solid #0F1820' }}>
+              <div className="px-3 pb-4" style={{ borderTop: '1px solid #0F1820' }}>
+                {/* Priority Banner — P1 IMMEDIATE inline */}
                 <div
-                  className="flex items-center justify-between px-3 mt-3"
+                  className="flex items-center justify-between px-4 mt-3"
                   style={{
-                    height: 64,
+                    padding: '18px 20px',
                     background: `${pc}1F`,
-                    borderBottom: `2px solid ${pc}`,
+                    borderBottom: `3px solid ${pc}`,
                     borderRadius: 2,
                   }}
                 >
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <span style={{ fontSize: 28 }}>{emoji}</span>
-                      <span className="font-heading" style={{ fontSize: 32, color: pc }}>
+                  <div className="flex items-center gap-4">
+                    <span style={{ fontSize: 40 }}>{emoji}</span>
+                    <div className="flex items-baseline gap-3">
+                      <span className="font-heading" style={{ fontSize: 48, color: pc, lineHeight: 1 }}>
                         {a.priority as string}
                       </span>
+                      <span className="font-heading" style={{ fontSize: 28, color: pc, letterSpacing: '0.05em' }}>
+                        {priorityLabel}
+                      </span>
                     </div>
-                    <span style={{ fontSize: 18, color: pc, opacity: 0.8 }}>{a.priority_label as string}</span>
                   </div>
-                  <span style={{ fontSize: 18, color: '#FFFFFF', textTransform: 'uppercase' }}>
-                    {a.service as string}
-                  </span>
-                </div>
-
-                <div className="mt-3 p-3" style={{ border: '1px solid #0F1820', borderRadius: 2 }}>
-                  <p style={{ fontSize: 18, color: '#FFFFFF' }}>{a.headline as string}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  {a.structured && (
-                    <div className="p-3" style={{ border: '1px solid #0F1820', borderRadius: 2 }}>
-                      <p style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.1em', marginBottom: 8 }}>PROTOCOL FIELDS</p>
-                      {Object.entries(a.structured as Record<string, string>).map(([k, v]) => (
-                        <div key={k} className="mb-2">
-                          <p style={{ fontSize: 18, color: '#FFFFFF', fontWeight: 700 }}>{k}</p>
-                          <p style={{ fontSize: 18, color: '#FFFFFF' }}>{v}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {(a.actions as string[])?.length > 0 && (
-                    <div className="p-3" style={{ border: '1px solid #0F1820', borderRadius: 2 }}>
-                      <p style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.1em', marginBottom: 8 }}>IMMEDIATE ACTIONS</p>
-                      {(a.actions as string[]).map((action, i) => (
-                        <div key={i} className="flex gap-2 mb-1.5">
-                          <span style={{ fontSize: 18, color: pc, fontWeight: 700 }}>{i + 1}.</span>
-                          <span style={{ fontSize: 18, color: '#FFFFFF' }}>{action}</span>
-                        </div>
-                      ))}
-                      {a.transmit_to && (
-                        <>
-                          <div style={{ borderTop: '1px solid #0F1820', margin: '8px 0' }} />
-                          <p style={{ fontSize: 18, color: '#FFFFFF' }}>TRANSMIT TO: {a.transmit_to as string}</p>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {a.formatted_report && (
-                  <div className="mt-3 p-3" style={{ border: '1px solid #0F1820', borderRadius: 2 }}>
-                    <p style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.1em', marginBottom: 8 }}>FORMATTED REPORT</p>
-                    <pre style={{ fontSize: 18, color: '#FFFFFF', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
-                      {a.formatted_report as string}
-                    </pre>
+                  <div className="text-right">
+                    <span style={{ fontSize: 20, color: '#FFFFFF', textTransform: 'uppercase', fontWeight: 700 }}>
+                      {a.service as string}
+                    </span>
                   </div>
-                )}
+                </div>
 
-                {r.transcript && (
-                  <div className="mt-3 p-3" style={{ border: '1px solid #0F1820', borderRadius: 2 }}>
-                    <p style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.1em', marginBottom: 8 }}>RAW TRANSMISSION</p>
-                    <p style={{ fontSize: 18, color: '#FFFFFF', fontStyle: 'italic' }}>"{r.transcript}"</p>
-                    {(a.confidence as number) != null && (
-                      <p style={{ fontSize: 18, color: '#FFFFFF', marginTop: 4 }}>
-                        Confidence: {Math.round((a.confidence as number) * 100)}%
+                {/* Headline */}
+                <div className="mt-4 p-4" style={{ border: '1px solid #0F1820', borderRadius: 4, background: '#0D1117' }}>
+                  <p style={{ fontSize: 20, color: '#FFFFFF', lineHeight: 1.6, fontWeight: 500 }}>{a.headline as string}</p>
+                </div>
+
+                {/* Full Transcript */}
+                <div className="mt-5">
+                  <p style={{ fontSize: 18, fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.2em', marginBottom: 10 }}>
+                    FULL TRANSCRIPT
+                  </p>
+                  <div className="p-4" style={{ border: '1px solid #0F1820', borderRadius: 4, background: '#0D1117' }}>
+                    <p style={{ fontSize: 18, color: '#FFFFFF', lineHeight: 1.7, fontStyle: 'italic' }}>
+                      &ldquo;{r.transcript ?? 'N/A'}&rdquo;
+                    </p>
+                    <div style={{ fontSize: 18, color: '#FFFFFF', marginTop: 10, opacity: 0.7 }}>
+                      CONFIDENCE: {Math.round(confidence * 100)}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Protocol Fields & Actions — titles outside boxes, in priority colour */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                  {Object.keys(structured).length > 0 && (
+                    <div>
+                      <p style={{ fontSize: 18, fontWeight: 700, color: pc, letterSpacing: '0.2em', marginBottom: 10 }}>
+                        PROTOCOL FIELDS
                       </p>
-                    )}
+                      <div className="p-4" style={{ border: '1px solid #0F1820', borderRadius: 4, background: '#0D1117' }}>
+                        <div className="flex flex-col gap-3">
+                          {Object.entries(structured).map(([k, v]) => (
+                            <div key={k}>
+                              <div style={{ fontSize: 18, fontWeight: 700, color: pc, letterSpacing: '0.05em', marginBottom: 2 }}>{k}</div>
+                              <div style={{ fontSize: 18, color: '#FFFFFF', lineHeight: 1.5 }}>{v ?? '—'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {actions.length > 0 && (
+                    <div>
+                      <p style={{ fontSize: 18, fontWeight: 700, color: pc, letterSpacing: '0.2em', marginBottom: 10 }}>
+                        IMMEDIATE ACTIONS
+                      </p>
+                      <div className="p-4" style={{ border: '1px solid #0F1820', borderRadius: 4, background: '#0D1117' }}>
+                        <div className="flex flex-col gap-2">
+                          {actions.map((action, i) => (
+                            <div key={i} className="flex gap-3">
+                              <span style={{ fontSize: 18, fontWeight: 700, color: pc, minWidth: 24 }}>{i + 1}.</span>
+                              <span style={{ fontSize: 18, color: '#FFFFFF', lineHeight: 1.5 }}>{action}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {transmitTo && (
+                          <>
+                            <div style={{ borderTop: '1px solid #0F1820', margin: '14px 0' }} />
+                            <div style={{ fontSize: 18, color: '#FFFFFF' }}>
+                              <span style={{ fontWeight: 700, color: pc }}>TRANSMIT TO:</span> {transmitTo}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Formatted Report */}
+                {formattedReport && (
+                  <div className="mt-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <p style={{ fontSize: 18, fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.2em' }}>
+                        FORMATTED REPORT
+                      </p>
+                      <CopyBtn text={formattedReport} label="COPY" />
+                    </div>
+                    <div className="p-4" style={{ border: '1px solid #0F1820', borderRadius: 4, background: '#0D1117' }}>
+                      <pre style={{ fontSize: 18, color: '#FFFFFF', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+                        {formattedReport}
+                      </pre>
+                    </div>
                   </div>
                 )}
               </div>
