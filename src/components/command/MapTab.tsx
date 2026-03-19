@@ -191,6 +191,8 @@ export function MapTab({ reports, onSelectReport }: Props) {
           50% { transform: scale(1.8); opacity: 0.6; }
           100% { transform: scale(1); opacity: 1; }
         }
+        .mapboxgl-ctrl-logo { display: none !important; }
+        .mapboxgl-ctrl-attrib { display: none !important; }
       `}</style>
     </div>
   );
