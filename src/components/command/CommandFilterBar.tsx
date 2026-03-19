@@ -32,9 +32,9 @@ const selectStyle: React.CSSProperties = {
   background: '#0D1117',
   border: '1px solid #0F1820',
   color: '#C8D0CC',
-  padding: '10px 12px',
+  padding: '14px 16px',
   borderRadius: 3,
-  fontSize: 18,
+  fontSize: 20,
   outline: 'none',
   appearance: 'none' as const,
   WebkitAppearance: 'none' as const,
@@ -42,9 +42,9 @@ const selectStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   color: '#4A6058',
-  fontSize: 18,
+  fontSize: 20,
   letterSpacing: '0.15em',
-  marginBottom: 4,
+  marginBottom: 6,
   display: 'block',
   fontWeight: 700,
 };
@@ -101,7 +101,7 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
             top: dropdownTop,
             background: '#0D1117',
             borderBottom: '1px solid #0F1820',
-            padding: '16px 20px',
+            padding: '28px 32px',
           }}
         >
           <div className="flex flex-wrap gap-4 items-end">
