@@ -40,7 +40,7 @@ export function CommandTopBar({ priorityCounts, connected, filterSlot }: Props) 
   );
 
   return (
-    <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-3 flex-shrink-0 border-b border-border bg-card">
+    <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-3 flex-shrink-0 border-b border-border" style={{ background: 'var(--herald-command-bg)' }}>
       <div className="flex items-center gap-2 md:gap-3">
         <div className="flex flex-col">
           <span className="font-heading text-lg md:text-2xl text-foreground tracking-[0.08em]">
