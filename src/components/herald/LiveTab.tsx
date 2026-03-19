@@ -13,6 +13,8 @@ interface LiveTabProps {
   onReportSaved: () => void;
   externalState?: LiveState;
   setExternalState: (s: LiveState) => void;
+  micStatus: 'pending' | 'granted' | 'denied';
+  initMic: () => Promise<void>;
 }
 
 export function LiveTab({
