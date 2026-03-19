@@ -54,6 +54,7 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
   const [service, setService] = useState('');
   const [callsign, setCallsign] = useState('');
   const [timeRange, setTimeRange] = useState<'today' | '24h' | 'all'>('today');
+  const [dropdownTop, setDropdownTop] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
   const update = (s: string, c: string, t: 'today' | '24h' | 'all') => {
