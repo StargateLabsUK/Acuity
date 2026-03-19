@@ -96,7 +96,7 @@ export default function Command() {
               />
             )}
           </div>
-          <div className="flex flex-shrink-0" style={{ borderTop: '1px solid #0F1820', background: '#0D1117' }}>
+          <div className="flex flex-shrink-0 border-t border-border bg-card">
             {mobileTabBtn('feed', 'FEED')}
             {mobileTabBtn('detail', 'DETAIL')}
             {mobileTabBtn('status', 'STATUS')}
