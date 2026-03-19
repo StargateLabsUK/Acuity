@@ -1,0 +1,1 @@
+ALTER TABLE public.herald_reports RENAME COLUMN accuracy TO location_accuracy;

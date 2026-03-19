@@ -15,6 +15,9 @@ export interface CommandReport {
   priority: string | null;
   service: string | null;
   created_at: string | null;
+  lat: number | null;
+  lng: number | null;
+  location_accuracy: number | null;
   isNew?: boolean;
 }
 

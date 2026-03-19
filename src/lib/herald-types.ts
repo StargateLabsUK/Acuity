@@ -12,7 +12,7 @@ export interface HeraldReport {
   service?: string;
   lat?: number;
   lng?: number;
-  accuracy?: number;
+  location_accuracy?: number;
 }
 
 export interface Assessment {

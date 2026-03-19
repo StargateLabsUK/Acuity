@@ -4,9 +4,10 @@ import { CommandTopBar } from '@/components/command/CommandTopBar';
 import { IncomingFeed } from '@/components/command/IncomingFeed';
 import { ReportDetail } from '@/components/command/ReportDetail';
 import { CommandStatus } from '@/components/command/CommandStatus';
+import { MapTab } from '@/components/command/MapTab';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-type MobileTab = 'feed' | 'detail' | 'status';
+type MobileTab = 'feed' | 'detail' | 'status' | 'map';
 
 export default function Command() {
   const {
@@ -29,12 +30,19 @@ export default function Command() {
     if (isMobile) setMobileTab('detail');
   };
 
+  const handleMapSelect = (id: string) => {
+    setSelectedId(id);
+    if (isMobile) {
+      setMobileTab('detail');
+    }
+  };
+
   const mobileTabBtn = (id: MobileTab, label: string) => {
     const active = mobileTab === id;
     return (
       <button
         onClick={() => setMobileTab(id)}
-        className="flex-1 h-12 font-heading text-lg font-bold tracking-[0.08em]"
+        className="flex-1 h-12 font-heading text-base font-bold tracking-[0.08em]"
         style={{
           color: active ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
           borderTop: active ? '2px solid hsl(var(--primary))' : '2px solid transparent',
@@ -63,14 +71,18 @@ export default function Command() {
             />
           </div>
 
-          {/* Feed + Detail side by side */}
+          {/* Feed + Detail + Map */}
           <div className="flex flex-1 overflow-hidden min-w-0 gap-3">
-            <div className="flex flex-col overflow-hidden min-w-0 w-1/2 rounded-lg border border-border bg-card shadow-sm">
+            <div className="flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
               <IncomingFeed reports={reports} selectedId={selectedId} onSelect={handleSelect} />
             </div>
 
-            <div className="flex flex-col overflow-hidden min-w-0 w-1/2">
+            <div className="flex flex-col overflow-hidden min-w-0 w-1/3">
               <ReportDetail report={selectedReport} />
+            </div>
+
+            <div className="flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
+              <MapTab reports={reports} onSelectReport={handleMapSelect} />
             </div>
           </div>
         </div>
@@ -98,10 +110,16 @@ export default function Command() {
                 </div>
               </div>
             )}
+            {mobileTab === 'map' && (
+              <div className="h-full">
+                <MapTab reports={reports} onSelectReport={handleMapSelect} />
+              </div>
+            )}
           </div>
           <div className="flex flex-shrink-0 border-t border-border bg-card">
             {mobileTabBtn('feed', 'FEED')}
             {mobileTabBtn('detail', 'DETAIL')}
+            {mobileTabBtn('map', 'MAP')}
             {mobileTabBtn('status', 'STATUS')}
           </div>
         </>
