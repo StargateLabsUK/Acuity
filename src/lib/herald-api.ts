@@ -1,13 +1,19 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+import { supabase } from '@/integrations/supabase/client';
 
-const headers = {
-  'Content-Type': 'application/json',
-  apikey: SUPABASE_KEY,
-  Authorization: `Bearer ${SUPABASE_KEY}`,
-};
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  return {
+    'Content-Type': 'application/json',
+    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    Authorization: token ? `Bearer ${token}` : `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+  };
+}
 
 export async function transcribeAudio(base64Audio: string, mimeType?: string): Promise<string> {
+  const headers = await getAuthHeaders();
   const res = await fetch(`${SUPABASE_URL}/functions/v1/transcribe`, {
     method: 'POST',
     headers,
@@ -19,6 +25,7 @@ export async function transcribeAudio(base64Audio: string, mimeType?: string): P
 }
 
 export async function assessTranscript(transcript: string) {
+  const headers = await getAuthHeaders();
   const res = await fetch(`${SUPABASE_URL}/functions/v1/assess`, {
     method: 'POST',
     headers,
@@ -28,7 +35,8 @@ export async function assessTranscript(transcript: string) {
   return res.json();
 }
 
-export async function syncReport(report: Record<string, unknown>): Promise<boolean> {
+export async function syncReport(report: Record<string, unknown>): Promise<boolean | 'auth_error'> {
+  const headers = await getAuthHeaders();
   const res = await fetch(`${SUPABASE_URL}/rest/v1/herald_reports`, {
     method: 'POST',
     headers: {
@@ -37,5 +45,6 @@ export async function syncReport(report: Record<string, unknown>): Promise<boole
     },
     body: JSON.stringify(report),
   });
+  if (res.status === 401 || res.status === 403) return 'auth_error';
   return res.status === 201;
 }
