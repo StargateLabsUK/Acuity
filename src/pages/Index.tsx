@@ -1,16 +1,68 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useCallback, useEffect } from 'react';
+import { TopBar } from '@/components/herald/TopBar';
+import { BottomNav } from '@/components/herald/BottomNav';
+import { LiveTab } from '@/components/herald/LiveTab';
+import { ReportsTab } from '@/components/herald/ReportsTab';
+import { useAudioCapture } from '@/hooks/useAudioCapture';
+import { useHeraldSync } from '@/hooks/useHeraldSync';
+import { getReports } from '@/lib/herald-storage';
+import type { HeraldReport, LiveState } from '@/lib/herald-types';
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const [activeTab, setActiveTab] = useState<'live' | 'reports'>('live');
+  const [aiStatus, setAiStatus] = useState<'ok' | 'error'>('ok');
+  const [liveState, setLiveState] = useState<LiveState>('idle');
+  const [reports, setReports] = useState<HeraldReport[]>([]);
+  const syncStatus = useHeraldSync();
+
+  const onTrigger = useCallback(() => {
+    setLiveState('triggered');
+  }, []);
+
+  const onSilence = useCallback(() => {
+    setLiveState('processing');
+  }, []);
+
+  const { micStatus, initMic, getAudioBase64 } = useAudioCapture(onTrigger, onSilence);
+
+  useEffect(() => {
+    initMic();
+  }, [initMic]);
+
+  useEffect(() => {
+    setReports(getReports());
+  }, [activeTab]);
+
+  const refreshReports = useCallback(() => {
+    setReports(getReports());
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div
+      className="flex flex-col h-screen overflow-hidden"
+      style={{ background: 'var(--herald-bg)' }}
+    >
+      <TopBar micStatus={micStatus} aiStatus={aiStatus} syncStatus={syncStatus} />
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {activeTab === 'live' ? (
+          <LiveTab
+            onTrigger={onTrigger}
+            onSilence={onSilence}
+            getAudioBase64={getAudioBase64}
+            onAiStatus={setAiStatus}
+            onReportSaved={refreshReports}
+            externalState={liveState}
+            setExternalState={setLiveState}
+          />
+        ) : (
+          <ReportsTab reports={reports} />
+        )}
+      </div>
+
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
