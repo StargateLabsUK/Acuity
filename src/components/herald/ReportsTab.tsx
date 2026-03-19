@@ -83,7 +83,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
                 ) : (
                   <ChevronRight size={18} className="text-foreground opacity-50 flex-shrink-0" />
                 )}
-                <span className="text-lg md:text-xl">{emoji}</span>
+                <span className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{serviceLabel}</span>
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-lg md:text-lg text-foreground">
                     {(a?.headline as string) || r.headline || 'Report'}
