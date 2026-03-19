@@ -52,7 +52,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
             );
           })}
         </div>
-        <div className="text-lg md:text-lg text-foreground tracking-[0.25em] font-bold">
+        <div className="text-lg md:text-lg text-foreground tracking-[0.25em] font-bold mb-3">
           TRANSMISSIONS
         </div>
       </div>
