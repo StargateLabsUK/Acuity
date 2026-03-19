@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react';
 interface Props {
   priorityCounts: { P1: number; P2: number; P3: number };
   connected: boolean;
+  filterSlot?: React.ReactNode;
 }
 
-export function CommandTopBar({ priorityCounts, connected }: Props) {
+export function CommandTopBar({ priorityCounts, connected, filterSlot }: Props) {
   const [utc, setUtc] = useState('');
 
   useEffect(() => {
@@ -56,6 +57,7 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
       </div>
 
       <div className="flex items-center gap-2 md:gap-3">
+        {filterSlot}
         <div className="flex items-center gap-1.5">
           <div
             className="w-2 h-2 rounded-full"
