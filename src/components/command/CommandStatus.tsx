@@ -14,14 +14,14 @@ function Section({ children }: { children: React.ReactNode }) {
 }
 
 function Divider() {
-  return <div style={{ borderTop: '1px solid #0F1820' }} />;
+  return <div className="border-t border-border" />;
 }
 
 function Row({ left, right, color }: { left: React.ReactNode; right: React.ReactNode; color?: string }) {
   return (
     <div className="flex items-center justify-between py-1">
-      <span style={{ fontSize: 18, color: color ?? '#FFFFFF' }}>{left}</span>
-      <span style={{ fontSize: 18, color: color ?? '#FFFFFF', fontWeight: 700 }}>{right}</span>
+      <span className="text-lg" style={{ color: color ?? 'hsl(var(--foreground))' }}>{left}</span>
+      <span className="text-lg font-bold" style={{ color: color ?? 'hsl(var(--foreground))' }}>{right}</span>
     </div>
   );
 }
@@ -40,12 +40,11 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
 
   return (
     <div className="h-full overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-      {/* Today's Activity */}
       <Section>
-        <div className="font-heading" style={{ fontSize: 48, color: '#FFFFFF', fontWeight: 700 }}>
+        <div className="font-heading text-5xl text-foreground font-bold">
           {todayReports.length}
         </div>
-        <div style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: 10 }}>
+        <div className="text-lg text-foreground tracking-[0.25em] mb-3">
           TRANSMISSIONS TODAY
         </div>
         <Row left="P1" right={priorityCounts.P1} color="#FF3B30" />
@@ -55,9 +54,8 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
 
       <Divider />
 
-      {/* By Service */}
       <Section>
-        <div style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: 8 }}>
+        <div className="text-lg text-foreground tracking-[0.25em] mb-2 font-bold">
           BY SERVICE
         </div>
         {Object.entries(serviceCounts).map(([s, c]) => (
@@ -68,19 +66,18 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
           />
         ))}
         {Object.keys(serviceCounts).length === 0 && (
-          <span style={{ fontSize: 18, color: '#FFFFFF' }}>No reports today</span>
+          <span className="text-lg text-foreground opacity-50">No reports today</span>
         )}
       </Section>
 
       <Divider />
 
-      {/* Recent Timeline */}
       <Section>
-        <div style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: 8 }}>
+        <div className="text-lg text-foreground tracking-[0.25em] mb-2 font-bold">
           RECENT TIMELINE
         </div>
         {recent.length === 0 ? (
-          <span style={{ fontSize: 18, color: '#FFFFFF' }}>No recent activity</span>
+          <span className="text-lg text-foreground opacity-50">No recent activity</span>
         ) : (
           recent.map((r) => {
             const p = r.assessment?.priority ?? r.priority ?? 'P3';
@@ -90,12 +87,12 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
             const h = (r.assessment?.headline ?? r.headline ?? '').slice(0, 30);
             return (
               <div key={r.id} className="flex items-center gap-2 py-1">
-                <span style={{ fontSize: 18, color: '#FFFFFF', width: 60, flexShrink: 0 }}>{t}</span>
+                <span className="text-lg text-foreground w-[60px] flex-shrink-0">{t}</span>
                 <div
                   className="w-2 h-2 rounded-full flex-shrink-0"
                   style={{ backgroundColor: getColor(p) }}
                 />
-                <span className="truncate" style={{ fontSize: 18, color: '#FFFFFF' }}>{h}</span>
+                <span className="truncate text-lg text-foreground">{h}</span>
               </div>
             );
           })
@@ -104,9 +101,8 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
 
       <Divider />
 
-      {/* System Status */}
       <Section>
-        <div style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: 8 }}>
+        <div className="text-lg text-foreground tracking-[0.25em] mb-2 font-bold">
           SYSTEM STATUS
         </div>
         <Row left="FIELD DEVICES" right={<span>{uniqueDevices} ACTIVE</span>} />
@@ -114,7 +110,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
         <Row
           left="SUPABASE"
           right={connected ? 'CONNECTED' : 'OFFLINE'}
-          color={connected ? '#3DFF8C' : '#FF3B30'}
+          color={connected ? 'hsl(var(--primary))' : '#FF3B30'}
         />
         <Row left="HERALD VERSION" right="v1.0" />
       </Section>

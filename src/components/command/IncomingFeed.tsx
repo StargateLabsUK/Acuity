@@ -33,27 +33,21 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="px-3 pt-3 pb-2 flex-shrink-0">
-        <div style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: 8 }}>
+        <div className="text-lg text-foreground tracking-[0.25em] mb-2 font-bold">
           INCOMING TRANSMISSIONS
         </div>
         <div className="flex gap-1">
           {FILTERS.map((f) => {
             const active = filter === f;
-            const col = f === 'ALL' ? '#FFFFFF' : getColor(f);
+            const col = f === 'ALL' ? 'hsl(var(--foreground))' : getColor(f);
             return (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
+                className="text-lg font-bold tracking-wide rounded-sm px-2.5 py-0.5 bg-transparent cursor-pointer transition-colors"
                 style={{
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: active ? col : '#FFFFFF',
-                  border: `1px solid ${active ? col : '#0F1820'}`,
-                  background: 'transparent',
-                  padding: '3px 10px',
-                  borderRadius: 2,
-                  cursor: 'pointer',
-                  letterSpacing: '0.05em',
+                  color: active ? col : 'hsl(var(--foreground))',
+                  border: `1px solid ${active ? col : 'hsl(var(--border))'}`,
                 }}
               >
                 {f}
@@ -67,8 +61,8 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
       <div className="flex-1 overflow-y-auto px-3 pb-3" style={{ scrollbarWidth: 'thin' }}>
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
-            <span className="animate-breathe" style={{ fontSize: 32 }}>📻</span>
-            <span style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.2em' }}>AWAITING TRANSMISSIONS</span>
+            <span className="animate-breathe text-[32px]">📻</span>
+            <span className="text-lg text-foreground tracking-[0.2em]">AWAITING TRANSMISSIONS</span>
           </div>
         ) : (
           filtered.map((r) => {
@@ -79,55 +73,47 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
               <button
                 key={r.id}
                 onClick={() => onSelect(r.id)}
-                className="w-full text-left"
+                className="w-full text-left block rounded bg-transparent cursor-pointer mb-2 transition-all"
                 style={{
-                  display: 'block',
-                  border: `1px solid ${selected ? col : '#0F1820'}`,
+                  border: `1px solid ${selected ? col : 'hsl(var(--border))'}`,
                   borderLeft: `3px solid ${col}`,
-                  borderRadius: 4,
                   padding: '12px 14px',
-                  marginBottom: 8,
-                  background: r.isNew ? `${col}24` : 'transparent',
-                  transition: 'background 0.8s ease, transform 0.3s ease',
+                  background: r.isNew ? `${col}24` : selected ? `${col}0A` : 'transparent',
                   transform: r.isNew ? 'scale(1.02)' : 'scale(1)',
-                  cursor: 'pointer',
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <span style={{ fontSize: 18 }}>{SERVICE_EMOJIS[getService(r)] ?? '📻'}</span>
-                  <span
-                    className="flex-1 truncate"
-                    style={{ fontSize: 18, color: '#FFFFFF' }}
-                  >
+                  <span className="text-lg">{SERVICE_EMOJIS[getService(r)] ?? '📻'}</span>
+                  <span className="flex-1 truncate text-lg text-foreground">
                     {getHeadline(r)}
                   </span>
                   <span
+                    className="text-lg font-bold rounded-sm px-2 py-0.5"
                     style={{
-                      fontSize: 18,
-                      fontWeight: 700,
                       color: col,
                       border: `1px solid ${col}66`,
-                      padding: '2px 8px',
-                      borderRadius: 2,
                     }}
                   >
                     {p}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                  <span style={{ fontSize: 18, color: '#FFFFFF' }}>{getTime(r)}</span>
+                  <span className="text-lg text-foreground">{getTime(r)}</span>
                   {getCallsign(r) && (
-                    <span style={{ fontSize: 14, color: col, border: `1px solid ${col}66`, padding: '1px 8px', borderRadius: 2, fontWeight: 600 }}>
+                    <span
+                      className="text-sm font-semibold rounded-sm px-2 py-0.5"
+                      style={{ color: col, border: `1px solid ${col}66` }}
+                    >
                       {getCallsign(r)}
                     </span>
                   )}
                   {getIncident(r) && (
-                    <span style={{ fontSize: 14, color: '#FFFFFF', border: '1px solid #0F1820', padding: '1px 8px', borderRadius: 2, fontWeight: 600 }}>
+                    <span className="text-sm font-semibold text-foreground border border-border rounded-sm px-2 py-0.5">
                       #{getIncident(r)}
                     </span>
                   )}
                   {r.operator_id && (
-                    <span style={{ fontSize: 18, color: '#FFFFFF' }}>{r.operator_id}</span>
+                    <span className="text-lg text-foreground">{r.operator_id}</span>
                   )}
                 </div>
               </button>

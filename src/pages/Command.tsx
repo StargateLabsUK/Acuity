@@ -50,21 +50,21 @@ export default function Command() {
   };
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: '#080B10' }}>
+    <div className="flex flex-col h-screen bg-background">
       <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
 
       {!isMobile ? (
         <div className="flex flex-1 overflow-hidden">
           <div
             className="flex flex-col overflow-hidden"
-            style={{ width: '35%', borderRight: '1px solid #0F1820' }}
+            style={{ width: '35%', borderRight: '1px solid hsl(var(--border))' }}
           >
             <IncomingFeed reports={reports} selectedId={selectedId} onSelect={handleSelect} />
           </div>
 
           <div
             className="flex flex-col overflow-hidden"
-            style={{ width: '40%', borderRight: '1px solid #0F1820' }}
+            style={{ width: '40%', borderRight: '1px solid hsl(var(--border))' }}
           >
             <ReportDetail report={selectedReport} />
           </div>
@@ -96,7 +96,7 @@ export default function Command() {
               />
             )}
           </div>
-          <div className="flex flex-shrink-0" style={{ borderTop: '1px solid #0F1820', background: '#0D1117' }}>
+          <div className="flex flex-shrink-0 border-t border-border bg-card">
             {mobileTabBtn('feed', 'FEED')}
             {mobileTabBtn('detail', 'DETAIL')}
             {mobileTabBtn('status', 'STATUS')}
