@@ -9,19 +9,11 @@ interface Props {
   connected: boolean;
 }
 
-function Section({ children }: { children: React.ReactNode }) {
-  return <div className="px-3 py-3">{children}</div>;
-}
-
-function Divider() {
-  return <div className="border-t border-border" />;
-}
-
-function Row({ left, right, color }: { left: React.ReactNode; right: React.ReactNode; color?: string }) {
+function StatBlock({ label, value, color }: { label: string; value: React.ReactNode; color?: string }) {
   return (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-lg" style={{ color: color ?? 'hsl(var(--foreground))' }}>{left}</span>
-      <span className="text-lg font-bold" style={{ color: color ?? 'hsl(var(--foreground))' }}>{right}</span>
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-foreground opacity-70 tracking-[0.15em]">{label}</span>
+      <span className="text-lg font-bold" style={{ color: color ?? 'hsl(var(--foreground))' }}>{value}</span>
     </div>
   );
 }
@@ -31,89 +23,58 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
   const lastTime = lastReport
     ? new Date(lastReport.created_at ?? lastReport.timestamp).getUTCHours().toString().padStart(2, '0') + ':' +
       new Date(lastReport.created_at ?? lastReport.timestamp).getUTCMinutes().toString().padStart(2, '0') + 'Z'
-    : 'NONE';
+    : '—';
 
-  const recent = todayReports.slice(0, 8);
-
-  const getColor = (p: string) =>
-    p === 'P1' ? '#FF3B30' : p === 'P2' ? '#FF9500' : '#34C759';
+  const topServices = Object.entries(serviceCounts).slice(0, 4);
 
   return (
-    <div className="h-full overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-      <Section>
-        <div className="font-heading text-5xl text-foreground font-bold">
+    <div className="flex items-center gap-6 px-5 py-3 overflow-x-auto bg-card" style={{ scrollbarWidth: 'thin' }}>
+      {/* Today count */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <span className="font-heading text-3xl text-foreground font-bold leading-none">
           {todayReports.length}
-        </div>
-        <div className="text-lg text-foreground tracking-[0.25em] mb-3">
-          TRANSMISSIONS TODAY
-        </div>
-        <Row left="P1" right={priorityCounts.P1} color="#FF3B30" />
-        <Row left="P2" right={priorityCounts.P2} color="#FF9500" />
-        <Row left="P3" right={priorityCounts.P3} color="#34C759" />
-      </Section>
+        </span>
+        <span className="text-sm text-foreground opacity-70 tracking-[0.15em]">TODAY</span>
+      </div>
 
-      <Divider />
+      {/* Divider */}
+      <div className="w-px h-8 bg-border flex-shrink-0" />
 
-      <Section>
-        <div className="text-lg text-foreground tracking-[0.25em] mb-2 font-bold">
-          BY SERVICE
-        </div>
-        {Object.entries(serviceCounts).map(([s, c]) => (
-          <Row
-            key={s}
-            left={<span>{SERVICE_EMOJIS[s] ?? '📻'} {s.toUpperCase()}</span>}
-            right={c}
-          />
+      {/* Priority counts */}
+      <div className="flex items-center gap-4 flex-shrink-0">
+        <StatBlock label="P1" value={priorityCounts.P1} color="#FF3B30" />
+        <StatBlock label="P2" value={priorityCounts.P2} color="#FF9500" />
+        <StatBlock label="P3" value={priorityCounts.P3} color="#34C759" />
+      </div>
+
+      <div className="w-px h-8 bg-border flex-shrink-0" />
+
+      {/* Services */}
+      <div className="flex items-center gap-4 flex-shrink-0">
+        {topServices.map(([s, c]) => (
+          <div key={s} className="flex items-center gap-1.5">
+            <span className="text-base">{SERVICE_EMOJIS[s] ?? '📻'}</span>
+            <span className="text-sm text-foreground opacity-70 uppercase">{s}</span>
+            <span className="text-lg text-foreground font-bold">{c}</span>
+          </div>
         ))}
-        {Object.keys(serviceCounts).length === 0 && (
-          <span className="text-lg text-foreground opacity-50">No reports today</span>
+        {topServices.length === 0 && (
+          <span className="text-sm text-foreground opacity-50">No services</span>
         )}
-      </Section>
+      </div>
 
-      <Divider />
+      <div className="w-px h-8 bg-border flex-shrink-0" />
 
-      <Section>
-        <div className="text-lg text-foreground tracking-[0.25em] mb-2 font-bold">
-          RECENT TIMELINE
-        </div>
-        {recent.length === 0 ? (
-          <span className="text-lg text-foreground opacity-50">No recent activity</span>
-        ) : (
-          recent.map((r) => {
-            const p = r.assessment?.priority ?? r.priority ?? 'P3';
-            const d = new Date(r.created_at ?? r.timestamp);
-            const t = d.getUTCHours().toString().padStart(2, '0') + ':' +
-              d.getUTCMinutes().toString().padStart(2, '0') + 'Z';
-            const h = (r.assessment?.headline ?? r.headline ?? '').slice(0, 30);
-            return (
-              <div key={r.id} className="flex items-center gap-2 py-1">
-                <span className="text-lg text-foreground w-[60px] flex-shrink-0">{t}</span>
-                <div
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: getColor(p) }}
-                />
-                <span className="truncate text-lg text-foreground">{h}</span>
-              </div>
-            );
-          })
-        )}
-      </Section>
-
-      <Divider />
-
-      <Section>
-        <div className="text-lg text-foreground tracking-[0.25em] mb-2 font-bold">
-          SYSTEM STATUS
-        </div>
-        <Row left="FIELD DEVICES" right={<span>{uniqueDevices} ACTIVE</span>} />
-        <Row left="LAST REPORT" right={lastTime} />
-        <Row
-          left="SUPABASE"
-          right={connected ? 'CONNECTED' : 'OFFLINE'}
+      {/* System info */}
+      <div className="flex items-center gap-4 flex-shrink-0">
+        <StatBlock label="DEVICES" value={uniqueDevices} />
+        <StatBlock label="LAST" value={lastTime} />
+        <StatBlock
+          label="DB"
+          value={connected ? 'LIVE' : 'OFFLINE'}
           color={connected ? 'hsl(var(--primary))' : '#FF3B30'}
         />
-        <Row left="HERALD VERSION" right="v1.0" />
-      </Section>
+      </div>
     </div>
   );
 }
