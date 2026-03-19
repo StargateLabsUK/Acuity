@@ -63,7 +63,7 @@ const Index = () => {
         )}
       </div>
 
-      <ShiftInfoBar session={session} onEndShift={handleEndShift} position="bottom" />
+      {activeTab === 'live' && <ShiftInfoBar session={session} onEndShift={handleEndShift} position="bottom" />}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
