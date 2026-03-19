@@ -20,6 +20,8 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
   const getPriority = (r: CommandReport) => r.assessment?.priority ?? r.priority ?? 'P3';
   const getColor = (p: string) => PRIORITY_COLORS[p] ?? '#34C759';
   const getService = (r: CommandReport) => r.assessment?.service ?? r.service ?? 'unknown';
+  const getCallsign = (r: CommandReport) => r.assessment?.structured?.callsign ?? null;
+  const getIncident = (r: CommandReport) => r.assessment?.structured?.incident_number ?? null;
   const getHeadline = (r: CommandReport) => r.assessment?.headline ?? r.headline ?? 'No headline';
   const getTime = (r: CommandReport) => {
     const d = new Date(r.created_at ?? r.timestamp);
