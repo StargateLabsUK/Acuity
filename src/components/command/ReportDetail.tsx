@@ -27,7 +27,7 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
 function SectionLabel({ children, color }: { children: React.ReactNode; color?: string }) {
   return (
     <div
-      className="text-lg font-bold tracking-[0.2em] mb-3"
+      className="text-sm md:text-lg font-bold tracking-[0.2em] mb-2 md:mb-3"
       style={{ color: color ?? 'hsl(var(--foreground))' }}
     >
       {children}
