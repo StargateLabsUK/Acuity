@@ -109,6 +109,23 @@ export function LiveTab({
           const result = await assessTranscript(t);
           setAssessment(result);
           onAiStatus('ok');
+
+          // Save report immediately (unconfirmed)
+          const report: HeraldReport = {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            transcript: t,
+            assessment: result,
+            synced: false,
+            confirmed_at: null as unknown as string,
+            headline: result.headline,
+            priority: result.priority,
+            service: result.service,
+          };
+          saveReport(report);
+          setCurrentReportId(report.id);
+          onReportSaved();
+
           setExternalState('ready');
         } catch {
           onAiStatus('error');
@@ -125,7 +142,7 @@ export function LiveTab({
     if (state !== 'processing') {
       hasStartedProcessing.current = false;
     }
-  }, [state, getAudioBase64, onAiStatus, setExternalState]);
+  }, [state, getAudioBase64, onAiStatus, setExternalState, onReportSaved]);
 
   if (state === 'idle') {
     const micReady = micStatus === 'granted';
