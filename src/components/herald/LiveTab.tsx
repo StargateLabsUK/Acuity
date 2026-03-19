@@ -5,11 +5,11 @@ import { transcribeAudio, assessTranscript } from '@/lib/herald-api';
 import { saveReport, updateReport } from '@/lib/herald-storage';
 import type { HeraldReport } from '@/lib/herald-types';
 
-function getLocation(): Promise<{ lat?: number; lng?: number; accuracy?: number }> {
+function getLocation(): Promise<{ lat?: number; lng?: number; location_accuracy?: number }> {
   return new Promise((resolve) => {
     if (!navigator.geolocation) return resolve({});
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, location_accuracy: pos.coords.accuracy }),
       () => resolve({}),
       { enableHighAccuracy: true, timeout: 5000 }
     );
