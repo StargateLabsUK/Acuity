@@ -329,25 +329,23 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         <button
           onClick={startRecording}
           className="relative flex items-center justify-center bg-transparent"
-          style={{ width: 160, height: 160, borderRadius: '50%', border: '1px solid #1E3028' }}
+          style={{ width: 200, height: 200 }}
         >
-          <div
-            className="flex flex-col items-center justify-center animate-breathe"
-            style={{
-              width: 90,
-              height: 90,
-              borderRadius: '50%',
-              border: '1px solid rgba(61,255,140,0.15)',
-            }}
-          >
-            <span style={{ fontSize: 28 }}>🎙️</span>
-            <span style={{ color: '#3DFF8C', fontSize: 18, letterSpacing: '0.2em', marginTop: 4, fontWeight: 700 }}>
-              READY
+          <svg width="200" height="200" viewBox="0 0 200 200" className="absolute inset-0">
+            <circle cx="100" cy="100" r="70" fill="none" stroke="#3DFF8C" strokeWidth="1" opacity="0.15"
+              style={{ animation: 'wave-idle 3s ease-in-out infinite' } as React.CSSProperties} />
+            <circle cx="100" cy="100" r="62" fill="none" stroke="#3DFF8C" strokeWidth="0.5" opacity="0.1"
+              style={{ animation: 'wave-idle-2 3.5s ease-in-out infinite' } as React.CSSProperties} />
+          </svg>
+          <div className="flex flex-col items-center justify-center z-10">
+            <span style={{ fontSize: 32 }}>🎙️</span>
+            <span style={{ color: '#3DFF8C', fontSize: 18, letterSpacing: '0.2em', marginTop: 6, fontWeight: 700 }}>
+              START
             </span>
           </div>
         </button>
 
-        <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.2em', marginTop: 16, textAlign: 'center' }}>
+        <p style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', marginTop: 20, textAlign: 'center', fontWeight: 700 }}>
           TAP TO START RECORDING
         </p>
 
@@ -386,30 +384,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           </p>
         )}
 
-        <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
-          <div
-            className="absolute inset-0 rounded-full animate-pulse-ring"
-            style={{ border: '2px solid #FF3B30' }}
-          />
-          <div
-            className="absolute inset-0 rounded-full"
-            style={{
-              border: '2px solid #FF3B30',
-              boxShadow: '0 0 40px rgba(255,59,48,0.2)',
-            }}
-          />
-          <div
-            className="flex flex-col items-center justify-center"
-            style={{
-              width: 90,
-              height: 90,
-              borderRadius: '50%',
-              border: '2px solid #FF3B30',
-              background: 'radial-gradient(circle, rgba(255,59,48,0.12), transparent)',
-            }}
-          >
-            <span style={{ fontSize: 32, filter: 'drop-shadow(0 0 8px #FF3B30)' }}>🎙️</span>
-            <span style={{ color: '#FF3B30', fontSize: 18, fontWeight: 700, letterSpacing: '0.2em', marginTop: 2 }}>
+        <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
+          <svg width="220" height="220" viewBox="0 0 200 200" className="absolute inset-0">
+            <circle cx="100" cy="100" r="70" fill="none" stroke="#FF3B30" strokeWidth="1.5"
+              style={{ animation: 'wave-circle 1.2s ease-in-out infinite' } as React.CSSProperties} />
+            <circle cx="100" cy="100" r="65" fill="none" stroke="#FF3B30" strokeWidth="1"
+              style={{ animation: 'wave-circle-2 1.4s ease-in-out infinite 0.2s' } as React.CSSProperties} />
+            <circle cx="100" cy="100" r="60" fill="none" stroke="#FF3B30" strokeWidth="0.7"
+              style={{ animation: 'wave-circle-3 1.6s ease-in-out infinite 0.4s' } as React.CSSProperties} />
+          </svg>
+          <div className="flex flex-col items-center justify-center z-10">
+            <span style={{ fontSize: 36, filter: 'drop-shadow(0 0 12px #FF3B30)' }}>🎙️</span>
+            <span style={{ color: '#FF3B30', fontSize: 18, fontWeight: 700, letterSpacing: '0.2em', marginTop: 4 }}>
               RECORDING
             </span>
           </div>
@@ -426,7 +412,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           {formatDuration(recordingDuration)}
         </p>
 
-        <p style={{ color: '#FF3B30', fontSize: 18, letterSpacing: '0.2em', marginTop: 8 }}>
+        <p style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', marginTop: 8, fontWeight: 700 }}>
           TAP TO STOP AND PROCESS
         </p>
       </div>
