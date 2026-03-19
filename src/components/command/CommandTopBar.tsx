@@ -4,6 +4,7 @@ interface Props {
   priorityCounts: { P1: number; P2: number; P3: number };
   connected: boolean;
   filterSlot?: React.ReactNode;
+  onSignOut?: () => void;
 }
 
 export function CommandTopBar({ priorityCounts, connected, filterSlot }: Props) {
