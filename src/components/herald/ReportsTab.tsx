@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import type { HeraldReport } from '@/lib/herald-types';
-import { PRIORITY_COLORS, SERVICE_EMOJIS } from '@/lib/herald-types';
+import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 
 interface ReportsTabProps {
