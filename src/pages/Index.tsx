@@ -77,6 +77,8 @@ const Index = () => {
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#1A1E24' }}>
       <TopBar micStatus="granted" aiStatus={aiStatus} syncStatus={syncStatus} />
 
+      {activeTab === 'live' && <ShiftInfoBar session={session} onEndShift={handleEndShift} onSignOut={handleSignOut} position="bottom" />}
+
       <div className="flex-1 flex flex-col overflow-hidden">
         {activeTab === 'live' ? (
           <LiveTab
@@ -88,7 +90,6 @@ const Index = () => {
         )}
       </div>
 
-      {activeTab === 'live' && <ShiftInfoBar session={session} onEndShift={handleEndShift} onSignOut={handleSignOut} position="bottom" />}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
