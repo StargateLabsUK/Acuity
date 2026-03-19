@@ -32,6 +32,10 @@ export type Database = {
           original_assessment: Json | null
           priority: string | null
           service: string | null
+          session_callsign: string | null
+          session_operator_id: string | null
+          session_service: string | null
+          session_station: string | null
           synced: boolean | null
           timestamp: string
           transcript: string | null
@@ -53,6 +57,10 @@ export type Database = {
           original_assessment?: Json | null
           priority?: string | null
           service?: string | null
+          session_callsign?: string | null
+          session_operator_id?: string | null
+          session_service?: string | null
+          session_station?: string | null
           synced?: boolean | null
           timestamp: string
           transcript?: string | null
@@ -74,6 +82,10 @@ export type Database = {
           original_assessment?: Json | null
           priority?: string | null
           service?: string | null
+          session_callsign?: string | null
+          session_operator_id?: string | null
+          session_service?: string | null
+          session_station?: string | null
           synced?: boolean | null
           timestamp?: string
           transcript?: string | null
