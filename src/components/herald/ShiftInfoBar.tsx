@@ -28,7 +28,7 @@ export function ShiftInfoBar({ session, onEndShift }: Props) {
       >
         <div className="flex items-center gap-3">
           <span style={{ color: '#C8D0CC', fontSize: 18, fontWeight: 700 }}>
-            {session.service_emoji} {session.callsign}
+            {SERVICE_LABELS[session.service] ?? session.service} — {session.callsign}
           </span>
           {session.operator_id && (
             <span style={{ color: '#3A5048', fontSize: 18 }}>
