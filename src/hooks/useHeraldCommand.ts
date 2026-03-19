@@ -63,6 +63,36 @@ export function useHeraldCommand() {
       .channel('herald-command')
       .on(
         'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'herald_reports' },
+        (payload) => {
+          const r = payload.new as any;
+          if (!r.confirmed_at) return;
+          // If already in list, update it; otherwise add as new
+          setReports((prev) => {
+            const exists = prev.find((p) => p.id === r.id);
+            const report: CommandReport = {
+              ...r,
+              assessment: r.assessment ? (r.assessment as Assessment) : null,
+              session_callsign: r.session_callsign ?? null,
+              session_operator_id: r.session_operator_id ?? null,
+              session_service: r.session_service ?? null,
+              session_station: r.session_station ?? null,
+              isNew: !exists,
+            };
+            if (exists) {
+              return prev.map((p) => (p.id === r.id ? report : p));
+            }
+            return [report, ...prev];
+          });
+          setTimeout(() => {
+            setReports((prev) =>
+              prev.map((p) => (p.id === r.id ? { ...p, isNew: false } : p))
+            );
+          }, 800);
+        }
+      )
+      .on(
+        'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'herald_reports' },
         (payload) => {
           const r = payload.new as any;
