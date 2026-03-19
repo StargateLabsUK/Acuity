@@ -64,15 +64,12 @@ export default function Command() {
           </div>
 
           {/* Feed left, Detail right */}
-          <div className="flex flex-1 overflow-hidden">
-            <div
-              className="flex flex-col overflow-hidden"
-              style={{ width: '50%', borderRight: '1px solid hsl(var(--border))' }}
-            >
+          <div className="flex flex-1 overflow-hidden min-w-0">
+            <div className="flex flex-col overflow-hidden min-w-0 w-1/2 border-r border-border">
               <IncomingFeed reports={reports} selectedId={selectedId} onSelect={handleSelect} />
             </div>
 
-            <div className="flex flex-col overflow-hidden" style={{ width: '50%' }}>
+            <div className="flex flex-col overflow-hidden min-w-0 w-1/2">
               <ReportDetail report={selectedReport} />
             </div>
           </div>
