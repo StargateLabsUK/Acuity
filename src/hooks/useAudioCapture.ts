@@ -6,6 +6,7 @@ interface UseAudioCaptureReturn {
   isCapturing: boolean;
   initMic: () => Promise<void>;
   startCapture: () => void;
+  stopCapture: () => void;
   getAudioBase64: () => Promise<string | null>;
   rmsLevel: number;
 }
