@@ -103,7 +103,38 @@ export function LiveTab({
   const processAudioRef = useRef(processTransmission);
   processAudioRef.current = processTransmission;
 
-  if (state === 'idle') {
+  // When mic recording stops (state goes to 'processing'), run transcription + assessment
+  const hasStartedProcessing = useRef(false);
+  useEffect(() => {
+    if (state === 'processing' && !hasStartedProcessing.current) {
+      hasStartedProcessing.current = true;
+      (async () => {
+        try {
+          const audio = await getAudioBase64();
+          if (!audio) throw new Error('No audio captured');
+          setTranscript('');
+          const t = await transcribeAudio(audio);
+          setTranscript(t);
+          const result = await assessTranscript(t);
+          setAssessment(result);
+          onAiStatus('ok');
+          setExternalState('ready');
+        } catch {
+          onAiStatus('error');
+          setError('Intelligence assessment failed');
+          setTimeout(() => {
+            setError('');
+            setExternalState('idle');
+          }, 3000);
+        } finally {
+          hasStartedProcessing.current = false;
+        }
+      })();
+    }
+    if (state !== 'processing') {
+      hasStartedProcessing.current = false;
+    }
+  }, [state, getAudioBase64, onAiStatus, setExternalState]);
     const micReady = micStatus === 'granted';
 
     return (
