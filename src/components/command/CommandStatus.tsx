@@ -23,7 +23,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
   const recent = todayReports.slice(0, 5);
 
   return (
-    <div className="flex flex-col bg-card border-b border-border">
+    <div className="flex flex-col bg-card">
       {/* Top row: Transmissions + By Service */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-0">
         {/* Today's count */}
