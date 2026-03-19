@@ -98,7 +98,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
         <div style="font-family:Inter,sans-serif;color:#E6EDF3;padding:4px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
             <span style="background:${color};color:#fff;font-weight:700;padding:2px 8px;border-radius:4px;font-size:13px;">${p}</span>
-            <span style="font-size:16px;">${emoji}</span>
+            <span style="font-size:13px;text-transform:uppercase;font-weight:600;">${label}</span>
             <span style="font-size:13px;text-transform:uppercase;font-weight:600;">${service}</span>
           </div>
           <p style="font-size:13px;line-height:1.4;margin:0 0 6px;">${headline}</p>

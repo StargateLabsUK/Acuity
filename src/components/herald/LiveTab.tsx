@@ -509,7 +509,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           style={{ background: `${pc}1F`, borderBottom: `2px solid ${pc}` }}
         >
           <div className="flex items-baseline gap-2 md:gap-3">
-            <span className="text-2xl md:text-4xl">{emoji}</span>
+            <span className="text-lg md:text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{serviceLabel}</span>
             <span className="font-heading text-3xl md:text-5xl" style={{ color: pc }}>{assessment.priority}</span>
             <span className="font-heading text-lg md:text-[28px]" style={{ color: pc }}>{assessment.priority_label}</span>
           </div>
