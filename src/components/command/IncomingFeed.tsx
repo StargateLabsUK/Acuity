@@ -73,11 +73,11 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
               <button
                 key={r.id}
                 onClick={() => onSelect(r.id)}
-                className="w-full text-left block rounded bg-transparent cursor-pointer mb-2 transition-all"
+                className="w-full text-left block rounded-lg cursor-pointer mb-2 transition-all shadow-sm"
                 style={{
                   border: `1px solid ${selected ? col : 'hsl(var(--border))'}`,
-                  padding: '10px 12px',
-                  background: r.isNew ? `${col}24` : selected ? `${col}0A` : 'transparent',
+                  padding: '12px 14px',
+                  background: r.isNew ? `${col}24` : selected ? `${col}0A` : 'hsl(var(--card))',
                   transform: r.isNew ? 'scale(1.02)' : 'scale(1)',
                 }}
               >
