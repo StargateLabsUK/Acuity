@@ -36,17 +36,19 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
 
   return (
     <>
-      <div className="flex-shrink-0" style={{ background: '#0D1117', borderTop: '1px solid #0F1820' }}>
+      <div className="flex-shrink-0 flex justify-center py-2" style={{ background: '#0D1117', borderTop: '1px solid #0F1820' }}>
         <button
           onClick={() => setConfirming(true)}
-          className="w-full py-2"
           style={{
-            color: '#FF3B30',
+            padding: '8px 24px',
+            background: '#FF3B30',
+            color: '#FFFFFF',
             fontSize: 18,
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
+            fontWeight: 700,
             letterSpacing: '0.1em',
+            border: 'none',
+            borderRadius: 3,
+            cursor: 'pointer',
           }}
         >
           END SHIFT
