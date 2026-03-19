@@ -30,6 +30,11 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
           {session.callsign}
           {session.operator_id ? ` · ${session.operator_id}` : ''}
         </span>
+        {session.station && (
+          <span style={{ color: '#4A6058', fontSize: 18 }}>
+            {session.station}
+          </span>
+        )}
       </div>
     );
   }
