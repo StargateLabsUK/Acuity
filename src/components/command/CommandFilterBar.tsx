@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 
 interface Props {
@@ -54,15 +54,21 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
   const [service, setService] = useState('');
   const [callsign, setCallsign] = useState('');
   const [timeRange, setTimeRange] = useState<'today' | '24h' | 'all'>('today');
+  const [dropdownTop, setDropdownTop] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
   const update = (s: string, c: string, t: 'today' | '24h' | 'all') => {
     onFilterChange({ service: s, callsign: c, timeRange: t });
   };
 
-  // Close on outside click
+  // Update dropdown position and handle outside clicks
   useEffect(() => {
     if (!open) return;
+    // Find the closest header bar (parent with border-b)
+    const header = ref.current?.closest('.border-b');
+    if (header) {
+      setDropdownTop(header.getBoundingClientRect().bottom);
+    }
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
@@ -92,7 +98,7 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
         <div
           className="fixed left-0 right-0 z-50 shadow-xl"
           style={{
-            top: ref.current?.getBoundingClientRect().bottom ?? 0,
+            top: dropdownTop,
             background: '#0D1117',
             borderBottom: '1px solid #0F1820',
             padding: '16px 20px',
