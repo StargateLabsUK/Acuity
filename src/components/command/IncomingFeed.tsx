@@ -76,55 +76,49 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                 className="w-full text-left block rounded-lg cursor-pointer mb-2 transition-all shadow-sm"
                 style={{
                   border: `1px solid ${selected ? col : 'hsl(var(--border))'}`,
-                  padding: '12px 14px',
+                  padding: '10px 14px',
                   background: r.isNew ? `${col}24` : selected ? `${col}0A` : 'hsl(var(--card))',
                   transform: r.isNew ? 'scale(1.02)' : 'scale(1)',
                 }}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg md:text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{SERVICE_LABELS[getService(r)] ?? getService(r)}</span>
-                  <span className="flex-1 truncate text-lg md:text-lg text-foreground">
-                    {getHeadline(r)}
-                  </span>
+                {/* Row 1: Priority | Time | Service */}
+                <div className="flex items-center gap-3" style={{ marginBottom: 4 }}>
                   <span
-                    className="text-lg md:text-lg font-bold rounded-sm px-1.5 md:px-2 py-0.5"
-                    style={{
-                      color: col,
-                      border: `1px solid ${col}66`,
-                    }}
+                    className="text-lg font-bold rounded-sm px-1.5 py-0.5 flex-shrink-0"
+                    style={{ color: col, border: `1px solid ${col}66`, minWidth: 36, textAlign: 'center' }}
                   >
                     {p}
                   </span>
+                  <span className="text-lg text-foreground flex-shrink-0" style={{ minWidth: 56 }}>
+                    {getTime(r)}
+                  </span>
+                  <span className="text-lg uppercase font-bold flex-shrink-0" style={{ color: '#4A6058' }}>
+                    {SERVICE_LABELS[getService(r)] ?? getService(r)}
+                  </span>
                 </div>
-                {/* Session tags */}
-                <div className="flex items-center gap-2 md:gap-3 mt-1 flex-wrap">
-                  <span className="text-lg md:text-lg text-foreground">{getTime(r)}</span>
-                  {r.session_callsign && (
+
+                {/* Row 2: Headline (always full width, truncated) */}
+                <div className="truncate text-lg text-foreground font-semibold" style={{ marginBottom: 4 }}>
+                  {getHeadline(r)}
+                </div>
+
+                {/* Row 3: Unit | Officer | Incident (consistent metadata row) */}
+                <div className="flex items-center gap-2">
+                  {(r.session_callsign || getCallsign(r)) && (
                     <span
-                      className="text-lg font-semibold rounded-sm px-1.5 py-0.5"
-                      style={{
-                        color: '#3DFF8C',
-                        border: '1px solid rgba(61,255,140,0.2)',
-                      }}
+                      className="text-lg font-semibold rounded-sm px-1.5 py-0.5 flex-shrink-0"
+                      style={{ color: '#3DFF8C', border: '1px solid rgba(61,255,140,0.2)' }}
                     >
-                      {r.session_callsign}
+                      {r.session_callsign || getCallsign(r)}
                     </span>
                   )}
                   {r.session_operator_id && (
-                    <span className="text-lg" style={{ color: '#1E3028' }}>
+                    <span className="text-lg flex-shrink-0" style={{ color: '#3A5048' }}>
                       {r.session_operator_id}
                     </span>
                   )}
-                  {getCallsign(r) && !r.session_callsign && (
-                    <span
-                      className="text-lg font-semibold rounded-sm px-1.5 py-0.5"
-                      style={{ color: col, border: `1px solid ${col}66` }}
-                    >
-                      {getCallsign(r)}
-                    </span>
-                  )}
                   {getIncident(r) && (
-                    <span className="text-lg font-semibold text-foreground border border-border rounded-sm px-1.5 py-0.5">
+                    <span className="text-lg font-semibold text-foreground border border-border rounded-sm px-1.5 py-0.5 flex-shrink-0">
                       #{getIncident(r)}
                     </span>
                   )}
