@@ -76,7 +76,6 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                 className="w-full text-left block rounded bg-transparent cursor-pointer mb-2 transition-all"
                 style={{
                   border: `1px solid ${selected ? col : 'hsl(var(--border))'}`,
-                  borderLeft: `3px solid ${col}`,
                   padding: '10px 12px',
                   background: r.isNew ? `${col}24` : selected ? `${col}0A` : 'transparent',
                   transform: r.isNew ? 'scale(1.02)' : 'scale(1)',
