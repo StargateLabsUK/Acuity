@@ -34,13 +34,10 @@ export default function Command() {
     return (
       <button
         onClick={() => setMobileTab(id)}
-        className="flex-1 h-12 font-heading"
+        className="flex-1 h-12 font-heading text-lg font-bold tracking-[0.08em]"
         style={{
-          fontSize: 18,
-          fontWeight: 700,
-          letterSpacing: '0.08em',
-          color: active ? '#3DFF8C' : '#FFFFFF',
-          borderTop: active ? '2px solid #3DFF8C' : '2px solid transparent',
+          color: active ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+          borderTop: active ? '2px solid hsl(var(--primary))' : '2px solid transparent',
           background: 'transparent',
         }}
       >
@@ -54,22 +51,9 @@ export default function Command() {
       <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
 
       {!isMobile ? (
-        <div className="flex flex-1 overflow-hidden">
-          <div
-            className="flex flex-col overflow-hidden"
-            style={{ width: '35%', borderRight: '1px solid hsl(var(--border))' }}
-          >
-            <IncomingFeed reports={reports} selectedId={selectedId} onSelect={handleSelect} />
-          </div>
-
-          <div
-            className="flex flex-col overflow-hidden"
-            style={{ width: '40%', borderRight: '1px solid hsl(var(--border))' }}
-          >
-            <ReportDetail report={selectedReport} />
-          </div>
-
-          <div className="flex flex-col overflow-hidden" style={{ width: '25%' }}>
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Status bar across the top */}
+          <div className="flex-shrink-0 border-b border-border">
             <CommandStatus
               todayReports={todayReports}
               priorityCounts={priorityCounts}
@@ -77,6 +61,20 @@ export default function Command() {
               uniqueDevices={uniqueDevices}
               connected={connected}
             />
+          </div>
+
+          {/* Feed left, Detail right */}
+          <div className="flex flex-1 overflow-hidden">
+            <div
+              className="flex flex-col overflow-hidden"
+              style={{ width: '50%', borderRight: '1px solid hsl(var(--border))' }}
+            >
+              <IncomingFeed reports={reports} selectedId={selectedId} onSelect={handleSelect} />
+            </div>
+
+            <div className="flex flex-col overflow-hidden" style={{ width: '50%' }}>
+              <ReportDetail report={selectedReport} />
+            </div>
           </div>
         </div>
       ) : (
