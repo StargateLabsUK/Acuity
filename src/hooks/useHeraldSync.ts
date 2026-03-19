@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { getUnsyncedReports, markSynced } from '@/lib/herald-storage';
 import { syncReport } from '@/lib/herald-api';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useHeraldSync() {
-  const [syncStatus, setSyncStatus] = useState<'ok' | 'error' | 'offline'>('ok');
+  const [syncStatus, setSyncStatus] = useState<'ok' | 'error' | 'offline' | 'auth_error'>('ok');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -13,16 +14,24 @@ export function useHeraldSync() {
         return;
       }
 
+      // Revalidate session before syncing (especially after coming back online)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setSyncStatus('auth_error');
+        return;
+      }
+
       const unsynced = getUnsyncedReports();
       if (unsynced.length === 0) {
         setSyncStatus('ok');
         return;
       }
 
+      const userId = session.user.id;
       let allOk = true;
       for (const report of unsynced) {
         try {
-          const ok = await syncReport({
+          const result = await syncReport({
             id: report.id,
             timestamp: report.timestamp,
             transcript: report.transcript,
@@ -43,8 +52,13 @@ export function useHeraldSync() {
             session_operator_id: report.session_operator_id ?? null,
             session_service: report.session_service ?? null,
             session_station: report.session_station ?? null,
+            user_id: userId,
           });
-          if (ok) {
+          if (result === 'auth_error') {
+            setSyncStatus('auth_error');
+            return;
+          }
+          if (result) {
             markSynced(report.id);
           } else {
             allOk = false;
@@ -58,8 +72,14 @@ export function useHeraldSync() {
 
     doSync();
     intervalRef.current = setInterval(doSync, 30000);
+
+    // Also sync when coming back online
+    const onOnline = () => doSync();
+    window.addEventListener('online', onOnline);
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      window.removeEventListener('online', onOnline);
     };
   }, []);
 

@@ -6,11 +6,12 @@ import { SERVICE_LABELS } from '@/lib/herald-types';
 interface Props {
   session: HeraldSession;
   onEndShift: () => void;
+  onSignOut?: () => void;
   position: 'top' | 'bottom';
 }
 
-export function ShiftInfoBar({ session, onEndShift, position }: Props) {
-  const [confirming, setConfirming] = useState(false);
+export function ShiftInfoBar({ session, onEndShift, onSignOut, position }: Props) {
+  const [confirming, setConfirming] = useState<'shift' | 'signout' | null>(null);
 
   const handleEndShift = () => {
     clearSession();
@@ -23,7 +24,7 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
 
   return (
     <>
-      <div className="flex-shrink-0 flex flex-col items-center pb-3 pt-0 gap-1" style={{ background: '#1A1E24', marginBottom: 8 }}>
+      <div className="flex-shrink-0 flex flex-col items-center py-3 gap-1" style={{ background: '#1A1E24' }}>
         <span style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase' as const }}>
           {SERVICE_LABELS[session.service] ?? session.service.toUpperCase()}
         </span>
@@ -36,23 +37,41 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
             {session.station}
           </span>
         )}
-        <button
-          onClick={() => setConfirming(true)}
-          style={{
-            marginTop: 8,
-            padding: '8px 24px',
-            background: '#FF3B30',
-            color: '#FFFFFF',
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            border: 'none',
-            borderRadius: 3,
-            cursor: 'pointer',
-          }}
-        >
-          END SHIFT
-        </button>
+        <div className="flex items-center gap-3 mt-2">
+          <button
+            onClick={() => setConfirming('shift')}
+            style={{
+              padding: '8px 24px',
+              background: '#FF3B30',
+              color: '#FFFFFF',
+              fontSize: 18,
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              border: 'none',
+              borderRadius: 3,
+              cursor: 'pointer',
+            }}
+          >
+            END SHIFT
+          </button>
+          {onSignOut && (
+            <button
+              onClick={() => setConfirming('signout')}
+              style={{
+                color: '#1E3028',
+                fontSize: 9,
+                border: '1px solid #0F1820',
+                padding: '3px 10px',
+                borderRadius: 2,
+                background: 'transparent',
+                cursor: 'pointer',
+                letterSpacing: '0.1em',
+              }}
+            >
+              SIGN OUT
+            </button>
+          )}
+        </div>
       </div>
 
       {confirming && (
@@ -61,14 +80,20 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
           style={{ background: '#080B10' }}
         >
           <span style={{ color: '#FF3B30', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 8 }}>
-            END SHIFT?
+            {confirming === 'shift' ? 'END SHIFT?' : 'SIGN OUT?'}
           </span>
           <p style={{ color: '#4A6058', fontSize: 18, textAlign: 'center', marginBottom: 40 }}>
-            This will end your current shift as {session.callsign}.
+            {confirming === 'shift'
+              ? `This will end your current shift as ${session.callsign}.`
+              : 'This will sign you out and end your current shift.'}
           </p>
 
           <button
-            onClick={handleEndShift}
+            onClick={() => {
+              if (confirming === 'shift') handleEndShift();
+              else if (onSignOut) onSignOut();
+              setConfirming(null);
+            }}
             className="w-full max-w-xs mb-4"
             style={{
               padding: 16,
@@ -82,11 +107,11 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
               cursor: 'pointer',
             }}
           >
-            CONFIRM END SHIFT
+            {confirming === 'shift' ? 'CONFIRM END SHIFT' : 'CONFIRM SIGN OUT'}
           </button>
 
           <button
-            onClick={() => setConfirming(false)}
+            onClick={() => setConfirming(null)}
             className="w-full max-w-xs"
             style={{
               padding: 16,

@@ -2,6 +2,8 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import * as React from 'react';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { useHeraldCommand } from '@/hooks/useHeraldCommand';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthScreen } from '@/components/herald/AuthScreen';
 import { CommandTopBar } from '@/components/command/CommandTopBar';
 import { IncomingFeed } from '@/components/command/IncomingFeed';
 import { ReportDetail } from '@/components/command/ReportDetail';
@@ -73,6 +75,7 @@ function ExpandButton({ expanded, onClick }: { expanded: boolean; onClick: () =>
 }
 
 export default function Command() {
+  const { session: authSession, user, loading: authLoading, signIn, signOut } = useAuth();
   const {
     reports,
     todayReports,
@@ -151,6 +154,21 @@ export default function Command() {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
   }, []);
 
+  // Auth gates (after all hooks)
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#080B10' }}>
+        <div
+          className="animate-spin-herald rounded-full"
+          style={{ width: 32, height: 32, border: '2px solid #0F1820', borderTopColor: '#3DFF8C' }}
+        />
+      </div>
+    );
+  }
+  if (!authSession || !user) {
+    return <AuthScreen variant="command" onSignIn={signIn} />;
+  }
+
   const mobileTabBtn = (id: MobileTab, label: string) => {
     const active = mobileTab === id;
     return (
@@ -176,7 +194,7 @@ export default function Command() {
     />
   );
 
-  const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} filterSlot={filterSlot} />;
+  const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} filterSlot={filterSlot} onSignOut={signOut} />;
 
   // EXPANDED FULL-PAGE OVERLAY (desktop & tablet)
   if (expandedPanel && viewMode !== 'mobile') {
