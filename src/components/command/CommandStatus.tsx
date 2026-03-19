@@ -52,7 +52,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
             </div>
             <div className="flex items-center justify-between">
               <span className="text-lg" style={{ color: '#34C759' }}>P3</span>
-              <span className="font-heading text-2xl md:text-3xl font-bold" style={{ color: '#34C759' }}>{priorityCounts.P3}</span>
+              <span className="font-heading text-lg font-bold" style={{ color: '#34C759' }}>{priorityCounts.P3}</span>
             </div>
           </div>
         </div>
