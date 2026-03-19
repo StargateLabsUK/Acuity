@@ -325,7 +325,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   // ─── STATE 1: IDLE ───
   if (state === 'idle') {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 px-4 overflow-auto">
+      <div className="flex flex-col items-center justify-start flex-1 px-4 overflow-auto pt-6">
         <button
           onClick={startRecording}
           className="relative flex items-center justify-center bg-transparent"

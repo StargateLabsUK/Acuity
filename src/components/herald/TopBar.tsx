@@ -35,7 +35,7 @@ export function TopBar({ micStatus, aiStatus, syncStatus }: TopBarProps) {
 
   return (
     <div className="flex flex-col items-center px-3 md:px-4 py-2 md:py-0 md:flex-row md:justify-between md:h-14 flex-shrink-0 border-b border-border">
-      <span className="font-heading text-lg md:text-2xl text-foreground tracking-[0.08em]">
+      <span className="font-heading text-3xl md:text-3xl text-foreground tracking-[0.08em]">
         HERALD
       </span>
       <div className="flex items-center gap-2 md:gap-4 mt-1 md:mt-0">
