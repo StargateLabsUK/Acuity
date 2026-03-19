@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
@@ -11,17 +11,34 @@ interface Props {
   onSelectReport: (id: string) => void;
 }
 
+export interface MapTabHandle {
+  flyToReport: (report: CommandReport) => void;
+}
+
 const PRIORITY_RADIUS: Record<string, number> = { P1: 12, P2: 10, P3: 8 };
 
 function getReportPriority(r: CommandReport) {
   return r.assessment?.priority ?? r.priority ?? 'P3';
 }
 
-export function MapTab({ reports, onSelectReport }: Props) {
+export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const fittedRef = useRef(false);
+
+  useImperativeHandle(ref, () => ({
+    flyToReport: (report: CommandReport) => {
+      const map = mapRef.current;
+      if (!map || report.lat == null || report.lng == null) return;
+      map.flyTo({ center: [report.lng, report.lat], zoom: 13, duration: 1500 });
+      // Open the marker popup
+      const marker = markersRef.current.get(report.id);
+      if (marker) {
+        marker.togglePopup();
+      }
+    },
+  }));
 
   // Init map
   useEffect(() => {
@@ -58,7 +75,6 @@ export function MapTab({ reports, onSelectReport }: Props) {
       const radius = PRIORITY_RADIUS[p] ?? 8;
       const emoji = SERVICE_EMOJIS[r.assessment?.service ?? r.service ?? 'unknown'] ?? '📻';
 
-      // Marker element
       const el = document.createElement('div');
       el.style.width = `${radius * 2}px`;
       el.style.height = `${radius * 2}px`;
@@ -72,15 +88,12 @@ export function MapTab({ reports, onSelectReport }: Props) {
         el.style.animation = 'pulse-marker 1s ease-out';
       }
 
-      // Popup
       const headline = r.assessment?.headline ?? r.headline ?? 'No headline';
       const service = r.assessment?.service ?? r.service ?? 'unknown';
       const ts = new Date(r.created_at ?? r.timestamp);
       const timeStr =
-        ts.getUTCHours().toString().padStart(2, '0') +
-        ':' +
-        ts.getUTCMinutes().toString().padStart(2, '0') +
-        'Z';
+        ts.getUTCHours().toString().padStart(2, '0') + ':' +
+        ts.getUTCMinutes().toString().padStart(2, '0') + 'Z';
       const callsign = r.assessment?.structured?.callsign ?? '';
 
       const popup = new mapboxgl.Popup({ offset: 15, maxWidth: '280px' }).setHTML(`
@@ -109,7 +122,6 @@ export function MapTab({ reports, onSelectReport }: Props) {
     [onSelectReport]
   );
 
-  // Wire up the global callback for popup buttons
   useEffect(() => {
     (window as any).__heraldSelectReport = (id: string) => {
       onSelectReport(id);
@@ -119,21 +131,17 @@ export function MapTab({ reports, onSelectReport }: Props) {
     };
   }, [onSelectReport]);
 
-  // Sync markers with reports
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     const geoReports = reports.filter((r) => r.lat != null && r.lng != null);
-
-    // Add new markers
     geoReports.forEach((r) => {
       if (!markersRef.current.has(r.id)) {
         addMarker(r, r.isNew);
       }
     });
 
-    // Fit bounds on first set of geo reports
     if (!fittedRef.current && geoReports.length > 0) {
       fittedRef.current = true;
       const bounds = new mapboxgl.LngLatBounds();
@@ -159,10 +167,7 @@ export function MapTab({ reports, onSelectReport }: Props) {
       {/* Legend */}
       <div
         className="absolute bottom-4 left-4 rounded-lg px-3 py-2.5 z-10"
-        style={{
-          background: '#0D1117',
-          border: '1px solid #0F1820',
-        }}
+        style={{ background: '#0D1117', border: '1px solid #0F1820' }}
       >
         <div className="flex flex-col gap-1.5">
           {[
@@ -175,16 +180,13 @@ export function MapTab({ reports, onSelectReport }: Props) {
                 className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: PRIORITY_COLORS[p] }}
               />
-              <span className="text-xs text-foreground font-bold tracking-wider">
-                {p}
-              </span>
+              <span className="text-xs text-foreground font-bold tracking-wider">{p}</span>
               <span className="text-xs text-foreground opacity-70">{label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Pulse animation for new markers */}
       <style>{`
         @keyframes pulse-marker {
           0% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 currentColor; }
@@ -196,4 +198,6 @@ export function MapTab({ reports, onSelectReport }: Props) {
       `}</style>
     </div>
   );
-}
+});
+
+MapTab.displayName = 'MapTab';
