@@ -114,8 +114,18 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                     {p}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 mt-1.5">
+                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                   <span style={{ fontSize: 18, color: '#FFFFFF' }}>{getTime(r)}</span>
+                  {getCallsign(r) && (
+                    <span style={{ fontSize: 14, color: col, border: `1px solid ${col}66`, padding: '1px 8px', borderRadius: 2, fontWeight: 600 }}>
+                      {getCallsign(r)}
+                    </span>
+                  )}
+                  {getIncident(r) && (
+                    <span style={{ fontSize: 14, color: '#FFFFFF', border: '1px solid #0F1820', padding: '1px 8px', borderRadius: 2, fontWeight: 600 }}>
+                      #{getIncident(r)}
+                    </span>
+                  )}
                   {r.operator_id && (
                     <span style={{ fontSize: 18, color: '#FFFFFF' }}>{r.operator_id}</span>
                   )}
