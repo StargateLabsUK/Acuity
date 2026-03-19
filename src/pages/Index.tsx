@@ -25,9 +25,7 @@ const Index = () => {
 
   const { micStatus, initMic, getAudioBase64 } = useAudioCapture(onTrigger, onSilence);
 
-  useEffect(() => {
-    initMic();
-  }, [initMic]);
+  // Don't auto-init — require user gesture for mic access
 
   useEffect(() => {
     setReports(getReports());
