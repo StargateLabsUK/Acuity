@@ -71,22 +71,13 @@ export function ShiftLogin({ onShiftStarted }: Props) {
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
         {/* Wordmark */}
-        <h1
-          style={{
-            fontFamily: "'Barlow Condensed', 'Inter', sans-serif",
-            fontWeight: 800,
-            fontSize: 28,
-            color: '#FFFFFF',
-            textAlign: 'center',
-            marginBottom: 8,
-          }}
-        >
+        <h1 className="font-heading text-2xl text-foreground tracking-[0.08em] text-center mb-1">
           HERALD
         </h1>
         <p
           style={{
-            color: '#1E3028',
-            fontSize: 18,
+            color: '#4A6058',
+            fontSize: 14,
             letterSpacing: '0.25em',
             textAlign: 'center',
             marginBottom: 48,
@@ -166,14 +157,14 @@ export function ShiftLogin({ onShiftStarted }: Props) {
           disabled={!canSubmit}
           style={{
             width: '100%',
-            padding: 18,
-            background: canSubmit ? 'rgba(61,255,140,0.08)' : 'rgba(255,255,255,0.02)',
-            border: canSubmit ? '2px solid #3DFF8C' : '2px solid #1E3028',
-            color: canSubmit ? '#3DFF8C' : '#1E3028',
-            fontFamily: "'Barlow Condensed', 'Inter', sans-serif",
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: '0.1em',
+            padding: 12,
+            background: 'transparent',
+            border: canSubmit ? '1px solid rgba(255,255,255,0.3)' : '1px solid #1E3028',
+            color: canSubmit ? '#FFFFFF' : '#1E3028',
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 14,
+            fontWeight: 500,
+            letterSpacing: '0.15em',
             cursor: canSubmit ? 'pointer' : 'not-allowed',
             borderRadius: 3,
           }}
