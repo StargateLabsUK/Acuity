@@ -322,112 +322,102 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setHasEdits(false);
   }, []);
 
-  // ─── STATE 1: IDLE ───
-  if (state === 'idle') {
+  // ─── STATE 1: IDLE & STATE 2: RECORDING (same layout) ───
+  if (state === 'idle' || state === 'recording') {
+    const isRecording = state === 'recording';
     return (
       <div className="flex flex-col items-center justify-start flex-1 px-4 overflow-auto pt-6">
-        <button
-          onClick={startRecording}
-          className="relative flex items-center justify-center bg-transparent"
-          style={{ width: 260, height: 260 }}
-        >
-          <svg width="260" height="260" viewBox="0 0 260 260" className="absolute inset-0">
-            {/* Outer glow ring */}
-            <circle cx="130" cy="130" r="120" fill="none" stroke="#1E90FF" strokeWidth="0.5" opacity="0.2" />
-            {/* Main dotted particle ring */}
-            <circle cx="130" cy="130" r="105" fill="none" stroke="#1E90FF" strokeWidth="1.5"
-              strokeDasharray="3 8" opacity="0.6" />
-            {/* Inner dotted ring */}
-            <circle cx="130" cy="130" r="90" fill="none" stroke="#1E90FF" strokeWidth="1"
-              strokeDasharray="2 12" opacity="0.35" />
-            {/* Faint inner glow */}
-            <circle cx="130" cy="130" r="75" fill="none" stroke="#1E90FF" strokeWidth="0.5"
-              strokeDasharray="1 10" opacity="0.2" />
-            {/* Center glow */}
-            <circle cx="130" cy="130" r="50" fill="url(#centerGlow)" />
-            <defs>
-              <radialGradient id="centerGlow">
-                <stop offset="0%" stopColor="#1E90FF" stopOpacity="0.08" />
-                <stop offset="100%" stopColor="#1E90FF" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-          </svg>
-          <div className="flex flex-col items-center justify-center z-10">
-            <span style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
-              START
-            </span>
+        {isRecording && (
+          <div
+            className="fixed top-0 left-0 right-0 z-50 overflow-hidden"
+            style={{ height: 2, background: 'rgba(255,59,48,0.2)' }}
+          >
+            <div
+              className="h-full"
+              style={{
+                width: '40%',
+                background: '#FF3B30',
+                animation: 'shimmer 1.5s ease-in-out infinite',
+              }}
+            />
           </div>
-        </button>
-
-        <p style={{ color: '#FFFFFF', fontSize: 14, letterSpacing: '0.2em', marginTop: 20, textAlign: 'center', fontWeight: 700 }}>
-          TAP TO START RECORDING
-        </p>
-
-        {error && (
-          <p className="mt-2" style={{ color: '#FF9500', fontSize: 14, letterSpacing: '0.2em' }}>{error}</p>
         )}
 
-      </div>
-    );
-  }
-
-  // ─── STATE 2: RECORDING ───
-  if (state === 'recording') {
-    return (
-      <div
-        className="flex flex-col items-center justify-center flex-1 px-4 cursor-pointer"
-        onClick={stopRecordingAndProcess}
-      >
-        <div
-          className="fixed top-0 left-0 right-0 z-50 overflow-hidden"
-          style={{ height: 2, background: 'rgba(255,59,48,0.2)' }}
-        >
-          <div
-            className="h-full"
-            style={{
-              width: '40%',
-              background: '#FF3B30',
-              animation: 'shimmer 1.5s ease-in-out infinite',
-            }}
-          />
-        </div>
-
-        {maxReached && (
-          <p className="mb-4" style={{ color: '#FF9500', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
+        {isRecording && maxReached && (
+          <p className="mb-2" style={{ color: '#FF9500', fontSize: 14, letterSpacing: '0.2em', fontWeight: 700 }}>
             MAX DURATION REACHED
           </p>
         )}
 
-        <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
-          <svg width="220" height="220" viewBox="0 0 200 200" className="absolute inset-0">
-            <circle cx="100" cy="100" r="70" fill="none" stroke="#FF3B30" strokeWidth="1.5"
-              style={{ animation: 'wave-circle 1.2s ease-in-out infinite' } as React.CSSProperties} />
-            <circle cx="100" cy="100" r="65" fill="none" stroke="#FF3B30" strokeWidth="1"
-              style={{ animation: 'wave-circle-2 1.4s ease-in-out infinite 0.2s' } as React.CSSProperties} />
-            <circle cx="100" cy="100" r="60" fill="none" stroke="#FF3B30" strokeWidth="0.7"
-              style={{ animation: 'wave-circle-3 1.6s ease-in-out infinite 0.4s' } as React.CSSProperties} />
+        <button
+          onClick={isRecording ? stopRecordingAndProcess : startRecording}
+          className="relative flex items-center justify-center bg-transparent"
+          style={{ width: 260, height: 260 }}
+        >
+          <svg width="260" height="260" viewBox="0 0 260 260" className="absolute inset-0">
+            {isRecording ? (
+              <>
+                <circle cx="130" cy="130" r="120" fill="none" stroke="#FF3B30" strokeWidth="0.5"
+                  strokeDasharray="3 8" style={{ animation: 'wave-circle 1.2s ease-in-out infinite' } as React.CSSProperties} />
+                <circle cx="130" cy="130" r="105" fill="none" stroke="#FF3B30" strokeWidth="1.5"
+                  strokeDasharray="3 8" style={{ animation: 'wave-circle-2 1.4s ease-in-out infinite 0.2s' } as React.CSSProperties} />
+                <circle cx="130" cy="130" r="90" fill="none" stroke="#FF3B30" strokeWidth="1"
+                  strokeDasharray="2 12" style={{ animation: 'wave-circle-3 1.6s ease-in-out infinite 0.4s' } as React.CSSProperties} />
+                <circle cx="130" cy="130" r="75" fill="none" stroke="#FF3B30" strokeWidth="0.5"
+                  strokeDasharray="1 10" style={{ animation: 'wave-circle 1.8s ease-in-out infinite 0.3s' } as React.CSSProperties} />
+                <circle cx="130" cy="130" r="50" fill="url(#centerGlowRec)" />
+                <defs>
+                  <radialGradient id="centerGlowRec">
+                    <stop offset="0%" stopColor="#FF3B30" stopOpacity="0.12" />
+                    <stop offset="100%" stopColor="#FF3B30" stopOpacity="0" />
+                  </radialGradient>
+                </defs>
+              </>
+            ) : (
+              <>
+                <circle cx="130" cy="130" r="120" fill="none" stroke="#1E90FF" strokeWidth="0.5" opacity="0.2" />
+                <circle cx="130" cy="130" r="105" fill="none" stroke="#1E90FF" strokeWidth="1.5"
+                  strokeDasharray="3 8" opacity="0.6" />
+                <circle cx="130" cy="130" r="90" fill="none" stroke="#1E90FF" strokeWidth="1"
+                  strokeDasharray="2 12" opacity="0.35" />
+                <circle cx="130" cy="130" r="75" fill="none" stroke="#1E90FF" strokeWidth="0.5"
+                  strokeDasharray="1 10" opacity="0.2" />
+                <circle cx="130" cy="130" r="50" fill="url(#centerGlow)" />
+                <defs>
+                  <radialGradient id="centerGlow">
+                    <stop offset="0%" stopColor="#1E90FF" stopOpacity="0.08" />
+                    <stop offset="100%" stopColor="#1E90FF" stopOpacity="0" />
+                  </radialGradient>
+                </defs>
+              </>
+            )}
           </svg>
           <div className="flex flex-col items-center justify-center z-10">
-            <span style={{ color: '#FF3B30', fontSize: 18, fontWeight: 700, letterSpacing: '0.2em' }}>
-              RECORDING
+            <span style={{ color: isRecording ? '#FF3B30' : '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
+              {isRecording ? 'END' : 'START'}
             </span>
           </div>
-        </div>
+        </button>
 
-        <p
-          style={{
-            color: '#FF3B30',
-            fontSize: 18,
-            fontVariantNumeric: 'tabular-nums',
-            marginTop: 16,
-          }}
-        >
-          {formatDuration(recordingDuration)}
-        </p>
-
-        <p style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', marginTop: 8, fontWeight: 700 }}>
-          TAP TO STOP AND PROCESS
-        </p>
+        {isRecording ? (
+          <>
+            <p style={{ color: '#FF3B30', fontSize: 18, fontVariantNumeric: 'tabular-nums', marginTop: 12 }}>
+              {formatDuration(recordingDuration)}
+            </p>
+            <p style={{ color: '#FFFFFF', fontSize: 14, letterSpacing: '0.2em', marginTop: 8, fontWeight: 700 }}>
+              TAP TO STOP AND PROCESS
+            </p>
+          </>
+        ) : (
+          <>
+            <p style={{ color: '#FFFFFF', fontSize: 14, letterSpacing: '0.2em', marginTop: 20, textAlign: 'center', fontWeight: 700 }}>
+              TAP TO START RECORDING
+            </p>
+            {error && (
+              <p className="mt-2" style={{ color: '#FF9500', fontSize: 14, letterSpacing: '0.2em' }}>{error}</p>
+            )}
+          </>
+        )}
       </div>
     );
   }
