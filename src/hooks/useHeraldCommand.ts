@@ -36,6 +36,7 @@ export function useHeraldCommand() {
       const { data, error } = await supabase
         .from('herald_reports')
         .select('*')
+        .not('confirmed_at', 'is', null)
         .order('created_at', { ascending: false })
         .limit(50);
 
