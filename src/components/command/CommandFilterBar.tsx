@@ -86,7 +86,6 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
         }}
       >
         <SlidersHorizontal size={18} />
-        <span className="text-lg font-bold tracking-wide">FILTERS</span>
       </button>
 
       {open && (

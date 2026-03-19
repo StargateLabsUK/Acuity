@@ -43,10 +43,10 @@ export function CommandTopBar({ priorityCounts, connected, filterSlot }: Props) 
     <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-3 flex-shrink-0 border-b border-border bg-card">
       <div className="flex flex-col">
         <span className="font-heading text-lg md:text-2xl text-foreground tracking-[0.08em]">
-          HERALD COMMAND
+          HERALD
         </span>
-        <span className="text-lg md:text-lg text-foreground tracking-wide hidden sm:block">
-          REAL-TIME FIELD INTELLIGENCE
+        <span className="text-sm md:text-sm text-foreground tracking-wide hidden sm:block" style={{ color: '#4A6058' }}>
+          Real-time Field Intelligence
         </span>
       </div>
 
