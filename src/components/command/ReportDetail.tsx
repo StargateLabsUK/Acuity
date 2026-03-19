@@ -37,7 +37,7 @@ function SectionLabel({ children, color }: { children: React.ReactNode; color?: 
 
 function DetailCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`border border-border rounded bg-card p-4 ${className}`}>
+    <div className={`border border-border rounded bg-card p-3 md:p-4 min-w-0 overflow-hidden ${className}`}>
       {children}
     </div>
   );
