@@ -110,7 +110,7 @@ export default function Command() {
   // TABLET
   if (viewMode === 'tablet') {
     return (
-      <div className="flex flex-col h-screen bg-background">
+      <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
         <div className="flex flex-col flex-1 overflow-hidden p-2 gap-2">
           <div className="flex-shrink-0 h-[40%] rounded-lg border border-border bg-card shadow-sm overflow-hidden">
