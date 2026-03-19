@@ -34,11 +34,11 @@ export function TopBar({ micStatus, aiStatus, syncStatus }: TopBarProps) {
   );
 
   return (
-    <div className="flex items-center justify-between px-3 md:px-4 h-12 md:h-14 flex-shrink-0 border-b border-border">
+    <div className="flex flex-col items-center px-3 md:px-4 py-2 md:py-0 md:flex-row md:justify-between md:h-14 flex-shrink-0 border-b border-border">
       <span className="font-heading text-lg md:text-2xl text-foreground tracking-[0.08em]">
         HERALD
       </span>
-      <div className="flex items-center gap-2 md:gap-4">
+      <div className="flex items-center gap-2 md:gap-4 mt-1 md:mt-0">
         {dot('MIC', micStatus === 'granted')}
         {dot('AI', aiStatus === 'ok')}
         {dot('SYNC', syncStatus === 'ok', syncStatus === 'offline')}

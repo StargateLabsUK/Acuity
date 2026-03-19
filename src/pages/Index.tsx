@@ -49,7 +49,7 @@ const Index = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#1A1E24' }}>
       <TopBar micStatus="granted" aiStatus={aiStatus} syncStatus={syncStatus} />
       <ShiftInfoBar session={session} onEndShift={handleEndShift} />
 

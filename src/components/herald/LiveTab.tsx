@@ -355,28 +355,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           <p className="mt-2" style={{ color: '#FF9500', fontSize: 18, letterSpacing: '0.2em' }}>{error}</p>
         )}
 
-        <div className="w-full max-w-lg mt-6 md:mt-8">
-          <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.25em', marginBottom: 8 }}>
-            TEST TRANSMISSIONS
-          </p>
-          {TEST_TRANSMISSIONS.map((t, i) => (
-            <button
-              key={i}
-              onClick={(e) => {
-                e.stopPropagation();
-                processTestTransmission(t.text);
-              }}
-              className="w-full text-left p-3 mb-2 border border-border bg-transparent rounded-sm"
-            >
-              <span className="text-lg md:text-lg text-foreground font-semibold">
-                {t.label}
-              </span>
-              <p className="text-lg md:text-lg text-foreground mt-1 leading-relaxed line-clamp-2">
-                {t.text}
-              </p>
-            </button>
-          ))}
-        </div>
       </div>
     );
   }
