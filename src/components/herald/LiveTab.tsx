@@ -3,6 +3,7 @@ import type { Assessment, LiveState } from '@/lib/herald-types';
 import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_EMOJIS } from '@/lib/herald-types';
 import { transcribeAudio, assessTranscript } from '@/lib/herald-api';
 import { saveReport, updateReport } from '@/lib/herald-storage';
+import { computeDiff } from '@/lib/herald-diff';
 import type { HeraldReport } from '@/lib/herald-types';
 
 function getLocation(): Promise<{ lat?: number; lng?: number; location_accuracy?: number }> {
@@ -49,6 +50,43 @@ export function LiveTab({
   const [error, setError] = useState('');
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
 
+  // Editable state
+  const [editHeadline, setEditHeadline] = useState('');
+  const [editStructured, setEditStructured] = useState<Record<string, string>>({});
+  const [editActions, setEditActions] = useState<string[]>([]);
+  const [editFormattedReport, setEditFormattedReport] = useState('');
+  const [originalAssessment, setOriginalAssessment] = useState<Assessment | null>(null);
+  const [hasEdits, setHasEdits] = useState(false);
+
+  // Initialize editable state when assessment arrives
+  useEffect(() => {
+    if (assessment && state === 'ready') {
+      setEditHeadline(assessment.headline || '');
+      setEditStructured({ ...(assessment.structured || {}) });
+      setEditActions([...(assessment.actions || [])]);
+      setEditFormattedReport(assessment.formatted_report || '');
+      setOriginalAssessment(JSON.parse(JSON.stringify(assessment)));
+    }
+  }, [assessment, state]);
+
+  // Track if edits exist
+  useEffect(() => {
+    if (!originalAssessment || !assessment) return;
+    const current = buildFinalAssessment();
+    const diff = computeDiff(originalAssessment, current);
+    setHasEdits(diff.has_edits);
+  }, [editHeadline, editStructured, editActions, editFormattedReport, originalAssessment]);
+
+  const buildFinalAssessment = useCallback((): Assessment => {
+    return {
+      ...assessment!,
+      headline: editHeadline,
+      structured: { ...editStructured },
+      actions: [...editActions],
+      formatted_report: editFormattedReport,
+    };
+  }, [assessment, editHeadline, editStructured, editActions, editFormattedReport]);
+
   const processTransmission = useCallback(
     async (text: string, isTest: boolean) => {
       setExternalState('triggered');
@@ -56,6 +94,8 @@ export function LiveTab({
       setTranscript('');
       setAssessment(null);
       setCurrentReportId(null);
+      setOriginalAssessment(null);
+      setHasEdits(false);
 
       await new Promise((r) => setTimeout(r, 300));
       setExternalState('processing');
@@ -106,17 +146,45 @@ export function LiveTab({
   );
 
   const handleConfirm = useCallback(() => {
-    if (!assessment || !currentReportId) return;
-    updateReport(currentReportId, { confirmed_at: new Date().toISOString() });
+    if (!assessment || !currentReportId || !originalAssessment) return;
+    const finalAssessment = buildFinalAssessment();
+    const diff = computeDiff(originalAssessment, finalAssessment);
+
+    updateReport(currentReportId, {
+      confirmed_at: new Date().toISOString(),
+      assessment: finalAssessment as unknown as Assessment,
+      headline: finalAssessment.headline,
+      priority: finalAssessment.priority,
+      service: finalAssessment.service,
+    });
+
+    // Store extra fields in localStorage for sync
+    try {
+      const raw = localStorage.getItem('herald_reports');
+      if (raw) {
+        const reports = JSON.parse(raw);
+        const idx = reports.findIndex((r: any) => r.id === currentReportId);
+        if (idx !== -1) {
+          reports[idx].original_assessment = originalAssessment;
+          reports[idx].final_assessment = finalAssessment;
+          reports[idx].diff = diff;
+          reports[idx].edited = diff.has_edits;
+          localStorage.setItem('herald_reports', JSON.stringify(reports));
+        }
+      }
+    } catch { /* silent */ }
+
     onReportSaved();
     setExternalState('confirmed');
-  }, [assessment, currentReportId, onReportSaved, setExternalState]);
+  }, [assessment, currentReportId, onReportSaved, setExternalState, originalAssessment, buildFinalAssessment]);
 
   const handleDiscard = useCallback(() => {
     setExternalState('idle');
     setAssessment(null);
     setTranscript('');
     setCurrentReportId(null);
+    setOriginalAssessment(null);
+    setHasEdits(false);
   }, [setExternalState]);
 
   const processAudioRef = useRef(processTransmission);
@@ -170,6 +238,15 @@ export function LiveTab({
       hasStartedProcessing.current = false;
     }
   }, [state, getAudioBase64, onAiStatus, setExternalState, onReportSaved]);
+
+  // Auto-resize textarea ref
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [editFormattedReport]);
 
   if (state === 'idle') {
     const micReady = micStatus === 'granted';
@@ -337,36 +414,105 @@ export function LiveTab({
           </span>
         </div>
 
-        {/* Headline */}
-        <div className="mx-3 md:mx-4 mt-3 p-3 md:p-4 border border-border rounded bg-card">
-          <p className="text-sm md:text-base text-foreground leading-relaxed">{assessment.headline}</p>
+        {/* Edited indicator */}
+        {hasEdits && (
+          <div className="mx-3 md:mx-4 mt-2 flex items-center gap-1">
+            <span style={{ fontSize: '9px', color: '#FF9500', letterSpacing: '0.2em', fontWeight: 700 }}>
+              ✏️ EDITED
+            </span>
+          </div>
+        )}
+
+        {/* Headline — editable */}
+        <div className="mx-3 md:mx-4 mt-3 border border-border rounded bg-card">
+          <textarea
+            value={editHeadline}
+            onChange={(e) => setEditHeadline(e.target.value)}
+            placeholder="Tap to edit"
+            className="w-full bg-transparent text-sm md:text-base text-foreground leading-relaxed p-3 md:p-4 resize-none outline-none"
+            style={{
+              minHeight: '48px',
+            }}
+            onFocus={(e) => {
+              (e.target as HTMLTextAreaElement).style.background = 'rgba(61,255,140,0.04)';
+              (e.target as HTMLTextAreaElement).style.borderColor = 'rgba(61,255,140,0.2)';
+            }}
+            onBlur={(e) => {
+              (e.target as HTMLTextAreaElement).style.background = 'transparent';
+              (e.target as HTMLTextAreaElement).style.borderColor = '';
+            }}
+            rows={2}
+          />
         </div>
 
-        {/* Two column grid - stacks on mobile */}
+        {/* Two column grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mx-3 md:mx-4 mt-3">
-          {/* Protocol fields */}
+          {/* Protocol fields — editable values */}
           <div>
             <p className="text-xs md:text-sm font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>PROTOCOL FIELDS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
-              {assessment.structured && Object.entries(assessment.structured).map(([k, v]) => (
+              {Object.entries(editStructured).map(([k, v]) => (
                 <div key={k} className="mb-2">
                   <p className="text-sm md:text-base font-bold" style={{ color: pc }}>{k}</p>
-                  <p className="text-sm md:text-base text-foreground">{v}</p>
+                  <input
+                    type="text"
+                    value={v}
+                    onChange={(e) => setEditStructured((prev) => ({ ...prev, [k]: e.target.value }))}
+                    className="w-full bg-transparent text-sm md:text-base text-foreground outline-none py-0.5"
+                    style={{ borderBottom: '1px solid transparent' }}
+                    placeholder="Tap to edit"
+                    onFocus={(e) => {
+                      (e.target as HTMLInputElement).style.borderBottom = '1px solid rgba(61,255,140,0.3)';
+                    }}
+                    onBlur={(e) => {
+                      (e.target as HTMLInputElement).style.borderBottom = '1px solid transparent';
+                    }}
+                  />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Actions — editable with add/remove */}
           <div>
             <p className="text-xs md:text-sm font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>IMMEDIATE ACTIONS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
-              {assessment.actions?.map((a, i) => (
-                <div key={i} className="flex gap-2 mb-1.5">
-                  <span className="text-sm md:text-base font-bold" style={{ color: pc }}>{i + 1}.</span>
-                  <span className="text-sm md:text-base text-foreground">{a}</span>
+              {editActions.map((a, i) => (
+                <div key={i} className="flex gap-2 mb-1.5 items-start">
+                  <span className="text-sm md:text-base font-bold flex-shrink-0 mt-0.5" style={{ color: pc }}>{i + 1}.</span>
+                  <input
+                    type="text"
+                    value={a}
+                    onChange={(e) => {
+                      const next = [...editActions];
+                      next[i] = e.target.value;
+                      setEditActions(next);
+                    }}
+                    className="flex-1 bg-transparent text-sm md:text-base text-foreground outline-none"
+                    style={{ borderBottom: '1px solid transparent' }}
+                    onFocus={(e) => {
+                      (e.target as HTMLInputElement).style.borderBottom = '1px solid rgba(61,255,140,0.3)';
+                    }}
+                    onBlur={(e) => {
+                      (e.target as HTMLInputElement).style.borderBottom = '1px solid transparent';
+                    }}
+                  />
+                  <button
+                    onClick={() => setEditActions(editActions.filter((_, idx) => idx !== i))}
+                    className="text-xs opacity-50 hover:opacity-100 flex-shrink-0 mt-0.5"
+                    style={{ color: '#FF3B30' }}
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
+              <button
+                onClick={() => setEditActions([...editActions, ''])}
+                className="text-xs mt-2 px-2 py-1 rounded-sm"
+                style={{ color: 'hsl(var(--primary))', border: '1px solid rgba(61,255,140,0.2)' }}
+              >
+                + ADD ACTION
+              </button>
               {assessment.transmit_to && (
                 <>
                   <div className="border-t border-border my-2" />
@@ -379,17 +525,27 @@ export function LiveTab({
           </div>
         </div>
 
-        {/* Formatted report */}
+        {/* Formatted report — editable */}
         <div className="mx-3 md:mx-4 mt-3">
           <p className="text-xs md:text-sm font-bold text-foreground tracking-[0.1em] mb-2">FORMATTED REPORT</p>
-          <div className="p-3 md:p-4 border border-border rounded bg-card">
-            <div className="text-sm md:text-base text-foreground leading-7 whitespace-pre-wrap">
-              {assessment.formatted_report}
-            </div>
+          <div className="border border-border rounded bg-card">
+            <textarea
+              ref={textareaRef}
+              value={editFormattedReport}
+              onChange={(e) => setEditFormattedReport(e.target.value)}
+              className="w-full bg-transparent text-sm md:text-base text-foreground leading-7 whitespace-pre-wrap p-3 md:p-4 resize-none outline-none"
+              style={{ minHeight: '100px' }}
+              onFocus={(e) => {
+                (e.target as HTMLTextAreaElement).style.background = 'rgba(61,255,140,0.04)';
+              }}
+              onBlur={(e) => {
+                (e.target as HTMLTextAreaElement).style.background = 'transparent';
+              }}
+            />
           </div>
         </div>
 
-        {/* Raw transcript */}
+        {/* Raw transcript — NOT editable */}
         <div className="mx-3 md:mx-4 mt-3">
           <p className="text-xs md:text-sm font-bold text-foreground tracking-[0.1em] mb-2">RAW TRANSMISSION</p>
           <div className="p-3 md:p-4 border border-border rounded bg-card">

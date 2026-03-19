@@ -102,13 +102,74 @@ Police: Location, Incident_type, Hazards, Resources, Actions
 
 Always put callsign, incident_number, and operator_id first in the structured object before the protocol fields.`;
 
+const TRAINING_ANALYSIS_PROMPT = `You are reviewing corrections made by trained emergency services operators to AI-generated field reports. Each correction shows what the AI originally produced and what the human changed it to.
+
+Analyse these corrections and identify:
+1. The most common types of errors
+2. Specific vocabulary or callsign patterns being corrected
+3. Protocol fields most frequently missing or wrong
+4. Priority level accuracy
+5. Concrete changes to make to improve the AI system prompt
+
+Be specific and actionable. Format as a structured report with numbered recommendations.`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { transcript } = await req.json();
+    const body = await req.json();
+
+    // Training data analysis mode
+    if (body.mode === "analyse_training_data") {
+      const { diffs } = body;
+
+      if (!diffs || !Array.isArray(diffs) || diffs.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "No diffs provided" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const summary = JSON.stringify(diffs, null, 2);
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5",
+          max_tokens: 2048,
+          system: TRAINING_ANALYSIS_PROMPT,
+          messages: [
+            {
+              role: "user",
+              content: `Here are ${diffs.length} operator corrections to AI-generated field reports:\n\n${summary}`,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(`Claude API error: ${err}`);
+      }
+
+      const data = await response.json();
+      const analysis = data.content?.[0]?.text ?? "";
+
+      return new Response(
+        JSON.stringify({ analysis }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Normal assessment mode
+    const { transcript } = body;
 
     if (!transcript) {
       return new Response(
