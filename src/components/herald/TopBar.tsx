@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 interface TopBarProps {
   micStatus: 'pending' | 'granted' | 'denied';
   aiStatus: 'ok' | 'error';
-  syncStatus: 'ok' | 'error' | 'offline';
+  syncStatus: 'ok' | 'error' | 'offline' | 'auth_error';
 }
 
 export function TopBar({ micStatus, aiStatus, syncStatus }: TopBarProps) {
