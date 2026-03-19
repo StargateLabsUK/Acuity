@@ -40,12 +40,12 @@ export const PRIORITY_COLORS: Record<string, string> = {
   P3: '#34C759',
 };
 
-export const SERVICE_EMOJIS: Record<string, string> = {
-  military: '⚔️',
-  ambulance: '🚑',
-  police: '👮',
-  fire: '🚒',
-  unknown: '📻',
+export const SERVICE_LABELS: Record<string, string> = {
+  military: 'Military',
+  ambulance: 'Ambulance',
+  police: 'Police',
+  fire: 'Fire & Rescue',
+  unknown: 'Unknown',
 };
 
 export const TEST_TRANSMISSIONS = [
