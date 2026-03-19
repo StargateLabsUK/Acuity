@@ -64,7 +64,7 @@ export default function Command() {
 
           <div
             className="flex flex-col overflow-hidden"
-            style={{ width: '40%', borderRight: '1px solid #0F1820' }}
+            style={{ width: '40%', borderRight: '1px solid hsl(var(--border))' }}
           >
             <ReportDetail report={selectedReport} />
           </div>
