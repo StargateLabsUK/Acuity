@@ -27,6 +27,23 @@ Also extract these identifiers if present in the transmission:
 
 - callsign: the crew identifier, vehicle callsign, or unit name stated (e.g. Alpha Two, Tango Seven, Delta One, Trojan 1)
 
+When extracting callsign be aware that Whisper speech transcription may render phonetic callsigns in unexpected ways. Apply these corrections:
+- ALF 2, ALF2, ALFA 2 → Alpha Two
+- ALF 1, ALF1 → Alpha One
+- ALF 3, ALF3 → Alpha Three
+- TANG 7, TAN 7 → Tango Seven
+- DELT 1, DEL 1 → Delta One
+- TROY 1, TRO 1 → Trojan One
+- BRAV 2, BRA 2 → Bravo Two
+- CHAR 1, CHA 1 → Charlie One
+
+More generally: if a callsign looks like a truncated or misheard version of a NATO phonetic alphabet word followed by a number, correct it to the full NATO word plus number.
+
+Examples:
+  "ALF 2" → "Alpha Two"
+  "TANG 7" → "Tango Seven"
+  "DELT 1" → "Delta One"
+
 - operator_id: any collar number, badge number, warrant number, or officer ID mentioned
 
 Add incident_number, callsign, and operator_id to the structured fields object. Set to null if not mentioned.
