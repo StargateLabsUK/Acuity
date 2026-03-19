@@ -76,8 +76,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
         </div>
 
         {/* System Status - desktop: col 3 */}
-        <div className="hidden md:block px-4 py-3 border-r border-border">
-          <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-2 font-bold">
+        <div className="hidden md:block px-4 py-3 border-r border-border col-span-1">
             SYSTEM STATUS
           </div>
           <div className="flex flex-col gap-0.5">
