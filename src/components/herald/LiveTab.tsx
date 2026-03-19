@@ -74,6 +74,7 @@ export function LiveTab({
         setAssessment(result);
         onAiStatus('ok');
 
+        const loc = await getLocation();
         const report: HeraldReport = {
           id: crypto.randomUUID(),
           timestamp: new Date().toISOString(),
@@ -84,6 +85,7 @@ export function LiveTab({
           headline: result.headline,
           priority: result.priority,
           service: result.service,
+          ...loc,
         };
         saveReport(report);
         setCurrentReportId(report.id);
