@@ -6,9 +6,10 @@ import { SERVICE_LABELS } from '@/lib/herald-types';
 interface Props {
   session: HeraldSession;
   onEndShift: () => void;
+  position: 'top' | 'bottom';
 }
 
-export function ShiftInfoBar({ session, onEndShift }: Props) {
+export function ShiftInfoBar({ session, onEndShift, position }: Props) {
   const [confirming, setConfirming] = useState(false);
 
   const handleEndShift = () => {
@@ -16,50 +17,27 @@ export function ShiftInfoBar({ session, onEndShift }: Props) {
     onEndShift();
   };
 
-  return (
-    <div>
+  if (position === 'top') {
+    return (
       <div
-        className="flex items-center justify-between flex-shrink-0"
-        style={{
-          background: '#0D1117',
-          borderBottom: '1px solid #0F1820',
-          padding: '6px 20px',
-        }}
+        className="flex flex-col items-center flex-shrink-0 py-2"
+        style={{ background: '#0D1117', borderBottom: '1px solid #0F1820' }}
       >
-        <div className="flex items-center gap-3">
-          <span style={{ color: '#C8D0CC', fontSize: 18, fontWeight: 700 }}>
-            {SERVICE_LABELS[session.service] ?? session.service} — {session.callsign}
-          </span>
-          {session.operator_id && (
-            <span style={{ color: '#3A5048', fontSize: 18 }}>
-              {session.operator_id}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={() => setConfirming(true)}
-          style={{
-            color: '#1E3028',
-            fontSize: 18,
-            border: '1px solid #0F1820',
-            padding: '3px 10px',
-            borderRadius: 2,
-            background: 'transparent',
-            cursor: 'pointer',
-          }}
-        >
-          END SHIFT
-        </button>
+        <span style={{ color: '#4A6058', fontSize: 18, letterSpacing: '0.15em' }}>
+          {SERVICE_LABELS[session.service] ?? session.service.toUpperCase()}
+        </span>
+        <span style={{ color: '#C8D0CC', fontSize: 18, fontWeight: 700 }}>
+          {session.callsign}
+          {session.operator_id ? ` · ${session.operator_id}` : ''}
+        </span>
       </div>
-      {confirming && (
-        <div
-          className="flex items-center justify-center gap-4"
-          style={{
-            background: '#0D1117',
-            borderBottom: '1px solid #0F1820',
-            padding: '8px 20px',
-          }}
-        >
+    );
+  }
+
+  return (
+    <div className="flex-shrink-0" style={{ background: '#0D1117', borderTop: '1px solid #0F1820' }}>
+      {confirming ? (
+        <div className="flex items-center justify-center gap-4 py-2">
           <span style={{ color: '#FF9500', fontSize: 18, fontWeight: 700 }}>END SHIFT?</span>
           <button
             onClick={handleEndShift}
@@ -74,6 +52,21 @@ export function ShiftInfoBar({ session, onEndShift }: Props) {
             CANCEL
           </button>
         </div>
+      ) : (
+        <button
+          onClick={() => setConfirming(true)}
+          className="w-full py-2"
+          style={{
+            color: '#4A6058',
+            fontSize: 18,
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            letterSpacing: '0.1em',
+          }}
+        >
+          END SHIFT
+        </button>
       )}
     </div>
   );
