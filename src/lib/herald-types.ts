@@ -34,6 +34,54 @@ export interface Assessment {
 
 export type LiveState = 'idle' | 'recording' | 'processing' | 'ready' | 'confirmed';
 
+export interface Mismatch {
+  field: string;
+  session_value: string;
+  transcript_value: string;
+  resolved_to: string;
+}
+
+export function detectMismatches(
+  session: { service: string; callsign: string; operator_id: string | null },
+  assessment: Assessment
+): Mismatch[] {
+  const mismatches: Mismatch[] = [];
+
+  // Service
+  if (session.service && assessment.service && session.service !== assessment.service) {
+    mismatches.push({
+      field: 'service',
+      session_value: session.service,
+      transcript_value: assessment.service,
+      resolved_to: assessment.service,
+    });
+  }
+
+  // Callsign
+  const txCallsign = assessment.structured?.callsign;
+  if (session.callsign && txCallsign && txCallsign !== 'null' && session.callsign.toLowerCase() !== txCallsign.toLowerCase()) {
+    mismatches.push({
+      field: 'callsign',
+      session_value: session.callsign,
+      transcript_value: txCallsign,
+      resolved_to: txCallsign,
+    });
+  }
+
+  // Operator ID
+  const txOperator = assessment.structured?.operator_id;
+  if (session.operator_id && txOperator && txOperator !== 'null' && session.operator_id.toLowerCase() !== txOperator.toLowerCase()) {
+    mismatches.push({
+      field: 'operator_id',
+      session_value: session.operator_id,
+      transcript_value: txOperator,
+      resolved_to: txOperator,
+    });
+  }
+
+  return mismatches;
+}
+
 export const PRIORITY_COLORS: Record<string, string> = {
   P1: '#FF3B30',
   P2: '#FF9500',

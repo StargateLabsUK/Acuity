@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { Assessment, LiveState } from '@/lib/herald-types';
-import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
+import type { Assessment, LiveState, Mismatch } from '@/lib/herald-types';
+import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS, detectMismatches } from '@/lib/herald-types';
 import { transcribeAudio, assessTranscript } from '@/lib/herald-api';
 import { saveReport, updateReport } from '@/lib/herald-storage';
 import { computeDiff } from '@/lib/herald-diff';
@@ -79,6 +79,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const [editFormattedReport, setEditFormattedReport] = useState('');
   const [originalAssessment, setOriginalAssessment] = useState<Assessment | null>(null);
   const [hasEdits, setHasEdits] = useState(false);
+  const [mismatches, setMismatches] = useState<Mismatch[]>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -95,6 +96,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       setEditActions([...(assessment.actions || [])]);
       setEditFormattedReport(assessment.formatted_report || '');
       setOriginalAssessment(JSON.parse(JSON.stringify(assessment)));
+
+      // Detect session vs transcript mismatches
+      const session = getSession();
+      if (session) {
+        const detected = detectMismatches(
+          { service: session.service, callsign: session.callsign, operator_id: session.operator_id },
+          assessment
+        );
+        setMismatches(detected);
+      } else {
+        setMismatches([]);
+      }
     }
   }, [assessment, state]);
 
@@ -233,6 +246,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setCurrentReportId(null);
     setOriginalAssessment(null);
     setHasEdits(false);
+    setMismatches([]);
     setCapturedDuration(0);
     setError('');
 
@@ -297,7 +311,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         if (idx !== -1) {
           reports[idx].original_assessment = originalAssessment;
           reports[idx].final_assessment = finalAssessment;
-          reports[idx].diff = diff;
+          reports[idx].diff = { ...diff, mismatches };
           reports[idx].edited = diff.has_edits;
           if (loc.lat) reports[idx].lat = loc.lat;
           if (loc.lng) reports[idx].lng = loc.lng;
@@ -320,6 +334,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setCurrentReportId(null);
     setOriginalAssessment(null);
     setHasEdits(false);
+    setMismatches([]);
   }, []);
 
   // ─── STATE 1: IDLE & STATE 2: RECORDING (same layout) ───
@@ -482,6 +497,21 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           </div>
           <span className="text-lg md:text-lg text-foreground uppercase font-bold">{assessment.service}</span>
         </div>
+
+        {mismatches.length > 0 && (
+          <div className="mx-3 md:mx-4 mt-2 p-3 rounded border" style={{ background: 'rgba(255,149,0,0.08)', borderColor: '#FF9500' }}>
+            <p className="text-lg font-bold mb-1" style={{ color: '#FF9500', letterSpacing: '0.15em' }}>⚠ DATA MISMATCH</p>
+            {mismatches.map((m) => (
+              <div key={m.field} className="mb-1 last:mb-0">
+                <p className="text-lg font-bold uppercase" style={{ color: '#FF9500' }}>{m.field.replace('_', ' ')}</p>
+                <p className="text-lg text-foreground">
+                  Session: <span className="font-bold">{m.session_value}</span> &nbsp;|&nbsp; Transcript: <span className="font-bold">{m.transcript_value}</span>
+                </p>
+              </div>
+            ))}
+            <p className="text-lg mt-1 opacity-70 text-foreground">Transcript values kept — edit fields above to override</p>
+          </div>
+        )}
 
         {hasEdits && (
           <div className="mx-3 md:mx-4 mt-2 flex items-center gap-1">

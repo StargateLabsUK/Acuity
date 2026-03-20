@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
 import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
+import type { Mismatch } from '@/lib/herald-types';
 
 interface Props {
   reports: CommandReport[];
@@ -23,6 +24,14 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
   const getCallsign = (r: CommandReport) => r.assessment?.structured?.callsign ?? null;
   const getIncident = (r: CommandReport) => r.assessment?.structured?.incident_number ?? null;
   const getHeadline = (r: CommandReport) => r.assessment?.headline ?? r.headline ?? 'No headline';
+  const getMismatches = (r: CommandReport): Mismatch[] => {
+    const diff = r as any;
+    if (diff.diff && Array.isArray(diff.diff.mismatches)) return diff.diff.mismatches;
+    // Also check assessment-level diff from Supabase
+    const d = (r as any).diff;
+    if (d && typeof d === 'object' && Array.isArray(d.mismatches)) return d.mismatches;
+    return [];
+  };
   const getTime = (r: CommandReport) => {
     const d = new Date(r.created_at ?? r.timestamp);
     return d.getUTCHours().toString().padStart(2, '0') + ':' +
@@ -102,8 +111,8 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                   {getHeadline(r)}
                 </div>
 
-                {/* Row 3: Unit | Officer | Incident (consistent metadata row) */}
-                <div className="flex items-center gap-2">
+                {/* Row 3: Unit | Officer | Incident | Mismatch */}
+                <div className="flex items-center gap-2 flex-wrap">
                   {(r.session_callsign || getCallsign(r)) && (
                     <span
                       className="text-lg font-semibold rounded-sm px-1.5 py-0.5 flex-shrink-0"
@@ -120,6 +129,15 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                   {getIncident(r) && (
                     <span className="text-lg font-semibold text-foreground border border-border rounded-sm px-1.5 py-0.5 flex-shrink-0">
                       #{getIncident(r)}
+                    </span>
+                  )}
+                  {getMismatches(r).length > 0 && (
+                    <span
+                      className="text-lg font-bold rounded-sm px-1.5 py-0.5 flex-shrink-0"
+                      style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}
+                      title={getMismatches(r).map(m => `${m.field}: session=${m.session_value} tx=${m.transcript_value}`).join('; ')}
+                    >
+                      ⚠ MISMATCH
                     </span>
                   )}
                 </div>
