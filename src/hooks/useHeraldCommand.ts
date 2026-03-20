@@ -33,11 +33,16 @@ export function useHeraldCommand() {
 
   const fetchReports = useCallback(async () => {
     try {
+      // Only fetch today's reports for the transmissions feed
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
       const { data, error } = await supabase
         .from('herald_reports')
         .select('*')
+        .gte('created_at', todayStart.toISOString())
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(200);
 
       if (error) throw error;
 
