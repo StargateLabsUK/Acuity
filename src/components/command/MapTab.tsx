@@ -95,7 +95,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       const callsign = r.assessment?.structured?.callsign ?? '';
 
       const popup = new mapboxgl.Popup({ offset: 15, maxWidth: '280px' }).setHTML(`
-        <div style="font-family:Inter,sans-serif;color:#E6EDF3;padding:4px;">
+        <div style="font-family:Inter,sans-serif;color:#1A1E24;padding:4px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
             <span style="background:${color};color:#fff;font-weight:700;padding:2px 8px;border-radius:4px;font-size:13px;">${p}</span>
             <span style="font-size:13px;text-transform:uppercase;font-weight:600;">${label}</span>
