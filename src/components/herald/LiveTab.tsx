@@ -79,6 +79,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const [editFormattedReport, setEditFormattedReport] = useState('');
   const [originalAssessment, setOriginalAssessment] = useState<Assessment | null>(null);
   const [hasEdits, setHasEdits] = useState(false);
+  const [mismatches, setMismatches] = useState<Mismatch[]>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
