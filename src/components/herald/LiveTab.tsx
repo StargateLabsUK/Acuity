@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Assessment, LiveState, Mismatch } from '@/lib/herald-types';
 import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS, detectMismatches } from '@/lib/herald-types';
 import { transcribeAudio, assessTranscript, syncReport } from '@/lib/herald-api';
-import { getReports, markSynced, saveReport, updateReport } from '@/lib/herald-storage';
+import { getReports, markSynced, saveReport } from '@/lib/herald-storage';
 import { computeDiff } from '@/lib/herald-diff';
 import { getSession } from '@/lib/herald-session';
 import { toSyncPayload } from '@/lib/herald-sync';
@@ -89,6 +89,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const recordingStartRef = useRef(0);
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingReportRef = useRef<{ id: string; timestamp: string; transcript: string; lat?: number; lng?: number; location_accuracy?: number } | null>(null);
 
   const syncNow = useCallback(async (reportId: string) => {
     try {
@@ -233,24 +234,15 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           onAiStatus('ok');
 
           const loc = await getLocation();
-          const sessionFields = getSessionFields();
-          const report: HeraldReport = {
-            id: crypto.randomUUID(),
+          const reportId = crypto.randomUUID();
+          setCurrentReportId(reportId);
+          // Store location and timestamp for use at confirm time
+          pendingReportRef.current = {
+            id: reportId,
             timestamp: new Date().toISOString(),
             transcript: t,
-            assessment: result,
-            synced: false,
-            confirmed_at: null as unknown as string,
-            headline: result.headline,
-            priority: result.priority,
-            service: result.service,
             ...loc,
-            ...sessionFields,
           };
-          saveReport(report);
-          void syncNow(report.id);
-          setCurrentReportId(report.id);
-          onReportSaved();
           setState('ready');
         } catch {
           onAiStatus('error');
@@ -284,24 +276,14 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       onAiStatus('ok');
 
       const loc = await getLocation();
-      const sessionFields = getSessionFields();
-      const report: HeraldReport = {
-        id: crypto.randomUUID(),
+      const reportId = crypto.randomUUID();
+      setCurrentReportId(reportId);
+      pendingReportRef.current = {
+        id: reportId,
         timestamp: new Date().toISOString(),
         transcript: text,
-        assessment: result,
-        synced: false,
-        confirmed_at: null as unknown as string,
-        headline: result.headline,
-        priority: result.priority,
-        service: result.service,
         ...loc,
-        ...sessionFields,
       };
-      saveReport(report);
-      void syncNow(report.id);
-      setCurrentReportId(report.id);
-      onReportSaved();
       setState('ready');
     } catch {
       onAiStatus('error');
@@ -314,45 +296,39 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   }, [onAiStatus, onReportSaved, syncNow]);
 
   const handleConfirm = useCallback(async () => {
-    if (!assessment || !currentReportId || !originalAssessment) return;
+    if (!assessment || !currentReportId || !originalAssessment || !pendingReportRef.current) return;
     const finalAssessment = buildFinalAssessment();
     const diff = computeDiff(originalAssessment, finalAssessment);
 
     const loc = await getLocation();
     const sessionFields = getSessionFields();
+    const pending = pendingReportRef.current;
 
-    updateReport(currentReportId, {
-      confirmed_at: new Date().toISOString(),
+    // Now create and save the report for the first time
+    const report: HeraldReport = {
+      id: pending.id,
+      timestamp: pending.timestamp,
+      transcript: pending.transcript,
       assessment: finalAssessment as unknown as Assessment,
+      synced: false,
+      confirmed_at: new Date().toISOString(),
       headline: finalAssessment.headline,
       priority: finalAssessment.priority,
       service: finalAssessment.service,
-      ...loc,
+      lat: loc.lat ?? pending.lat,
+      lng: loc.lng ?? pending.lng,
+      location_accuracy: loc.location_accuracy ?? pending.location_accuracy,
+      original_assessment: originalAssessment as any,
+      final_assessment: finalAssessment as any,
+      diff: { ...diff, mismatches } as any,
+      edited: diff.has_edits,
       ...sessionFields,
-    });
+    };
 
-    try {
-      const raw = localStorage.getItem('herald_reports');
-      if (raw) {
-        const reports = JSON.parse(raw);
-        const idx = reports.findIndex((r: any) => r.id === currentReportId);
-        if (idx !== -1) {
-          reports[idx].original_assessment = originalAssessment;
-          reports[idx].final_assessment = finalAssessment;
-          reports[idx].diff = { ...diff, mismatches };
-          reports[idx].edited = diff.has_edits;
-          if (loc.lat) reports[idx].lat = loc.lat;
-          if (loc.lng) reports[idx].lng = loc.lng;
-          if (loc.location_accuracy) reports[idx].location_accuracy = loc.location_accuracy;
-          // Ensure session fields are on the report
-          Object.assign(reports[idx], sessionFields);
-          localStorage.setItem('herald_reports', JSON.stringify(reports));
-        }
-      }
-    } catch { /* silent */ }
-
-    await syncNow(currentReportId);
+    saveReport(report);
+    await syncNow(report.id);
     onReportSaved();
+    pendingReportRef.current = null;
     setState('confirmed');
   }, [assessment, currentReportId, onReportSaved, originalAssessment, buildFinalAssessment, mismatches, syncNow]);
 
@@ -364,6 +340,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setOriginalAssessment(null);
     setHasEdits(false);
     setMismatches([]);
+    pendingReportRef.current = null;
   }, []);
 
   // ─── STATE 1: IDLE & STATE 2: RECORDING (same layout) ───
