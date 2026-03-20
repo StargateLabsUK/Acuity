@@ -36,6 +36,7 @@ export type Database = {
           session_operator_id: string | null
           session_service: string | null
           session_station: string | null
+          shift_id: string | null
           synced: boolean | null
           timestamp: string
           transcript: string | null
@@ -62,6 +63,7 @@ export type Database = {
           session_operator_id?: string | null
           session_service?: string | null
           session_station?: string | null
+          shift_id?: string | null
           synced?: boolean | null
           timestamp: string
           transcript?: string | null
@@ -88,10 +90,55 @@ export type Database = {
           session_operator_id?: string | null
           session_service?: string | null
           session_station?: string | null
+          shift_id?: string | null
           synced?: boolean | null
           timestamp?: string
           transcript?: string | null
           user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "herald_reports_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shifts: {
+        Row: {
+          callsign: string
+          created_at: string
+          device_id: string | null
+          ended_at: string | null
+          id: string
+          operator_id: string | null
+          service: string
+          started_at: string
+          station: string | null
+        }
+        Insert: {
+          callsign: string
+          created_at?: string
+          device_id?: string | null
+          ended_at?: string | null
+          id?: string
+          operator_id?: string | null
+          service: string
+          started_at?: string
+          station?: string | null
+        }
+        Update: {
+          callsign?: string
+          created_at?: string
+          device_id?: string | null
+          ended_at?: string | null
+          id?: string
+          operator_id?: string | null
+          service?: string
+          started_at?: string
+          station?: string | null
         }
         Relationships: []
       }

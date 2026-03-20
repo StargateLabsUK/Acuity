@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { saveSession } from '@/lib/herald-session';
+import { saveSession, startShiftRemote } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
 import { getStationsForService } from '@/lib/uk-stations';
 
@@ -49,8 +49,11 @@ export function ShiftLogin({ onShiftStarted }: Props) {
     setStation(''); // reset station when service changes
   };
 
-  const handleBeginShift = () => {
-    if (!canSubmit) return;
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleBeginShift = async () => {
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
     const session: HeraldSession = {
       service,
       service_emoji: '',
@@ -60,8 +63,12 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       session_date: new Date().toISOString().slice(0, 10),
       shift_started: new Date().toISOString(),
     };
+    // Sync shift to Supabase and get shift_id
+    const shiftId = await startShiftRemote(session);
+    if (shiftId) session.shift_id = shiftId;
     saveSession(session);
     onShiftStarted(session);
+    setSubmitting(false);
   };
 
   return (
@@ -154,7 +161,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
         {/* BEGIN SHIFT */}
         <button
           onClick={handleBeginShift}
-          disabled={!canSubmit}
+          disabled={!canSubmit || submitting}
           style={{
             width: '100%',
             padding: 12,

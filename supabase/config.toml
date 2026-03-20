@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.sync-report]
 verify_jwt = false
+
+[functions.sync-shift]
+verify_jwt = false

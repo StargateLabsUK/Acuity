@@ -8,11 +8,12 @@ import { ReportDetail } from '@/components/command/ReportDetail';
 import { CommandStatus } from '@/components/command/CommandStatus';
 import { MapTab } from '@/components/command/MapTab';
 import { TrainingTab } from '@/components/command/TrainingTab';
+import { OpsLogTab } from '@/components/command/OpsLogTab';
 import { CommandFilterBar } from '@/components/command/CommandFilterBar';
 import type { CommandFilters } from '@/components/command/CommandFilterBar';
 import type { MapTabHandle } from '@/components/command/MapTab';
 
-type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training';
+type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training' | 'ops';
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
 type ExpandedPanel = 'feed' | 'detail' | 'map' | null;
 
@@ -90,6 +91,7 @@ export default function Command() {
     timeRange: 'today',
   });
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
+  const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops'>('status');
   const viewMode = useViewMode();
   const mapRef = useRef<MapTabHandle>(null);
 
@@ -211,13 +213,43 @@ export default function Command() {
 
         <div className="flex flex-col flex-1 overflow-hidden p-3 gap-3">
           <div className="flex-shrink-0 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-            <CommandStatus
-              todayReports={filteredReports}
-              priorityCounts={filteredPriorityCounts}
-              serviceCounts={filteredServiceCounts}
-              uniqueDevices={uniqueDevices}
-              connected={connected}
-            />
+            <div className="flex border-b border-border">
+              <button
+                onClick={() => setDesktopUpperTab('status')}
+                className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
+                style={{
+                  color: desktopUpperTab === 'status' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                  borderBottom: desktopUpperTab === 'status' ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                  background: 'transparent',
+                }}
+              >
+                STATUS
+              </button>
+              <button
+                onClick={() => setDesktopUpperTab('ops')}
+                className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
+                style={{
+                  color: desktopUpperTab === 'ops' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                  borderBottom: desktopUpperTab === 'ops' ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                  background: 'transparent',
+                }}
+              >
+                OPS LOG
+              </button>
+            </div>
+            {desktopUpperTab === 'status' ? (
+              <CommandStatus
+                todayReports={filteredReports}
+                priorityCounts={filteredPriorityCounts}
+                serviceCounts={filteredServiceCounts}
+                uniqueDevices={uniqueDevices}
+                connected={connected}
+              />
+            ) : (
+              <div style={{ height: 320 }}>
+                <OpsLogTab />
+              </div>
+            )}
           </div>
           <div className="flex flex-1 overflow-hidden min-w-0 gap-3">
             <div className="relative flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
@@ -301,12 +333,17 @@ export default function Command() {
             <TrainingTab reports={filteredReports} />
           </div>
         )}
+        {mobileTab === 'ops' && (
+          <div className="h-full">
+            <OpsLogTab />
+          </div>
+        )}
       </div>
       <div className="flex flex-shrink-0 border-t border-border bg-card">
         {mobileTabBtn('feed', 'FEED')}
         {mobileTabBtn('detail', 'DETAIL')}
         {mobileTabBtn('map', 'MAP')}
-        {mobileTabBtn('training', 'TRAIN')}
+        {mobileTabBtn('ops', 'OPS')}
         {mobileTabBtn('status', 'STATUS')}
       </div>
     </div>

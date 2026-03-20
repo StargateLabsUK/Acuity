@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { HeraldSession } from '@/lib/herald-session';
-import { clearSession } from '@/lib/herald-session';
+import { clearSession, endShiftRemote } from '@/lib/herald-session';
 import { SERVICE_LABELS } from '@/lib/herald-types';
 
 interface Props {
@@ -12,7 +12,10 @@ interface Props {
 export function ShiftInfoBar({ session, onEndShift, position }: Props) {
   const [confirming, setConfirming] = useState(false);
 
-  const handleEndShift = () => {
+  const handleEndShift = async () => {
+    if (session.shift_id) {
+      await endShiftRemote(session.shift_id);
+    }
     clearSession();
     onEndShift();
   };
