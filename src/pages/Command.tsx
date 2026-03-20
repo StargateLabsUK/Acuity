@@ -246,7 +246,7 @@ export default function Command() {
                 connected={connected}
               />
             ) : (
-              <div style={{ height: 320 }}>
+              <div style={{ maxHeight: 400, overflow: 'hidden' }}>
                 <OpsLogTab />
               </div>
             )}
