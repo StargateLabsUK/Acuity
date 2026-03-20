@@ -17,6 +17,10 @@ export interface HeraldReport {
   session_operator_id?: string;
   session_service?: string;
   session_station?: string;
+  original_assessment?: Assessment;
+  final_assessment?: Assessment;
+  diff?: Record<string, any>;
+  edited?: boolean;
 }
 
 export interface Assessment {
