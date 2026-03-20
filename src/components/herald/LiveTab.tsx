@@ -543,17 +543,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>PROTOCOL FIELDS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
               {Object.entries(editStructured).map(([k, v]) => (
-                <div key={k} className="mb-2">
+                <div key={k} className="mb-2 min-w-0">
                   <p className="text-lg md:text-lg font-bold" style={{ color: pc }}>{k}</p>
-                  <input
-                    type="text"
+                  <textarea
                     value={v}
                     onChange={(e) => setEditStructured((prev) => ({ ...prev, [k]: e.target.value }))}
-                    className="w-full bg-transparent text-lg md:text-lg text-foreground outline-none py-0.5"
-                    style={{ borderBottom: '1px solid transparent' }}
+                    className="w-full bg-transparent text-lg md:text-lg text-foreground outline-none py-0.5 resize-none leading-relaxed"
+                    style={{ borderBottom: '1px solid transparent', overflow: 'hidden' }}
                     placeholder="Tap to edit"
+                    rows={Math.max(1, Math.ceil((v?.length || 0) / 35))}
                     onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; }}
                     onBlur={(e) => { e.currentTarget.style.borderBottom = '1px solid transparent'; }}
+                    onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
                   />
                 </div>
               ))}
