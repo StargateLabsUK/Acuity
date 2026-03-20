@@ -510,7 +510,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             {mismatches.map((m) => (
               <div key={m.field} className="mb-1 last:mb-0">
                 <p className="text-lg font-bold uppercase" style={{ color: '#FF9500' }}>{m.field.replace('_', ' ')}</p>
-                <p className="text-lg text-foreground">
+                <p className="text-lg text-foreground break-words">
                   Session: <span className="font-bold">{m.session_value}</span> &nbsp;|&nbsp; Transcript: <span className="font-bold">{m.transcript_value}</span>
                 </p>
               </div>
