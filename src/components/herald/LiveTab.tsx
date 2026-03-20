@@ -340,6 +340,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setOriginalAssessment(null);
     setHasEdits(false);
     setMismatches([]);
+    pendingReportRef.current = null;
   }, []);
 
   // ─── STATE 1: IDLE & STATE 2: RECORDING (same layout) ───
