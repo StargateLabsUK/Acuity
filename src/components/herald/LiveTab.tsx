@@ -310,7 +310,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         if (idx !== -1) {
           reports[idx].original_assessment = originalAssessment;
           reports[idx].final_assessment = finalAssessment;
-          reports[idx].diff = diff;
+          reports[idx].diff = { ...diff, mismatches };
           reports[idx].edited = diff.has_edits;
           if (loc.lat) reports[idx].lat = loc.lat;
           if (loc.lng) reports[idx].lng = loc.lng;
