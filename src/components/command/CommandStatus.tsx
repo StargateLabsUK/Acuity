@@ -11,6 +11,17 @@ interface Props {
   activeShifts?: CommandShift[];
 }
 
+function StatCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center px-4 py-3 min-w-[80px]">
+      <span className="text-sm text-muted-foreground tracking-[0.15em] font-bold mb-1">{label}</span>
+      <span className="text-2xl font-heading font-bold" style={{ color: color ?? 'hsl(var(--foreground))' }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
 export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, connected, activeShifts = [] }: Props) {
   const lastReport = todayReports[0];
   const lastTime = lastReport
@@ -20,134 +31,76 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
 
   return (
     <div className="flex flex-col bg-card">
-      <div className="grid gap-0" style={{ gridTemplateColumns: 'auto auto 1fr 1fr' }}>
-        {/* Total Transmissions */}
-        <div className="px-3 py-2.5 md:px-4 md:py-3 border-r border-b md:border-b-0 border-border flex flex-col">
-          <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
-            TODAY
-          </div>
-          <div className="font-heading text-4xl md:text-6xl text-foreground font-bold leading-none text-center mt-1">
+      {/* Stats row — responsive wrap */}
+      <div className="flex flex-wrap items-stretch border-b border-border">
+        {/* Today count */}
+        <div className="flex flex-col items-center justify-center px-5 py-3 border-r border-border">
+          <span className="text-sm text-muted-foreground tracking-[0.15em] font-bold mb-1">TODAY</span>
+          <span className="text-4xl md:text-5xl font-heading font-bold text-foreground leading-none">
             {todayReports.length}
-          </div>
+          </span>
         </div>
 
-        {/* Priority Breakdown */}
-        <div className="px-3 py-2.5 md:px-3 md:py-3 border-r border-b md:border-b-0 border-border" style={{ minWidth: '90px' }}>
-          <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
-            PRIORITY
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-center justify-between">
-              <span className="text-lg" style={{ color: '#FF3B30' }}>P1</span>
-              <span className="font-heading text-lg font-bold" style={{ color: '#FF3B30' }}>{priorityCounts.P1}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-lg" style={{ color: '#FF9500' }}>P2</span>
-              <span className="font-heading text-lg font-bold" style={{ color: '#FF9500' }}>{priorityCounts.P2}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-lg" style={{ color: '#34C759' }}>P3</span>
-              <span className="font-heading text-lg font-bold" style={{ color: '#34C759' }}>{priorityCounts.P3}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* System Status */}
-        <div className="hidden md:block px-4 py-3 border-r border-border">
-          <div className="flex flex-col gap-0.5">
-            <div className="flex justify-between">
-              <span className="text-lg text-foreground">DEVICES</span>
-              <span className="text-lg text-foreground font-bold">{uniqueDevices}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-lg text-foreground">LAST</span>
-              <span className="text-lg text-foreground font-bold">{lastTime}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-lg text-foreground">DB</span>
-              <span className="text-lg font-bold" style={{ color: connected ? 'hsl(var(--primary))' : '#FF3B30' }}>
-                {connected ? 'LIVE' : 'OFFLINE'}
+        {/* Priority pills */}
+        <div className="flex items-center gap-3 px-4 py-3 border-r border-border">
+          {([
+            { key: 'P1', color: '#FF3B30' },
+            { key: 'P2', color: '#FF9500' },
+            { key: 'P3', color: '#34C759' },
+          ] as const).map(({ key, color }) => (
+            <div key={key} className="flex flex-col items-center">
+              <span className="text-sm font-bold tracking-wide" style={{ color }}>{key}</span>
+              <span className="text-2xl font-heading font-bold" style={{ color }}>
+                {priorityCounts[key]}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-lg text-foreground">SHIFTS</span>
-              <span className="text-lg text-foreground font-bold">{activeShifts.length}</span>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Active Shifts - desktop */}
-        <div className="hidden md:block px-4 py-3">
-          <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-2 font-bold">
-            ACTIVE SHIFTS ({activeShifts.length})
-          </div>
-          {activeShifts.length === 0 ? (
-            <span className="text-lg text-foreground opacity-50">No active shifts</span>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {activeShifts.map((s) => (
-                <div key={s.id} className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'hsl(var(--primary))', animation: 'breathe 2s ease-in-out infinite' }} />
-                  <span className="text-lg text-foreground font-bold">{s.callsign ?? '—'}</span>
-                  <span className="text-lg text-muted-foreground">
-                    {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+        {/* System stats */}
+        <div className="flex items-stretch">
+          <StatCard label="DEVICES" value={uniqueDevices} />
+          <StatCard label="LAST" value={lastTime} />
+          <StatCard
+            label="DB"
+            value={connected ? 'LIVE' : 'OFF'}
+            color={connected ? 'hsl(var(--primary))' : '#FF3B30'}
+          />
+          <StatCard label="SHIFTS" value={activeShifts.length} />
         </div>
       </div>
 
-      {/* Mobile: System Status + Active Shifts */}
-      <div className="md:hidden">
-        <div className="px-3 py-2.5 border-b border-border">
-          <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
-            SYSTEM STATUS
+      {/* Active shifts list */}
+      {activeShifts.length > 0 && (
+        <div className="px-4 py-3">
+          <div className="text-sm text-muted-foreground tracking-[0.15em] font-bold mb-2">
+            ACTIVE SHIFTS
           </div>
-          <div className="grid grid-cols-4 gap-2">
-            <div className="flex flex-col items-center">
-              <span className="text-lg text-foreground opacity-70">DEVICES</span>
-              <span className="text-lg text-foreground font-bold">{uniqueDevices}</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-lg text-foreground opacity-70">LAST</span>
-              <span className="text-lg text-foreground font-bold">{lastTime}</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-lg text-foreground opacity-70">DB</span>
-              <span className="text-lg font-bold" style={{ color: connected ? 'hsl(var(--primary))' : '#FF3B30' }}>
-                {connected ? 'LIVE' : 'OFF'}
-              </span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-lg text-foreground opacity-70">SHIFTS</span>
-              <span className="text-lg text-foreground font-bold">{activeShifts.length}</span>
-            </div>
+          <div className="flex flex-wrap gap-2">
+            {activeShifts.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5"
+              >
+                <div
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: 'hsl(var(--primary))', animation: 'breathe 2s ease-in-out infinite' }}
+                />
+                <span className="text-lg text-foreground font-bold">{s.callsign ?? '—'}</span>
+                <span className="text-sm text-muted-foreground">
+                  {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
+      )}
 
-        <div className="px-3 py-2.5">
-          <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
-            ACTIVE SHIFTS ({activeShifts.length})
-          </div>
-          {activeShifts.length === 0 ? (
-            <span className="text-lg text-foreground opacity-50">No active shifts</span>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {activeShifts.map((s) => (
-                <div key={s.id} className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'hsl(var(--primary))', animation: 'breathe 2s ease-in-out infinite' }} />
-                  <span className="text-lg text-foreground font-bold">{s.callsign ?? '—'}</span>
-                  <span className="text-lg text-muted-foreground">
-                    {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+      {activeShifts.length === 0 && (
+        <div className="px-4 py-3">
+          <span className="text-sm text-muted-foreground tracking-[0.15em]">NO ACTIVE SHIFTS</span>
         </div>
-      </div>
+      )}
     </div>
   );
 }
