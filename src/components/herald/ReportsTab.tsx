@@ -135,80 +135,79 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
                   <p className="text-lg md:text-xl text-foreground leading-relaxed font-medium">{a.headline as string}</p>
                 </div>
 
-                {/* Full Transcript */}
-                <div className="mt-4">
-                  <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.2em] mb-2">
-                    FULL TRANSCRIPT
-                  </p>
-                  <div className="p-3 md:p-4 border border-border rounded bg-card">
-                    <p className="text-lg md:text-lg text-foreground leading-7 italic">
-                      &ldquo;{r.transcript ?? 'N/A'}&rdquo;
+                {/* Action Items */}
+                {actionItems.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-lg md:text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#FF9500' }}>
+                      ⚠ ACTION ITEMS
                     </p>
-                    <div className="text-lg md:text-lg text-foreground mt-2 opacity-70">
-                      CONFIDENCE: {Math.round(confidence * 100)}%
+                    <div className="flex flex-col gap-1.5">
+                      {actionItems.map((item, i) => (
+                        <div key={i} className="rounded p-2.5 flex gap-2 items-start"
+                          style={{ background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.2)' }}>
+                          <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>⚠</span>
+                          <span className="text-lg text-foreground font-medium">{item}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Protocol Fields & Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  {Object.keys(structured).length > 0 && (
-                    <div>
-                      <p className="text-lg md:text-lg font-bold tracking-[0.2em] mb-2" style={{ color: pc }}>
-                        PROTOCOL FIELDS
-                      </p>
-                      <div className="p-3 md:p-4 border border-border rounded bg-card">
-                        <div className="flex flex-col gap-2 md:gap-3">
-                          {Object.entries(structured).map(([k, v]) => (
+                {/* ATMIST cards */}
+                {atmist && Object.keys(atmist).length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-lg md:text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>
+                      ATMIST
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {Object.entries(atmist).map(([casualtyKey, val]: [string, any]) => {
+                        const cCol = PRIORITY_COLORS[casualtyKey] ?? '#1E90FF';
+                        return (
+                          <div key={casualtyKey} className="p-3 border border-border rounded bg-card">
+                            <div className="text-lg font-bold mb-1 tracking-wide" style={{ color: cCol }}>{casualtyKey}</div>
+                            <div className="flex flex-col gap-1">
+                              {[
+                                { k: 'A', label: 'Age' }, { k: 'T', label: 'Time' }, { k: 'M', label: 'Mechanism' },
+                                { k: 'I', label: 'Injuries' }, { k: 'S', label: 'Signs' }, { k: 'T_treatment', label: 'Treatment' },
+                              ].map(({ k, label }) => (
+                                <div key={k}>
+                                  <span className="text-lg font-bold" style={{ color: cCol }}>{label}: </span>
+                                  <span className="text-lg text-foreground break-words">{val?.[k] ?? '—'}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Protocol Fields with empty prompts */}
+                {Object.keys(structured).length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-lg md:text-lg font-bold tracking-[0.2em] mb-2" style={{ color: pc }}>
+                      PROTOCOL FIELDS
+                    </p>
+                    <div className="p-3 md:p-4 border border-border rounded bg-card">
+                      <div className="flex flex-col gap-2 md:gap-3">
+                        {Object.entries(structured).map(([k, v]) => {
+                          const isEmpty = !v || v === 'null';
+                          const isIncNum = k === 'incident_number';
+                          const isOpId = k === 'operator_id';
+                          return (
                             <div key={k}>
                               <div className="text-lg md:text-lg font-bold mb-0.5" style={{ color: pc }}>{k}</div>
-                              <div className="text-lg md:text-lg text-foreground leading-relaxed whitespace-pre-wrap">{renderStructuredValue(v)}</div>
+                              {isEmpty && (isIncNum || isOpId) ? (
+                                <div className="text-lg" style={{ color: '#FF9500', opacity: 0.7 }}>
+                                  {isIncNum ? 'Awaiting incident number — say or tap to enter' : 'Awaiting operator ID — tap to enter'}
+                                </div>
+                              ) : (
+                                <div className="text-lg md:text-lg text-foreground leading-relaxed whitespace-pre-wrap">{renderStructuredValue(v)}</div>
+                              )}
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {actions.length > 0 && (
-                    <div>
-                      <p className="text-lg md:text-lg font-bold tracking-[0.2em] mb-2" style={{ color: pc }}>
-                        IMMEDIATE ACTIONS
-                      </p>
-                      <div className="p-3 md:p-4 border border-border rounded bg-card">
-                        <div className="flex flex-col gap-1.5 md:gap-2">
-                          {actions.map((action, i) => (
-                            <div key={i} className="flex gap-2 md:gap-3">
-                              <span className="text-lg md:text-lg font-bold min-w-[20px]" style={{ color: pc }}>{i + 1}.</span>
-                              <span className="text-lg md:text-lg text-foreground leading-relaxed">{action}</span>
-                            </div>
-                          ))}
-                        </div>
-                        {transmitTo && (
-                          <>
-                            <div className="border-t border-border my-3" />
-                            <div className="text-lg md:text-lg text-foreground">
-                              <span className="font-bold" style={{ color: pc }}>TRANSMIT TO:</span> {transmitTo}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Formatted Report */}
-                {formattedReport && (
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.2em]">
-                        FORMATTED REPORT
-                      </p>
-                      <CopyBtn text={formattedReport} label="COPY" />
-                    </div>
-                    <div className="p-3 md:p-4 border border-border rounded bg-card">
-                      <div className="text-lg md:text-lg text-foreground leading-7 whitespace-pre-wrap">
-                        {formattedReport}
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
