@@ -25,7 +25,9 @@ export type Database = {
           final_assessment: Json | null
           headline: string | null
           id: string
+          incident_number: string | null
           lat: number | null
+          latest_transmission_at: string | null
           lng: number | null
           location_accuracy: number | null
           operator_id: string | null
@@ -40,6 +42,7 @@ export type Database = {
           synced: boolean | null
           timestamp: string
           transcript: string | null
+          transmission_count: number
           user_id: string | null
         }
         Insert: {
@@ -52,7 +55,9 @@ export type Database = {
           final_assessment?: Json | null
           headline?: string | null
           id?: string
+          incident_number?: string | null
           lat?: number | null
+          latest_transmission_at?: string | null
           lng?: number | null
           location_accuracy?: number | null
           operator_id?: string | null
@@ -67,6 +72,7 @@ export type Database = {
           synced?: boolean | null
           timestamp: string
           transcript?: string | null
+          transmission_count?: number
           user_id?: string | null
         }
         Update: {
@@ -79,7 +85,9 @@ export type Database = {
           final_assessment?: Json | null
           headline?: string | null
           id?: string
+          incident_number?: string | null
           lat?: number | null
+          latest_transmission_at?: string | null
           lng?: number | null
           location_accuracy?: number | null
           operator_id?: string | null
@@ -94,6 +102,7 @@ export type Database = {
           synced?: boolean | null
           timestamp?: string
           transcript?: string | null
+          transmission_count?: number
           user_id?: string | null
         }
         Relationships: [
@@ -102,6 +111,53 @@ export type Database = {
             columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_transmissions: {
+        Row: {
+          assessment: Json | null
+          created_at: string
+          headline: string | null
+          id: string
+          operator_id: string | null
+          priority: string | null
+          report_id: string
+          session_callsign: string | null
+          timestamp: string
+          transcript: string | null
+        }
+        Insert: {
+          assessment?: Json | null
+          created_at?: string
+          headline?: string | null
+          id?: string
+          operator_id?: string | null
+          priority?: string | null
+          report_id: string
+          session_callsign?: string | null
+          timestamp: string
+          transcript?: string | null
+        }
+        Update: {
+          assessment?: Json | null
+          created_at?: string
+          headline?: string | null
+          id?: string
+          operator_id?: string | null
+          priority?: string | null
+          report_id?: string
+          session_callsign?: string | null
+          timestamp?: string
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_transmissions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "herald_reports"
             referencedColumns: ["id"]
           },
         ]
