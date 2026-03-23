@@ -51,6 +51,27 @@ export interface Assessment {
   transmit_to: string;
   formatted_report: string;
   confidence: number;
+  incident_type?: string;
+  major_incident?: boolean;
+  scene_location?: string;
+  receiving_hospital?: string[];
+  clinical_findings?: {
+    A?: string;
+    B?: string;
+    C?: string;
+    D?: string;
+    E?: string;
+  };
+  atmist?: Record<string, {
+    A?: string;
+    T?: string;
+    M?: string;
+    I?: string;
+    S?: string;
+    T_treatment?: string;
+  }>;
+  treatment_given?: string[];
+  action_items?: string[];
 }
 
 export type LiveState = 'idle' | 'recording' | 'processing' | 'ready' | 'confirmed';

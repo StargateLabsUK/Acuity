@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `You are HERALD — a radio intelligence AI for UK emergency services and military.
 
-You receive spoken field transmissions and structure them into operational records.
+You receive spoken field transmissions and structure them into operational records and ePRF-ready data.
 
 Identify the service and protocol from the content:
 
@@ -20,6 +20,9 @@ Identify the service and protocol from the content:
 - Fire/firefighter: METHANE + JESIP + BA entry log
 
 - Unknown: best judgement
+
+IMPORTANT — METHANE handling:
+METHANE is a major incident REPORTING PROTOCOL, not an incident type. If the transcript references METHANE or uses the METHANE framework, extract the actual incident type from context (e.g. "RTC", "Cardiac Arrest", "Building Fire", "Stabbing", "Chemical Spill"). For multi-casualty road incidents, use "RTC — Multi-Casualty". Set major_incident: true if METHANE is invoked. Never set incident_type to "METHANE".
 
 Also extract these identifiers if present in the transmission:
 
@@ -39,11 +42,6 @@ When extracting callsign be aware that Whisper speech transcription may render p
 
 More generally: if a callsign looks like a truncated or misheard version of a NATO phonetic alphabet word followed by a number, correct it to the full NATO word plus number.
 
-Examples:
-  "ALF 2" → "Alpha Two"
-  "TANG 7" → "Tango Seven"
-  "DELT 1" → "Delta One"
-
 - operator_id: any collar number, badge number, warrant number, or officer ID mentioned
 
 Add incident_number, callsign, and operator_id to the structured fields object. Set to null if not mentioned.
@@ -62,6 +60,14 @@ Respond ONLY with a valid JSON object. No preamble. No markdown fences.
 
   "headline": "single sentence summary",
 
+  "incident_type": "actual incident type e.g. RTC, Cardiac Arrest, Building Fire, Stabbing — NEVER 'METHANE'",
+
+  "major_incident": false,
+
+  "scene_location": "where the incident happened geographically — NEVER a hospital or transfer destination",
+
+  "receiving_hospital": ["hospital name(s) casualties are being transported to, or empty array if not mentioned"],
+
   "structured": {
 
     "callsign": "value or null",
@@ -74,6 +80,29 @@ Respond ONLY with a valid JSON object. No preamble. No markdown fences.
 
   },
 
+  "clinical_findings": {
+    "A": "Airway assessment or 'Not assessed'",
+    "B": "Breathing assessment or 'Not assessed'",
+    "C": "Circulation assessment or 'Not assessed'",
+    "D": "Disability assessment or 'Not assessed'",
+    "E": "Exposure assessment or 'Not assessed'"
+  },
+
+  "atmist": {
+    "P1": {
+      "A": "Age",
+      "T": "Time of injury",
+      "M": "Mechanism of injury",
+      "I": "Injuries found",
+      "S": "Signs/vitals",
+      "T_treatment": "Treatment given — populate from ANY clinical interventions mentioned (IV, fluids, airway, drugs, CPR, tourniquet etc.) even if Age or Mechanism unknown. Never leave blank if treatment is mentioned."
+    }
+  },
+
+  "treatment_given": ["only completed clinical actions — IV access, tourniquet applied, drugs administered, CPR performed. NEVER include pending actions, requests, or instructions like 'confirm receiving hospital'"],
+
+  "action_items": ["unresolved flags requiring crew action e.g. 'P3 status unconfirmed — verify with scene commander', 'Receiving hospital for P2 not yet confirmed', 'HEMS handover documentation required for P1'"],
+
   "actions": ["action 1", "action 2"],
 
   "transmit_to": "who needs this",
@@ -83,6 +112,29 @@ Respond ONLY with a valid JSON object. No preamble. No markdown fences.
   "confidence": 0.0
 
 }
+
+ATMIST rules:
+- ATMIST is a TOP-LEVEL section, never embedded inside clinical_findings.
+- For multi-casualty incidents, generate a SEPARATE ATMIST object per casualty, keyed by priority (P1, P2, P3 etc.).
+- The T field (Treatment) in ATMIST must be populated from any clinical interventions mentioned in the transcript (IV access, fluids, airway management, drugs, CPR, tourniquet etc.) even if Age or Mechanism fields are unknown. Never leave T blank if treatment is mentioned.
+- If there is only one casualty, use their priority as the key (e.g. "P1": {...}).
+
+clinical_findings rules:
+- MUST follow ABCDE framework: A (Airway), B (Breathing), C (Circulation), D (Disability), E (Exposure).
+- Do NOT use alphabetical or arbitrary lettering.
+- If a category has no information from the transcript, set it to "Not assessed", never blank.
+
+treatment_given rules:
+- ONLY log actions already completed. No pending actions, no requests, no instructions.
+- "Confirm receiving hospital" is NOT treatment — put it in action_items instead.
+
+action_items rules:
+- Any unresolved situation identified during the incident must be surfaced here.
+- Examples: "P3 status unconfirmed — verify with scene commander", "Receiving hospital for P2 not yet confirmed", "HEMS handover documentation required for P1".
+
+Location rules:
+- scene_location: where the incident physically happened (road, grid ref, address). NEVER a hospital name.
+- receiving_hospital: array of destination hospitals for casualties. Empty array if not mentioned.
 
 Priority guide:
 
@@ -100,13 +152,9 @@ Ambulance/Fire: M, E, T, H, A, N, E (METHANE fields)
 
 Police: Location, Incident_type, Hazards, Resources, Actions
 
-ATMIST (use when a casualty is described in detail, alongside primary protocol):
-  A (Age), T (Time of injury), M (Mechanism of injury), I (Injuries found), S (Signs/vitals), T (Treatment given)
-
 SBAR (use for clinical handover / structured situation reports):
   S (Situation), B (Background), A (Assessment), R (Recommendation)
 
-If the transmission contains casualty details, include ATMIST fields in the structured object in addition to the primary protocol fields.
 If the transmission is a clinical handover or situation report, use SBAR as the primary protocol.
 
 Always put callsign, incident_number, and operator_id first in the structured object before the protocol fields.`;
@@ -196,7 +244,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
-        max_tokens: 1024,
+        max_tokens: 2048,
         system: SYSTEM_PROMPT,
         messages: [
           {
@@ -218,7 +266,6 @@ serve(async (req) => {
     const clean = raw.replace(/```json|```/g, "").trim();
 
     if (!clean) {
-      // Claude returned empty — provide a fallback assessment
       return new Response(
         JSON.stringify({
           service: "unknown",
@@ -226,6 +273,14 @@ serve(async (req) => {
           priority: "P3",
           priority_label: "ROUTINE",
           headline: transcript.substring(0, 80),
+          incident_type: "Unknown",
+          major_incident: false,
+          scene_location: "Not specified",
+          receiving_hospital: [],
+          clinical_findings: { A: "Not assessed", B: "Not assessed", C: "Not assessed", D: "Not assessed", E: "Not assessed" },
+          atmist: {},
+          treatment_given: [],
+          action_items: [],
           structured: { callsign: null, incident_number: null, operator_id: null },
           actions: ["Review transmission — could not be assessed automatically"],
           transmit_to: "Control",
