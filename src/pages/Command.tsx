@@ -251,7 +251,7 @@ export default function Command() {
             ) : (
               <div className="relative" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
                 <ExpandButton expanded={false} onClick={() => toggleExpand('ops')} />
-                <OpsLogTab />
+                <OpsLogTab onSelectReport={handleSelect} />
               </div>
             )}
           </div>
