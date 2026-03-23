@@ -131,6 +131,14 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                       #{getIncident(r)}
                     </span>
                   )}
+                  {(r.transmission_count ?? 1) > 1 && (
+                    <span
+                      className="text-lg font-bold rounded-sm px-1.5 py-0.5 flex-shrink-0"
+                      style={{ color: '#1E90FF', border: '1px solid rgba(30,144,255,0.3)', background: 'rgba(30,144,255,0.08)' }}
+                    >
+                      {r.transmission_count} TX
+                    </span>
+                  )}
                   {getMismatches(r).length > 0 && (
                     <span
                       className="text-lg font-bold rounded-sm px-1.5 py-0.5 flex-shrink-0"
