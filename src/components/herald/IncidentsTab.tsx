@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
-import type { Assessment, IncidentTransmission } from '@/lib/herald-types';
+import type { Assessment, IncidentTransmission, ActionItem } from '@/lib/herald-types';
 import { renderStructuredValue } from '@/components/StructuredValue';
 import type { HeraldSession } from '@/lib/herald-session';
-import { sanitizeAssessment } from '@/lib/sanitize-assessment';
+import { sanitizeAssessment, formatActionAge } from '@/lib/sanitize-assessment';
 
 interface Incident {
   id: string;
