@@ -26,13 +26,16 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const isFollowUp = !!report.follow_up_of;
+    let parentId = report.follow_up_of || null;
 
-    if (isFollowUp) {
+    // --- SERVER-SIDE CONSOLIDATION ---
+    // If client didn't flag as follow-up, try to find a matching open incident
+    if (!parentId) {
+      parentId = await findMatchingIncident(supabase, report);
+    }
+
+    if (parentId) {
       // --- FOLLOW-UP: append transmission to existing incident ---
-      const parentId = report.follow_up_of;
-
-      // Insert into incident_transmissions
       const { error: txError } = await supabase.from("incident_transmissions").insert({
         report_id: parentId,
         timestamp: report.timestamp,
@@ -52,23 +55,31 @@ serve(async (req) => {
         );
       }
 
-      // Update parent report
+      // Build update payload — later transmissions take precedence on clinical detail
+      const updatePayload: Record<string, unknown> = {
+        priority: report.priority,
+        headline: report.headline,
+        assessment: report.assessment,
+        latest_transmission_at: report.timestamp,
+      };
+
+      // Backfill incident_number if it appeared in this transmission but was missing before
+      const incomingIncidentNumber = report.incident_number ||
+        report.assessment?.structured?.incident_number;
+      if (incomingIncidentNumber && incomingIncidentNumber !== "null") {
+        updatePayload.incident_number = incomingIncidentNumber;
+      }
+
       const { error: updateError } = await supabase
         .from("herald_reports")
-        .update({
-          priority: report.priority,
-          headline: report.headline,
-          assessment: report.assessment,
-          latest_transmission_at: report.timestamp,
-          transmission_count: undefined, // handled via increment below
-        })
+        .update(updatePayload)
         .eq("id", parentId);
 
       if (updateError) {
         console.error("Update parent error:", updateError);
       }
 
-      // Increment transmission_count via raw rpc or re-fetch + update
+      // Increment transmission_count
       const { data: parentData } = await supabase
         .from("herald_reports")
         .select("transmission_count")
@@ -83,14 +94,17 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ ok: true, follow_up: true }),
+        JSON.stringify({ ok: true, follow_up: true, parent_id: parentId }),
         { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // --- NEW REPORT ---
-    // Remove follow_up_of before upserting
     const { follow_up_of, ...reportData } = report;
+
+    // Set latest_transmission_at and transmission_count for new reports
+    reportData.latest_transmission_at = reportData.latest_transmission_at || report.timestamp;
+    reportData.transmission_count = reportData.transmission_count || 1;
 
     const { error } = await supabase.from("herald_reports").upsert(reportData, {
       onConflict: "id",
@@ -104,19 +118,17 @@ serve(async (req) => {
       );
     }
 
-    // Also insert first transmission log entry
-    if (reportData.incident_number) {
-      await supabase.from("incident_transmissions").insert({
-        report_id: reportData.id,
-        timestamp: reportData.timestamp,
-        transcript: reportData.transcript ?? null,
-        assessment: reportData.assessment ?? null,
-        priority: reportData.priority ?? null,
-        headline: reportData.headline ?? null,
-        operator_id: reportData.session_operator_id ?? null,
-        session_callsign: reportData.session_callsign ?? null,
-      });
-    }
+    // Insert first transmission log entry
+    await supabase.from("incident_transmissions").insert({
+      report_id: reportData.id,
+      timestamp: reportData.timestamp,
+      transcript: reportData.transcript ?? null,
+      assessment: reportData.assessment ?? null,
+      priority: reportData.priority ?? null,
+      headline: reportData.headline ?? null,
+      operator_id: reportData.session_operator_id ?? null,
+      session_callsign: reportData.session_callsign ?? null,
+    });
 
     return new Response(
       JSON.stringify({ ok: true }),
@@ -130,3 +142,82 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Find a matching open incident for consolidation.
+ * Rules:
+ * 1) Exact incident_number match
+ * 2) Same callsign + (same incident_type OR same location) + within 30 minutes
+ * 3) Same callsign + only one open incident within 30 minutes
+ */
+async function findMatchingIncident(
+  supabase: ReturnType<typeof createClient>,
+  report: Record<string, unknown>
+): Promise<string | null> {
+  const incidentNumber = (report.incident_number as string) ||
+    (report.assessment as any)?.structured?.incident_number;
+  const callsign = (report.session_callsign as string) || null;
+  const assessment = report.assessment as any;
+  const incidentType = assessment?.incident_type || null;
+  const sceneLocation = assessment?.scene_location || null;
+  const shiftId = (report.shift_id as string) || null;
+  const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+  // 1) Exact incident_number match
+  if (incidentNumber && incidentNumber !== "null" && incidentNumber !== "") {
+    const query = supabase
+      .from("herald_reports")
+      .select("id")
+      .eq("incident_number", incidentNumber)
+      .eq("status", "active")
+      .neq("id", report.id)
+      .limit(1);
+
+    if (shiftId) query.eq("shift_id", shiftId);
+
+    const { data } = await query;
+    if (data && data.length > 0) {
+      return data[0].id;
+    }
+  }
+
+  // 2-3) Callsign + context/time window match
+  if (callsign && callsign !== "null") {
+    const query = supabase
+      .from("herald_reports")
+      .select("id, incident_number, assessment, latest_transmission_at, created_at")
+      .eq("status", "active")
+      .eq("session_callsign", callsign)
+      .neq("id", report.id)
+      .gte("latest_transmission_at", thirtyMinAgo)
+      .order("latest_transmission_at", { ascending: false })
+      .limit(5);
+
+    if (shiftId) query.eq("shift_id", shiftId);
+
+    const { data } = await query;
+    if (data && data.length > 0) {
+      // Score by context overlap
+      for (const candidate of data) {
+        const cAssessment = candidate.assessment as any;
+        if (!cAssessment) continue;
+
+        const typeMatch = incidentType && cAssessment.incident_type &&
+          incidentType.toLowerCase() === cAssessment.incident_type.toLowerCase();
+        const locationMatch = sceneLocation && cAssessment.scene_location &&
+          sceneLocation.toLowerCase() === cAssessment.scene_location.toLowerCase();
+
+        if (typeMatch || locationMatch) {
+          return candidate.id;
+        }
+      }
+
+      // If only one candidate within window, match it
+      if (data.length === 1) {
+        return data[0].id;
+      }
+    }
+  }
+
+  return null;
+}

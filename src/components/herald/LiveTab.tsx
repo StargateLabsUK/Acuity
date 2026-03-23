@@ -127,10 +127,10 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       setOriginalAssessment(JSON.parse(JSON.stringify(assessment)));
 
       // Detect session vs transcript mismatches
-      const session = getSession();
-      if (session) {
+      const currentSession = getSession();
+      if (currentSession) {
         const detected = detectMismatches(
-          { service: session.service, callsign: session.callsign, operator_id: session.operator_id },
+          { service: currentSession.service, callsign: currentSession.callsign, operator_id: currentSession.operator_id },
           assessment
         );
         setMismatches(detected);
@@ -139,54 +139,93 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       }
 
       // Check for existing incident (follow-up detection)
+      // Priority: 1) incident_number match, 2) callsign + context + 30min window
       const incidentNum = assessment.structured?.incident_number;
-      const shiftId = getSession()?.shift_id;
-      if (incidentNum && incidentNum !== 'null' && incidentNum !== '' && shiftId) {
-        supabase
-          .from('herald_reports')
-          .select('id, incident_number')
-          .eq('incident_number', incidentNum)
-          .eq('shift_id', shiftId)
-          .eq('status', 'active')
-          .limit(1)
-          .then(({ data }) => {
-            if (data && data.length > 0) {
-              setIsFollowUp(true);
-              setFollowUpReportId(data[0].id);
-              setFollowUpIncidentNumber(incidentNum);
-            } else {
-              setIsFollowUp(false);
-              setFollowUpReportId(null);
-              setFollowUpIncidentNumber(incidentNum);
+      const txCallsign = assessment.structured?.callsign;
+      const txIncidentType = assessment.incident_type;
+      const txLocation = assessment.scene_location;
+      const shiftId = currentSession?.shift_id;
+      const sessionCallsign = currentSession?.callsign;
+      const effectiveCallsign = (txCallsign && txCallsign !== 'null') ? txCallsign : sessionCallsign;
+
+      const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+      const findFollowUp = async () => {
+        // 1) Try exact incident_number match first
+        if (incidentNum && incidentNum !== 'null' && incidentNum !== '') {
+          const query = supabase
+            .from('herald_reports')
+            .select('id, incident_number')
+            .eq('incident_number', incidentNum)
+            .eq('status', 'active')
+            .limit(1);
+          if (shiftId) query.eq('shift_id', shiftId);
+          else query.gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString());
+
+          const { data } = await query;
+          if (data && data.length > 0) {
+            return { reportId: data[0].id, incNum: incidentNum };
+          }
+        }
+
+        // 2) Contextual match: callsign + (incident_type OR scene_location) + 30min window
+        if (effectiveCallsign && effectiveCallsign !== 'null') {
+          const query = supabase
+            .from('herald_reports')
+            .select('id, incident_number, assessment, latest_transmission_at, created_at')
+            .eq('status', 'active')
+            .eq('session_callsign', effectiveCallsign)
+            .gte('latest_transmission_at', thirtyMinAgo)
+            .order('latest_transmission_at', { ascending: false })
+            .limit(5);
+          if (shiftId) query.eq('shift_id', shiftId);
+
+          const { data } = await query;
+          if (data && data.length > 0) {
+            // Score each candidate by context overlap
+            for (const candidate of data) {
+              const cAssessment = candidate.assessment as any;
+              if (!cAssessment) continue;
+
+              const typeMatch = txIncidentType && cAssessment.incident_type &&
+                txIncidentType.toLowerCase() === cAssessment.incident_type.toLowerCase();
+              const locationMatch = txLocation && cAssessment.scene_location &&
+                txLocation.toLowerCase() === cAssessment.scene_location.toLowerCase();
+
+              // Also check if created_at is within 30min as fallback for records without latest_transmission_at
+              const cTime = candidate.latest_transmission_at || candidate.created_at;
+              const withinWindow = cTime && (Date.now() - new Date(cTime).getTime()) < 30 * 60 * 1000;
+
+              if (withinWindow && (typeMatch || locationMatch)) {
+                return { reportId: candidate.id, incNum: incidentNum || candidate.incident_number || null };
+              }
             }
-          });
-      } else if (incidentNum && incidentNum !== 'null' && incidentNum !== '') {
-        // No shift — fallback to today's date matching
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        supabase
-          .from('herald_reports')
-          .select('id, incident_number')
-          .eq('incident_number', incidentNum)
-          .eq('status', 'active')
-          .gte('created_at', todayStart.toISOString())
-          .limit(1)
-          .then(({ data }) => {
-            if (data && data.length > 0) {
-              setIsFollowUp(true);
-              setFollowUpReportId(data[0].id);
-              setFollowUpIncidentNumber(incidentNum);
-            } else {
-              setIsFollowUp(false);
-              setFollowUpReportId(null);
-              setFollowUpIncidentNumber(incidentNum);
+
+            // If only one candidate within window with same callsign, still match
+            const withinWindow = data.filter(c => {
+              const t = c.latest_transmission_at || c.created_at;
+              return t && (Date.now() - new Date(t).getTime()) < 30 * 60 * 1000;
+            });
+            if (withinWindow.length === 1) {
+              return { reportId: withinWindow[0].id, incNum: incidentNum || withinWindow[0].incident_number || null };
             }
-          });
-      } else {
-        setIsFollowUp(false);
-        setFollowUpReportId(null);
-        setFollowUpIncidentNumber(null);
-      }
+          }
+        }
+
+        return null;
+      };
+
+      findFollowUp().then((match) => {
+        if (match) {
+          setIsFollowUp(true);
+          setFollowUpReportId(match.reportId);
+          setFollowUpIncidentNumber(match.incNum ?? null);
+        } else {
+          setIsFollowUp(false);
+          setFollowUpReportId(null);
+          setFollowUpIncidentNumber(incidentNum && incidentNum !== 'null' ? incidentNum : null);
+        }
+      });
     }
   }, [assessment, state]);
 
