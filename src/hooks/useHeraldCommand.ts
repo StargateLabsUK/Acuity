@@ -22,6 +22,9 @@ export interface CommandReport {
   session_operator_id: string | null;
   session_service: string | null;
   session_station: string | null;
+  incident_number: string | null;
+  transmission_count: number | null;
+  latest_transmission_at: string | null;
   isNew?: boolean;
 }
 
