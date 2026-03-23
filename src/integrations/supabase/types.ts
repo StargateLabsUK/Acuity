@@ -42,7 +42,7 @@ export type Database = {
           synced: boolean | null
           timestamp: string
           transcript: string | null
-          transmission_count: number
+          transmission_count: number | null
           user_id: string | null
         }
         Insert: {
@@ -72,7 +72,7 @@ export type Database = {
           synced?: boolean | null
           timestamp: string
           transcript?: string | null
-          transmission_count?: number
+          transmission_count?: number | null
           user_id?: string | null
         }
         Update: {
@@ -102,7 +102,7 @@ export type Database = {
           synced?: boolean | null
           timestamp?: string
           transcript?: string | null
-          transmission_count?: number
+          transmission_count?: number | null
           user_id?: string | null
         }
         Relationships: [
@@ -118,36 +118,36 @@ export type Database = {
       incident_transmissions: {
         Row: {
           assessment: Json | null
-          created_at: string
+          created_at: string | null
           headline: string | null
           id: string
           operator_id: string | null
           priority: string | null
-          report_id: string
+          report_id: string | null
           session_callsign: string | null
           timestamp: string
           transcript: string | null
         }
         Insert: {
           assessment?: Json | null
-          created_at?: string
+          created_at?: string | null
           headline?: string | null
           id?: string
           operator_id?: string | null
           priority?: string | null
-          report_id: string
+          report_id?: string | null
           session_callsign?: string | null
           timestamp: string
           transcript?: string | null
         }
         Update: {
           assessment?: Json | null
-          created_at?: string
+          created_at?: string | null
           headline?: string | null
           id?: string
           operator_id?: string | null
           priority?: string | null
-          report_id?: string
+          report_id?: string | null
           session_callsign?: string | null
           timestamp?: string
           transcript?: string | null
@@ -164,36 +164,36 @@ export type Database = {
       }
       shifts: {
         Row: {
-          callsign: string
-          created_at: string
+          callsign: string | null
+          created_at: string | null
           device_id: string | null
           ended_at: string | null
           id: string
           operator_id: string | null
-          service: string
-          started_at: string
+          service: string | null
+          started_at: string | null
           station: string | null
         }
         Insert: {
-          callsign: string
-          created_at?: string
+          callsign?: string | null
+          created_at?: string | null
           device_id?: string | null
           ended_at?: string | null
           id?: string
           operator_id?: string | null
-          service: string
-          started_at?: string
+          service?: string | null
+          started_at?: string | null
           station?: string | null
         }
         Update: {
-          callsign?: string
-          created_at?: string
+          callsign?: string | null
+          created_at?: string | null
           device_id?: string | null
           ended_at?: string | null
           id?: string
           operator_id?: string | null
-          service?: string
-          started_at?: string
+          service?: string | null
+          started_at?: string | null
           station?: string | null
         }
         Relationships: []
@@ -202,17 +202,17 @@ export type Database = {
         Row: {
           id: string
           role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           id?: string
           role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -221,13 +221,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       app_role: "admin" | "command" | "field"
