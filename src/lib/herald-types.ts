@@ -50,7 +50,7 @@ export interface Assessment {
   actions: string[];
   transmit_to: string;
   formatted_report: string;
-  confidence: number;
+  confidence?: number;
   incident_type?: string;
   major_incident?: boolean;
   scene_location?: string;

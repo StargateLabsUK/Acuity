@@ -273,7 +273,6 @@ serve(async (req) => {
           actions: ["Review transmission — could not be assessed automatically"],
           transmit_to: "Control",
           formatted_report: transcript,
-          confidence: 0.0,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
