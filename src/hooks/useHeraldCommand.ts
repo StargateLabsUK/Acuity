@@ -85,6 +85,8 @@ export function useHeraldCommand() {
             incident_number: r.incident_number ?? null,
             transmission_count: r.transmission_count ?? 1,
             latest_transmission_at: r.latest_transmission_at ?? null,
+            status: r.status ?? 'active',
+            shift_id: r.shift_id ?? null,
             isNew: true,
           };
           setReports((prev) => [report, ...prev]);
