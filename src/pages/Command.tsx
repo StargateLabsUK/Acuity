@@ -391,6 +391,11 @@ export default function Command() {
             <OpsLogTab onSelectReport={handleOpsReportSelect} />
           </div>
         )}
+        {mobileTab === 'sla' && (
+          <div className="h-full">
+            <UptimeTab />
+          </div>
+        )}
       </div>
       <div className="flex flex-shrink-0 border-t border-border bg-card">
         {mobileTabBtn('feed', 'FEED')}
