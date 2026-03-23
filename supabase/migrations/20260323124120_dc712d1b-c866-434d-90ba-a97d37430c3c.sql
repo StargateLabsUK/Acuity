@@ -1,0 +1,2 @@
+ALTER PUBLICATION supabase_realtime ADD TABLE herald_reports;
+ALTER PUBLICATION supabase_realtime ADD TABLE incident_transmissions;
