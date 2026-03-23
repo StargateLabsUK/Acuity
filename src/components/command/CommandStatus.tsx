@@ -37,7 +37,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
         </div>
 
         {/* Priority Breakdown */}
-        <div className="px-3 py-2.5 md:px-4 md:py-3 border-r border-b md:border-b-0 border-border">
+        <div className="px-3 py-2.5 md:px-3 md:py-3 border-r border-b md:border-b-0 border-border" style={{ minWidth: '90px' }}>
           <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
             PRIORITY
           </div>
