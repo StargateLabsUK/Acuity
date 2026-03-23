@@ -59,7 +59,8 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
       )}
 
       {reports.map((r) => {
-        const a = r.assessment as unknown as Record<string, unknown> | null;
+        const rawA = r.assessment as unknown as Record<string, unknown> | null;
+        const a = rawA ? sanitizeAssessment(rawA as any) as unknown as Record<string, unknown> : null;
         const pc = PRIORITY_COLORS[a?.priority as string] || PRIORITY_COLORS[r.priority as string] || 'hsl(var(--foreground))';
         const serviceLabel = SERVICE_LABELS[a?.service as string] || SERVICE_LABELS[r.service as string] || 'UNKNOWN';
         const expanded = expandedId === r.id;
