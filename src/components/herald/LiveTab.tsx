@@ -334,7 +334,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     const sessionFields = getSessionFields();
     const pending = pendingReportRef.current;
 
-    // Now create and save the report for the first time
     const report: HeraldReport = {
       id: pending.id,
       timestamp: pending.timestamp,
@@ -352,15 +351,28 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       final_assessment: finalAssessment as any,
       diff: { ...diff, mismatches } as any,
       edited: diff.has_edits,
+      incident_number: followUpIncidentNumber ?? undefined,
       ...sessionFields,
     };
 
     saveReport(report);
-    await syncNow(report.id);
+
+    // Sync with follow-up awareness
+    try {
+      const payload = toSyncPayload(report, isFollowUp && followUpReportId ? followUpReportId : undefined);
+      const ok = await syncReport(payload);
+      if (ok) markSynced(report.id);
+    } catch {
+      // interval sync will retry
+    }
+
     onReportSaved();
     pendingReportRef.current = null;
+    setIsFollowUp(false);
+    setFollowUpReportId(null);
+    setFollowUpIncidentNumber(null);
     setState('confirmed');
-  }, [assessment, currentReportId, onReportSaved, originalAssessment, buildFinalAssessment, mismatches, syncNow]);
+  }, [assessment, currentReportId, onReportSaved, originalAssessment, buildFinalAssessment, mismatches, isFollowUp, followUpReportId, followUpIncidentNumber]);
 
   const handleDiscard = useCallback(() => {
     setState('idle');
@@ -370,6 +382,9 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setOriginalAssessment(null);
     setHasEdits(false);
     setMismatches([]);
+    setIsFollowUp(false);
+    setFollowUpReportId(null);
+    setFollowUpIncidentNumber(null);
     pendingReportRef.current = null;
   }, []);
 
