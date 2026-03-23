@@ -59,7 +59,7 @@ export function useOpsLog() {
           .limit(200),
         supabase
           .from('herald_reports')
-          .select('id, timestamp, transcript, assessment, headline, priority, service, shift_id, session_callsign, session_operator_id, session_service, session_station, created_at')
+          .select('id, timestamp, transcript, assessment, headline, priority, service, shift_id, session_callsign, session_operator_id, session_service, session_station, created_at, incident_number, transmission_count, latest_transmission_at, status')
           .order('created_at', { ascending: false })
           .limit(500),
       ]);
