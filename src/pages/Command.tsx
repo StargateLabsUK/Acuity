@@ -9,6 +9,7 @@ import { CommandStatus } from '@/components/command/CommandStatus';
 import { MapTab } from '@/components/command/MapTab';
 import { TrainingTab } from '@/components/command/TrainingTab';
 import { OpsLogTab } from '@/components/command/OpsLogTab';
+import { UptimeTab } from '@/components/command/UptimeTab';
 import { CommandFilterBar } from '@/components/command/CommandFilterBar';
 import type { CommandFilters } from '@/components/command/CommandFilterBar';
 import type { MapTabHandle } from '@/components/command/MapTab';
