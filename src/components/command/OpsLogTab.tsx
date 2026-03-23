@@ -77,11 +77,13 @@ function ShiftCard({
   reports,
   expanded,
   onToggle,
+  onSelectReport,
 }: {
   shift: Shift;
   reports: OpsReport[];
   expanded: boolean;
   onToggle: () => void;
+  onSelectReport?: (id: string) => void;
 }) {
   const isActive = !shift.ended_at;
   const shiftReports = reports.filter((r) => r.shift_id === shift.id);
