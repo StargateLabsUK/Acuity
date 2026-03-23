@@ -65,7 +65,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       };
     } catch (e) {
       console.warn('MapTab: WebGL not available, falling back to placeholder', e);
-      webglFailed.current = true;
+      setWebglFailed(true);
     }
   }, []);
 
