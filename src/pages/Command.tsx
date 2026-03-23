@@ -286,11 +286,11 @@ export default function Command() {
           </div>
           {desktopUpperTab === 'status' && (
           <div className="flex min-w-0 gap-3" style={{ height: '80vh' }}>
-            <div className="relative flex flex-col overflow-hidden min-w-0 w-1/2 rounded-lg border border-border bg-card shadow-sm">
+            <div className="relative flex flex-col min-w-0 w-1/2 rounded-lg border border-border bg-card shadow-sm overflow-y-auto" style={{ maxHeight: '80vh' }}>
               <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
               <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
             </div>
-            <div className="relative flex flex-col overflow-hidden min-w-0 w-1/2">
+            <div className="relative flex flex-col min-w-0 w-1/2 overflow-y-auto" style={{ maxHeight: '80vh' }}>
               <ExpandButton expanded={false} onClick={() => toggleExpand('detail')} />
               <ReportDetail report={selectedReport} />
             </div>
