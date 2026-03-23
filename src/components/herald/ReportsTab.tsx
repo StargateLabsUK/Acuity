@@ -63,6 +63,11 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
         const rawA = r.assessment as unknown as Record<string, unknown> | null;
         const a = rawA ? sanitizeAssessment(rawA as any) as unknown as Record<string, unknown> : null;
         const pc = PRIORITY_COLORS[a?.priority as string] || PRIORITY_COLORS[r.priority as string] || 'hsl(var(--foreground))';
+        const vtCode = (r as any).vehicle_type || session?.vehicle_type;
+        const vtLabel = getVehicleLabel(vtCode);
+        const headerLabel = vtLabel && r.session_callsign
+          ? `${vtLabel} — ${r.session_callsign}`
+          : vtLabel || SERVICE_LABELS[a?.service as string] || SERVICE_LABELS[r.service as string] || 'UNKNOWN';
         const serviceLabel = SERVICE_LABELS[a?.service as string] || SERVICE_LABELS[r.service as string] || 'UNKNOWN';
         const expanded = expandedId === r.id;
         const structured = (a?.structured as Record<string, string>) ?? {};
