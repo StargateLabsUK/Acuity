@@ -86,15 +86,24 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
             <span className="text-lg text-foreground opacity-50">No active shifts</span>
           ) : (
             <div className="flex flex-col gap-1">
-              {activeShifts.map((s) => (
-                <div key={s.id} className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'hsl(var(--primary))', animation: 'breathe 2s ease-in-out infinite' }} />
-                  <span className="text-lg text-foreground font-bold">{s.callsign ?? '—'}</span>
-                  <span className="text-lg text-muted-foreground">
-                    {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
-                  </span>
-                </div>
-              ))}
+              {activeShifts.map((s) => {
+                const vtBadge = getVehicleLabel(s.vehicle_type);
+                return (
+                  <div key={s.id} className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'hsl(var(--primary))', animation: 'breathe 2s ease-in-out infinite' }} />
+                    <span className="text-lg text-foreground font-bold">{s.callsign ?? '—'}</span>
+                    {vtBadge && (
+                      <span className="text-lg font-bold rounded-sm px-1 py-0.5"
+                        style={{ color: s.can_transport ? '#3DFF8C' : '#FF9500', border: `1px solid ${s.can_transport ? 'rgba(61,255,140,0.2)' : 'rgba(255,149,0,0.3)'}` }}>
+                        {vtBadge}
+                      </span>
+                    )}
+                    <span className="text-lg text-muted-foreground">
+                      {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
