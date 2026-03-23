@@ -110,6 +110,42 @@ export type Database = {
         }
         Relationships: []
       }
+      incident_log: {
+        Row: {
+          ai_provider_latency_ms: number | null
+          ai_provider_status: string
+          checked_at: string
+          created_at: string | null
+          database_latency_ms: number | null
+          database_status: string
+          error_message: string | null
+          id: string
+          status: string
+        }
+        Insert: {
+          ai_provider_latency_ms?: number | null
+          ai_provider_status?: string
+          checked_at?: string
+          created_at?: string | null
+          database_latency_ms?: number | null
+          database_status?: string
+          error_message?: string | null
+          id?: string
+          status?: string
+        }
+        Update: {
+          ai_provider_latency_ms?: number | null
+          ai_provider_status?: string
+          checked_at?: string
+          created_at?: string | null
+          database_latency_ms?: number | null
+          database_status?: string
+          error_message?: string | null
+          id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       incident_transmissions: {
         Row: {
           assessment: Json | null
