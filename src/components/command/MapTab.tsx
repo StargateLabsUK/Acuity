@@ -16,9 +16,114 @@ export interface MapTabHandle {
 }
 
 const PRIORITY_RADIUS: Record<string, number> = { P1: 12, P2: 10, P3: 8 };
+const PRIORITY_PIN_COLORS: Record<string, string> = { P1: 'FF3B30', P2: 'FF9500', P3: '34C759' };
 
 function getReportPriority(r: CommandReport) {
   return r.assessment?.priority ?? r.priority ?? 'P3';
+}
+
+/** Static image fallback when WebGL is unavailable */
+function StaticMapFallback({ reports, onSelectReport }: Props) {
+  const geoReports = reports.filter((r) => r.lat != null && r.lng != null);
+
+  // Build Mapbox Static Images URL with pin markers
+  const markers = geoReports
+    .slice(0, 50) // URL length limit
+    .map((r) => {
+      const p = getReportPriority(r);
+      const color = PRIORITY_PIN_COLORS[p] ?? '34C759';
+      const label = p === 'P1' ? '1' : p === 'P2' ? '2' : '3';
+      return `pin-s-${label}+${color}(${r.lng!.toFixed(4)},${r.lat!.toFixed(4)})`;
+    })
+    .join(',');
+
+  // Calculate bounds for auto viewport
+  let viewport = '-2.5,54.5,6';
+  if (geoReports.length === 1) {
+    viewport = `${geoReports[0].lng!.toFixed(4)},${geoReports[0].lat!.toFixed(4)},12`;
+  } else if (geoReports.length > 1) {
+    const lngs = geoReports.map((r) => r.lng!);
+    const lats = geoReports.map((r) => r.lat!);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    // Use auto viewport with bounding box
+    viewport = `[${minLng.toFixed(4)},${minLat.toFixed(4)},${maxLng.toFixed(4)},${maxLat.toFixed(4)}]`;
+  }
+
+  const useAuto = geoReports.length > 1;
+  const path = markers
+    ? `${markers}/${useAuto ? 'auto' : viewport}`
+    : `${viewport}`;
+
+  const staticUrl = `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${path}/1280x960@2x?access_token=${MAPBOX_TOKEN}&padding=60`;
+
+  return (
+    <div className="relative h-full w-full overflow-auto" style={{ background: '#0D1117' }}>
+      <div className="absolute top-3 left-3 z-10 rounded px-2 py-1 text-lg font-bold tracking-widest" style={{ background: '#0D1117cc', color: 'hsl(var(--foreground))' }}>
+        STATIC MAP — WebGL unavailable
+      </div>
+      <img
+        src={staticUrl}
+        alt="Incident map"
+        className="w-full h-full object-contain"
+        style={{ minHeight: '300px' }}
+      />
+
+      {/* Incident list overlay */}
+      {geoReports.length > 0 && (
+        <div
+          className="absolute bottom-0 left-0 right-0 z-10 max-h-[40%] overflow-y-auto"
+          style={{ background: '#0D1117ee' }}
+        >
+          <div className="p-3 flex flex-col gap-2">
+            {geoReports.map((r) => {
+              const p = getReportPriority(r);
+              const color = PRIORITY_COLORS[p] ?? '#34C759';
+              const headline = r.assessment?.headline ?? r.headline ?? 'No headline';
+              return (
+                <button
+                  key={r.id}
+                  onClick={() => onSelectReport(r.id)}
+                  className="flex items-start gap-2 text-left rounded-lg p-2 cursor-pointer transition-colors"
+                  style={{ background: '#1A1E24', border: '1px solid #2A2E34' }}
+                >
+                  <span
+                    className="flex-shrink-0 mt-0.5 px-2 py-0.5 rounded text-lg font-bold"
+                    style={{ background: `${color}22`, color, border: `1px solid ${color}44` }}
+                  >
+                    {p}
+                  </span>
+                  <span className="text-lg text-foreground leading-snug">{headline}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Legend */}
+      <div
+        className="absolute bottom-4 right-4 rounded-lg px-3 py-2.5 z-10"
+        style={{ background: '#0D1117', border: '1px solid #0F1820' }}
+      >
+        <div className="flex flex-col gap-1.5">
+          {[
+            { p: 'P1', label: 'IMMEDIATE' },
+            { p: 'P2', label: 'URGENT' },
+            { p: 'P3', label: 'ROUTINE' },
+          ].map(({ p, label }) => (
+            <div key={p} className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PRIORITY_COLORS[p] }} />
+              <span className="text-lg text-foreground font-bold tracking-wider">{p}</span>
+              <span className="text-lg text-foreground opacity-70">{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport }, ref) => {
@@ -154,14 +259,16 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     }
   }, [reports, addMarker]);
 
-  if (!MAPBOX_TOKEN || webglFailed) {
+  if (!MAPBOX_TOKEN) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-foreground opacity-50 text-lg tracking-widest">
-          {!MAPBOX_TOKEN ? 'MAPBOX TOKEN NOT CONFIGURED' : 'MAP UNAVAILABLE — WEBGL NOT SUPPORTED'}
-        </p>
+        <p className="text-foreground opacity-50 text-lg tracking-widest">MAPBOX TOKEN NOT CONFIGURED</p>
       </div>
     );
+  }
+
+  if (webglFailed) {
+    return <StaticMapFallback reports={reports} onSelectReport={onSelectReport} />;
   }
 
   return (
