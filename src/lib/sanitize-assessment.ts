@@ -268,12 +268,44 @@ export function sanitizeAssessment(assessment: Assessment): Assessment {
     }
   }
 
-  // 5. ATMIST casualty keys — only keep valid explicit priority keys
+  // 5. ATMIST casualty keys — only keep keys matching priorities explicitly present
   if (sanitized.atmist) {
+    // Collect explicitly declared priorities from the assessment and action items
+    const declaredPriorities = new Set<string>();
+    // The top-level priority
+    if (sanitized.priority && VALID_PRIORITIES.includes(sanitized.priority)) {
+      declaredPriorities.add(sanitized.priority);
+    }
+    // Scan action items and headline for explicit P1-P4 mentions
+    const allText = [
+      sanitized.headline || '',
+      ...(sanitized.action_items || []),
+      ...(sanitized.actions || []),
+      sanitized.formatted_report || '',
+      sanitized.clinical_history || '',
+    ].join(' ');
+    for (const p of VALID_PRIORITIES) {
+      if (allText.includes(p)) declaredPriorities.add(p);
+    }
+    // Also check ATMIST entries themselves for cross-referenced priorities
+    // (e.g. if the AI mentions P2 casualties in a P1 entry's injuries field)
+    for (const [key, val] of Object.entries(sanitized.atmist)) {
+      const baseP = key.replace(/-\d+$/, '');
+      if (VALID_PRIORITIES.includes(baseP)) {
+        declaredPriorities.add(baseP);
+      }
+    }
+
+    // Now strip any ATMIST key whose base priority wasn't declared
     const validKeyPattern = /^P[1-4](-\d+)?$/;
     const keys = Object.keys(sanitized.atmist);
     for (const key of keys) {
       if (!validKeyPattern.test(key)) {
+        delete (sanitized.atmist as any)[key];
+        continue;
+      }
+      const baseP = key.replace(/-\d+$/, '');
+      if (!declaredPriorities.has(baseP)) {
         delete (sanitized.atmist as any)[key];
       }
     }
