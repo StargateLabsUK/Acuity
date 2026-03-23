@@ -1,7 +1,7 @@
 import type { HeraldReport } from './herald-types';
 import { getShiftId } from './herald-session';
 
-export function toSyncPayload(report: HeraldReport): Record<string, unknown> {
+export function toSyncPayload(report: HeraldReport, followUpOf?: string): Record<string, unknown> {
   return {
     id: report.id,
     timestamp: report.timestamp,
@@ -24,5 +24,7 @@ export function toSyncPayload(report: HeraldReport): Record<string, unknown> {
     session_service: report.session_service ?? null,
     session_station: report.session_station ?? null,
     shift_id: getShiftId() ?? null,
+    incident_number: report.incident_number ?? null,
+    follow_up_of: followUpOf ?? null,
   };
 }

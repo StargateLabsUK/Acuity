@@ -21,6 +21,22 @@ export interface HeraldReport {
   final_assessment?: Assessment;
   diff?: Record<string, any>;
   edited?: boolean;
+  incident_number?: string;
+  transmission_count?: number;
+  latest_transmission_at?: string;
+}
+
+export interface IncidentTransmission {
+  id: string;
+  report_id: string;
+  timestamp: string;
+  transcript: string | null;
+  assessment: Assessment | null;
+  priority: string | null;
+  headline: string | null;
+  operator_id: string | null;
+  session_callsign: string | null;
+  created_at: string;
 }
 
 export interface Assessment {
