@@ -3,10 +3,9 @@ import { useEffect, useState } from 'react';
 interface Props {
   priorityCounts: { P1: number; P2: number; P3: number };
   connected: boolean;
-  filterSlot?: React.ReactNode;
 }
 
-export function CommandTopBar({ priorityCounts, connected, filterSlot }: Props) {
+export function CommandTopBar({ priorityCounts, connected }: Props) {
   const [utc, setUtc] = useState('');
 
   useEffect(() => {
