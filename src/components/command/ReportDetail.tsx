@@ -47,6 +47,43 @@ function DetailCard({ children, className = '' }: { children: React.ReactNode; c
   );
 }
 
+function ResolvedSection({ items }: { items: ActionItem[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 text-lg font-bold tracking-[0.15em] mb-2 bg-transparent border-none cursor-pointer"
+        style={{ color: '#888' }}
+      >
+        <span style={{ transform: open ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▶</span>
+        RESOLVED ({items.length})
+      </button>
+      {open && (
+        <div className="flex flex-col gap-1.5">
+          {items.map((item, i) => (
+            <div
+              key={i}
+              className="rounded p-2.5 flex gap-3 items-start"
+              style={{ background: 'rgba(136,136,136,0.06)', border: '1px solid rgba(136,136,136,0.15)' }}
+            >
+              <span className="text-lg flex-shrink-0" style={{ color: '#34C759' }}>✓</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-lg text-foreground opacity-60 line-through break-words">{item.text}</span>
+                {item.resolved_at && (
+                  <span className="text-lg ml-2 opacity-40" style={{ color: '#888' }}>
+                    resolved {formatActionAge(item.resolved_at).replace('open ', '')} ago
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ReportDetail({ report }: Props) {
   const [transmissions, setTransmissions] = useState<IncidentTransmission[]>([]);
 
