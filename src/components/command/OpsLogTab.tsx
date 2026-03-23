@@ -279,7 +279,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
             style={{ ...inputStyle, width: 'auto' }}
             title="To date"
           />
-          {(filters.search || filters.service || filters.station || filters.dateFrom || filters.dateTo) && (
+          {(filters.search || filters.station || filters.dateFrom || filters.dateTo) && (
             <button
               onClick={() => setFilters({ search: '', service: '', station: '', dateFrom: '', dateTo: '' })}
               className="px-3 py-1.5 text-sm rounded border cursor-pointer"
