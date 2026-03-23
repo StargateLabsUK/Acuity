@@ -48,22 +48,29 @@ export function useHeraldCommand() {
   const [loading, setLoading] = useState(true);
   const retryRef = useRef<ReturnType<typeof setInterval>>();
 
-  const fetchReports = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      // Only fetch today's reports for the transmissions feed
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      const { data, error } = await supabase
-        .from('herald_reports')
-        .select('*')
-        .gte('created_at', todayStart.toISOString())
-        .order('latest_transmission_at', { ascending: false, nullsFirst: false })
-        .limit(200);
+      const [reportsRes, shiftsRes] = await Promise.all([
+        supabase
+          .from('herald_reports')
+          .select('*')
+          .gte('created_at', todayStart.toISOString())
+          .order('latest_transmission_at', { ascending: false, nullsFirst: false })
+          .limit(200),
+        supabase
+          .from('shifts')
+          .select('*')
+          .is('ended_at', null)
+          .order('created_at', { ascending: false })
+          .limit(50),
+      ]);
 
-      if (error) throw error;
+      if (reportsRes.error) throw reportsRes.error;
 
-      const parsed: CommandReport[] = (data ?? []).map((r) => ({
+      const parsed: CommandReport[] = (reportsRes.data ?? []).map((r) => ({
         ...r,
         assessment: r.assessment ? (r.assessment as unknown as Assessment) : null,
         session_callsign: (r as any).session_callsign ?? null,
@@ -72,6 +79,10 @@ export function useHeraldCommand() {
         session_station: (r as any).session_station ?? null,
       }));
       setReports(parsed);
+
+      if (shiftsRes.data) {
+        setShifts(shiftsRes.data as CommandShift[]);
+      }
     } catch {
       // silent
     } finally {
