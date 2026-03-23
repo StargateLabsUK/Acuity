@@ -67,7 +67,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
       </div>
 
       {/* Cards */}
-      <div className="flex-1 overflow-y-auto px-3 pb-3" style={{ scrollbarWidth: 'thin' }}>
+      <div className="px-3 pb-3" style={{ scrollbarWidth: 'thin' }}>
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <span className="animate-breathe text-[32px]">📻</span>
