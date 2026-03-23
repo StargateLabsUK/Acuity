@@ -74,6 +74,12 @@ export interface Assessment {
   action_items?: string[];
 }
 
+export interface ActionItem {
+  text: string;
+  opened_at: string; // ISO timestamp
+  resolved_at?: string; // ISO timestamp when resolved
+}
+
 export type LiveState = 'idle' | 'recording' | 'processing' | 'ready' | 'confirmed';
 
 export interface Mismatch {
