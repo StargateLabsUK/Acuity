@@ -39,6 +39,7 @@ export type Database = {
           session_service: string | null
           session_station: string | null
           shift_id: string | null
+          status: string
           synced: boolean | null
           timestamp: string
           transcript: string | null
@@ -69,6 +70,7 @@ export type Database = {
           session_service?: string | null
           session_station?: string | null
           shift_id?: string | null
+          status?: string
           synced?: boolean | null
           timestamp: string
           transcript?: string | null
@@ -99,6 +101,7 @@ export type Database = {
           session_service?: string | null
           session_station?: string | null
           shift_id?: string | null
+          status?: string
           synced?: boolean | null
           timestamp?: string
           transcript?: string | null

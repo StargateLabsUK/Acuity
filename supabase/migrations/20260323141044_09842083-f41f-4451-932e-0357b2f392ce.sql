@@ -1,0 +1,1 @@
+ALTER TABLE public.herald_reports ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
