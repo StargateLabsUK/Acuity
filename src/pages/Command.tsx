@@ -292,9 +292,13 @@ export default function Command() {
                 uniqueDevices={uniqueDevices}
                 connected={connected}
               />
-            ) : (
+            ) : desktopUpperTab === 'ops' ? (
               <div className="flex-1 overflow-y-auto">
                 <OpsLogTab onSelectReport={handleOpsReportSelect} />
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto">
+                <UptimeTab />
               </div>
             )}
           </div>
