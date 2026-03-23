@@ -161,17 +161,28 @@ export function IncidentsTab({ session, onCloseIncident }: Props) {
               </p>
             </div>
 
-            {/* Structured fields */}
+            {/* Structured fields with empty prompts */}
             {inc.assessment?.structured && Object.keys(inc.assessment.structured).length > 0 && (
               <div className="mt-3">
                 <p className="text-lg font-bold tracking-[0.15em] mb-2" style={{ color: col }}>PROTOCOL FIELDS</p>
                 <div className="p-3 border border-border rounded bg-card">
-                  {Object.entries(inc.assessment.structured).map(([k, v]) => (
-                    <div key={k} className="mb-1">
-                      <span className="text-lg font-bold" style={{ color: col }}>{k}: </span>
-                      <span className="text-lg text-foreground whitespace-pre-wrap">{renderStructuredValue(v)}</span>
-                    </div>
-                  ))}
+                  {Object.entries(inc.assessment.structured).map(([k, v]) => {
+                    const isEmpty = !v || v === 'null';
+                    const isIncNum = k === 'incident_number';
+                    const isOpId = k === 'operator_id';
+                    return (
+                      <div key={k} className="mb-1">
+                        <span className="text-lg font-bold" style={{ color: col }}>{k}: </span>
+                        {isEmpty && (isIncNum || isOpId) ? (
+                          <span className="text-lg" style={{ color: '#FF9500', opacity: 0.7 }}>
+                            {isIncNum ? 'Awaiting incident number — say or tap to enter' : 'Awaiting operator ID — tap to enter'}
+                          </span>
+                        ) : (
+                          <span className="text-lg text-foreground whitespace-pre-wrap">{renderStructuredValue(v)}</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

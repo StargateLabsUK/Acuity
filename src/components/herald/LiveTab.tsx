@@ -704,22 +704,45 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           <div>
             <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>PROTOCOL FIELDS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
-              {Object.entries(editStructured).map(([k, v]) => (
-                <div key={k} className="mb-2 min-w-0">
-                  <p className="text-lg md:text-lg font-bold" style={{ color: pc }}>{k}</p>
-                  <textarea
-                    value={v}
-                    onChange={(e) => setEditStructured((prev) => ({ ...prev, [k]: e.target.value }))}
-                    className="w-full bg-transparent text-lg md:text-lg text-foreground outline-none py-0.5 resize-none leading-relaxed"
-                    style={{ borderBottom: '1px solid transparent', overflow: 'hidden' }}
-                    placeholder="Tap to edit"
-                    rows={Math.max(1, Math.ceil((v?.length || 0) / 35))}
-                    onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; }}
-                    onBlur={(e) => { e.currentTarget.style.borderBottom = '1px solid transparent'; }}
-                    onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
-                  />
-                </div>
-              ))}
+              {Object.entries(editStructured).map(([k, v]) => {
+                const isEmpty = !v || v === 'null';
+                const isIncidentNumber = k === 'incident_number';
+                const isOperatorId = k === 'operator_id';
+                const placeholder = isIncidentNumber
+                  ? 'Awaiting incident number — say or tap to enter'
+                  : isOperatorId
+                    ? 'Awaiting operator ID — tap to enter'
+                    : 'Tap to edit';
+                return (
+                  <div key={k} className="mb-2 min-w-0">
+                    <p className="text-lg md:text-lg font-bold" style={{ color: pc }}>{k}</p>
+                    <textarea
+                      value={isEmpty ? '' : v}
+                      onChange={(e) => setEditStructured((prev) => ({ ...prev, [k]: e.target.value }))}
+                      className="w-full bg-transparent text-lg md:text-lg outline-none py-0.5 resize-none leading-relaxed"
+                      style={{
+                        borderBottom: isEmpty ? '1px dashed rgba(255,149,0,0.4)' : '1px solid transparent',
+                        overflow: 'hidden',
+                        color: isEmpty ? 'transparent' : 'hsl(var(--foreground))',
+                      }}
+                      placeholder={placeholder}
+                      rows={Math.max(1, Math.ceil(((isEmpty ? '' : v)?.length || 0) / 35))}
+                      onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; e.currentTarget.style.color = 'hsl(var(--foreground))'; }}
+                      onBlur={(e) => {
+                        const val = e.currentTarget.value;
+                        e.currentTarget.style.borderBottom = !val ? '1px dashed rgba(255,149,0,0.4)' : '1px solid transparent';
+                        e.currentTarget.style.color = !val ? 'transparent' : 'hsl(var(--foreground))';
+                      }}
+                      onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+                    />
+                    {isEmpty && (isIncidentNumber || isOperatorId) && (
+                      <p className="text-lg mt-0.5" style={{ color: '#FF9500', opacity: 0.7 }}>
+                        {placeholder}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -766,20 +789,37 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           </div>
         </div>
 
-        <div className="mx-3 md:mx-4 mt-3">
-          <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.1em] mb-2">FORMATTED REPORT</p>
-          <div className="border border-border rounded bg-card">
-            <textarea
-              ref={textareaRef}
-              value={editFormattedReport}
-              onChange={(e) => setEditFormattedReport(e.target.value)}
-              className="w-full bg-transparent text-lg md:text-lg text-foreground leading-7 whitespace-pre-wrap p-3 md:p-4 resize-none outline-none"
-              style={{ minHeight: 100 }}
-              onFocus={(e) => { e.currentTarget.style.background = 'rgba(61,255,140,0.04)'; }}
-              onBlur={(e) => { e.currentTarget.style.background = 'transparent'; }}
-            />
+        {/* ATMIST cards — field view */}
+        {assessment.atmist && Object.keys(assessment.atmist).length > 0 && (
+          <div className="mx-3 md:mx-4 mt-3">
+            <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: '#1E90FF' }}>ATMIST</p>
+            <div className="flex flex-col gap-2">
+              {Object.entries(assessment.atmist).map(([casualtyKey, val]: [string, any]) => {
+                const cCol = PRIORITY_COLORS[casualtyKey] ?? '#1E90FF';
+                return (
+                  <div key={casualtyKey} className="p-3 border border-border rounded bg-card">
+                    <div className="text-lg font-bold mb-1.5 tracking-wide" style={{ color: cCol }}>{casualtyKey}</div>
+                    <div className="flex flex-col gap-1">
+                      {[
+                        { k: 'A', label: 'Age' },
+                        { k: 'T', label: 'Time' },
+                        { k: 'M', label: 'Mechanism' },
+                        { k: 'I', label: 'Injuries' },
+                        { k: 'S', label: 'Signs' },
+                        { k: 'T_treatment', label: 'Treatment' },
+                      ].map(({ k, label }) => (
+                        <div key={k}>
+                          <span className="text-lg font-bold" style={{ color: cCol }}>{label}: </span>
+                          <span className="text-lg text-foreground break-words">{val?.[k] ?? '—'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
 
         <div className="fixed bottom-12 md:bottom-14 left-0 right-0 flex gap-3 px-3 md:px-4 pb-2 pt-2 bg-background">
