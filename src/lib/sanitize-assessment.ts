@@ -114,5 +114,32 @@ export function sanitizeAssessment(assessment: Assessment): Assessment {
     }
   }
 
+  // 5. ATMIST casualty keys — only keep valid explicit priority keys
+  if (sanitized.atmist) {
+    const validKeyPattern = /^P[1-4](-\d+)?$/;
+    const keys = Object.keys(sanitized.atmist);
+    for (const key of keys) {
+      if (!validKeyPattern.test(key)) {
+        delete (sanitized.atmist as any)[key];
+      }
+    }
+  }
+
+  // 6. scene_location — strip generic descriptors, keep only specific addresses/roads
+  if (sanitized.scene_location) {
+    const genericPatterns = [
+      /^(vehicle\s+)?collision\s+scene$/i,
+      /^(road\s+)?traffic\s+(collision|accident|incident)\s+scene$/i,
+      /^incident\s+scene$/i,
+      /^scene\s+of\s+(incident|accident|collision)$/i,
+      /^not\s+specified$/i,
+      /^unknown$/i,
+      /^on\s+scene$/i,
+    ];
+    if (genericPatterns.some(p => p.test(sanitized.scene_location!.trim()))) {
+      sanitized.scene_location = '';
+    }
+  }
+
   return sanitized;
 }
