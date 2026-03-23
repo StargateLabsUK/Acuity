@@ -247,8 +247,8 @@ export default function Command() {
         {topBar}
 
         <div className="flex flex-col flex-1 overflow-hidden p-3 gap-3">
-          <div className="flex-shrink-0 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-            <div className="flex border-b border-border">
+          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab === 'ops' ? 'flex-1 flex flex-col' : 'flex-shrink-0'}`}>
+            <div className="flex border-b border-border flex-shrink-0">
               <button
                 onClick={() => setDesktopUpperTab('status')}
                 className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
@@ -281,12 +281,12 @@ export default function Command() {
                 connected={connected}
               />
             ) : (
-              <div className="relative" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
-                <ExpandButton expanded={false} onClick={() => toggleExpand('ops')} />
+              <div className="flex-1 overflow-y-auto">
                 <OpsLogTab onSelectReport={handleOpsReportSelect} />
               </div>
             )}
           </div>
+          {desktopUpperTab === 'status' && (
           <div className="flex flex-1 overflow-hidden min-w-0 gap-3">
             <div className="relative flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
               <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
