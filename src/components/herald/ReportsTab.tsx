@@ -124,7 +124,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
                   }}
                 >
                   <div className="flex items-baseline gap-2 md:gap-3">
-                    <span className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{serviceLabel}</span>
+                    <span className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{headerLabel}</span>
                     <span className="font-heading text-3xl md:text-5xl leading-none" style={{ color: pc }}>
                       {a.priority as string}
                     </span>
