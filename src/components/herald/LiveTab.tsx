@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { Assessment, LiveState, Mismatch } from '@/lib/herald-types';
+import type { Assessment, LiveState, Mismatch, ActionItem } from '@/lib/herald-types';
 import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS, detectMismatches } from '@/lib/herald-types';
 import { transcribeAudio, assessTranscript, syncReport } from '@/lib/herald-api';
 import { getReports, markSynced, saveReport, updateReport } from '@/lib/herald-storage';
@@ -8,7 +8,7 @@ import { getSession } from '@/lib/herald-session';
 import { toSyncPayload } from '@/lib/herald-sync';
 import type { HeraldReport } from '@/lib/herald-types';
 import { supabase } from '@/integrations/supabase/client';
-import { sanitizeAssessment } from '@/lib/sanitize-assessment';
+import { sanitizeAssessment, toActionItems, formatActionAge } from '@/lib/sanitize-assessment';
 
 const MAX_DURATION_MS = 5 * 60 * 1000;
 
@@ -724,32 +724,39 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           </div>
 
           <div>
-            <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>IMMEDIATE ACTIONS</p>
+            <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>⚠ ACTION ITEMS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
-              {editActions.map((a, i) => (
-                <div key={i} className="flex gap-2 mb-1.5 items-start min-w-0">
-                  <span className="text-lg md:text-lg font-bold flex-shrink-0 mt-0.5" style={{ color: pc }}>{i + 1}.</span>
-                  <textarea
-                    value={a}
-                    onChange={(e) => {
-                      const next = [...editActions];
-                      next[i] = e.target.value;
-                      setEditActions(next);
-                    }}
-                    className="flex-1 min-w-0 bg-transparent text-lg md:text-lg text-foreground outline-none resize-none leading-relaxed"
-                    style={{ borderBottom: '1px solid transparent', overflow: 'hidden' }}
-                    rows={Math.max(1, Math.ceil((a?.length || 0) / 30))}
-                    onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; }}
-                    onBlur={(e) => { e.currentTarget.style.borderBottom = '1px solid transparent'; }}
-                    onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
-                  />
-                  <button
-                    onClick={() => setEditActions(editActions.filter((_, idx) => idx !== i))}
-                    className="text-lg opacity-50 hover:opacity-100 flex-shrink-0 mt-0.5"
-                    style={{ color: '#FF3B30' }}
-                  >✕</button>
-                </div>
-              ))}
+              {editActions.map((a, i) => {
+                const actionTimestamp = pendingReportRef.current?.timestamp || new Date().toISOString();
+                return (
+                  <div key={i} className="flex gap-2 mb-2 items-start min-w-0 rounded p-2"
+                    style={{ background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.2)' }}>
+                    <span className="text-lg font-bold flex-shrink-0 mt-0.5" style={{ color: '#FF9500' }}>⚠</span>
+                    <div className="flex-1 min-w-0">
+                      <textarea
+                        value={a}
+                        onChange={(e) => {
+                          const next = [...editActions];
+                          next[i] = e.target.value;
+                          setEditActions(next);
+                        }}
+                        className="w-full bg-transparent text-lg md:text-lg text-foreground outline-none resize-none leading-relaxed"
+                        style={{ overflow: 'hidden' }}
+                        rows={Math.max(1, Math.ceil((a?.length || 0) / 30))}
+                        onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+                      />
+                      <span className="text-lg opacity-50" style={{ color: '#FF9500' }}>
+                        — {formatActionAge(actionTimestamp)}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setEditActions(editActions.filter((_, idx) => idx !== i))}
+                      className="text-lg opacity-50 hover:opacity-100 flex-shrink-0 mt-0.5"
+                      style={{ color: '#FF3B30' }}
+                    >✕</button>
+                  </div>
+                );
+              })}
               <button
                 onClick={() => setEditActions([...editActions, ''])}
                 className="text-lg mt-2 px-2 py-1 rounded-sm"

@@ -56,10 +56,77 @@ serve(async (req) => {
       }
 
       // Build update payload — later transmissions take precedence on clinical detail
+      // Also auto-resolve action items from the new transmission
+      const parentReport = await supabase
+        .from("herald_reports")
+        .select("assessment")
+        .eq("id", parentId)
+        .single();
+
+      const parentAssessment = parentReport?.data?.assessment as any;
+      const newAssessment = report.assessment as any;
+      const newTranscript = (report.transcript as string) || "";
+
+      // Auto-resolve existing action items based on new content
+      let mergedActionItems = parentAssessment?.action_items || [];
+      const resolvedItems: any[] = parentAssessment?.resolved_action_items || [];
+      
+      if (Array.isArray(mergedActionItems) && mergedActionItems.length > 0) {
+        const nowIso = new Date().toISOString();
+        const textLower = newTranscript.toLowerCase();
+        const newHospitals = newAssessment?.receiving_hospital || [];
+        
+        const stillActive: any[] = [];
+        for (const item of mergedActionItems) {
+          const itemText = typeof item === 'string' ? item : item?.text || '';
+          let isResolved = false;
+
+          if (/HEMS not yet confirmed/i.test(itemText) && /\bHEMS\b.*\b(on\s*scene|landed|arrived|taking\s*over)\b/i.test(textLower)) {
+            isResolved = true;
+          }
+          if (/receiving hospital/i.test(itemText) && /contact Control/i.test(itemText) && (newHospitals.length > 0 || /\b(conveying|transporting|en\s*route)\s*(to|—)\s*\w/i.test(textLower))) {
+            isResolved = true;
+          }
+          if (/not yet confirmed/i.test(itemText) && (/additional/i.test(itemText) || /backup/i.test(itemText)) && /\b(on\s*scene|arrived|confirmed)\b/i.test(textLower)) {
+            isResolved = true;
+          }
+          if (/trapped.*extrication/i.test(itemText) && /\b(extricated|extrication\s*(complete|done)|freed|released)\b/i.test(textLower)) {
+            isResolved = true;
+          }
+
+          if (isResolved) {
+            resolvedItems.push(typeof item === 'object' ? { ...item, resolved_at: nowIso } : { text: item, opened_at: nowIso, resolved_at: nowIso });
+          } else {
+            stillActive.push(item);
+          }
+        }
+        mergedActionItems = stillActive;
+      }
+
+      // Add new action items from this transmission
+      const newItems = newAssessment?.action_items || [];
+      if (Array.isArray(newItems) && newItems.length > 0) {
+        mergedActionItems = [...mergedActionItems, ...newItems];
+      }
+
+      // Merge into assessment
+      const mergedAssessment = {
+        ...(parentAssessment || {}),
+        ...(newAssessment || {}),
+        action_items: mergedActionItems,
+        resolved_action_items: resolvedItems,
+      };
+
+      // Backfill receiving_hospital if newly confirmed
+      const newHospitals2 = newAssessment?.receiving_hospital;
+      if (Array.isArray(newHospitals2) && newHospitals2.length > 0) {
+        mergedAssessment.receiving_hospital = newHospitals2;
+      }
+
       const updatePayload: Record<string, unknown> = {
         priority: report.priority,
         headline: report.headline,
-        assessment: report.assessment,
+        assessment: mergedAssessment,
         latest_transmission_at: report.timestamp,
       };
 

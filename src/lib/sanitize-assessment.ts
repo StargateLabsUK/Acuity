@@ -3,7 +3,7 @@
  * Applies display corrections before rendering in any UI component.
  */
 
-import type { Assessment } from './herald-types';
+import type { Assessment, ActionItem } from './herald-types';
 
 // Patterns that indicate non-ambulance action items (fire, police, scene management)
 const NON_AMBULANCE_ACTION_PATTERNS = [
@@ -41,6 +41,159 @@ const RESOURCE_REQUEST_PATTERNS = [
 // Valid priority designations that can appear
 const VALID_PRIORITIES = ['P1', 'P2', 'P3', 'P4'];
 
+// Patterns to rewrite action items as open loops
+const OPEN_LOOP_REWRITES: Array<{ match: RegExp; rewrite: (text: string) => string }> = [
+  {
+    match: /\bHEMS\b.*\b(request|dispatch|activat|en\s*route)/i,
+    rewrite: () => 'HEMS not yet confirmed — chase Control',
+  },
+  {
+    match: /\badditional\s+(unit|ambulance|crew|resource)/i,
+    rewrite: (t) => {
+      const m = t.match(/additional\s+(unit|ambulance|crew|resource)s?/i);
+      const resource = m ? m[0] : 'Additional units';
+      return `${resource} not yet confirmed — chase Control`;
+    },
+  },
+  {
+    match: /\b(confirm|unconfirmed|no)\b.*\breceiving\s*hospital/i,
+    rewrite: () => 'No receiving hospital confirmed — contact Control',
+  },
+  {
+    match: /\breceiving\s*hospital\b.*\b(confirm|contact|check)/i,
+    rewrite: () => 'No receiving hospital confirmed — contact Control',
+  },
+  {
+    match: /\b(entrap|trapped|extrication)\b/i,
+    rewrite: (t) => {
+      const pm = t.match(/P[1-4]/);
+      const p = pm ? pm[0] : 'Casualty';
+      return `${p} trapped — extrication required before packaging and transport`;
+    },
+  },
+  {
+    match: /\bstatus\s*(unconfirmed|unknown|not\s*confirmed)\b/i,
+    rewrite: (t) => {
+      const pm = t.match(/P[1-4]/);
+      const p = pm ? pm[0] : 'Casualty';
+      return `${p} status unconfirmed — verify with scene commander`;
+    },
+  },
+  {
+    match: /\b(back-?up|backup)\s*(request|needed|required)/i,
+    rewrite: () => 'Backup not yet confirmed — chase Control',
+  },
+];
+
+/**
+ * Rewrite an action item as an open-loop crew task.
+ */
+function rewriteAsOpenLoop(text: string): string {
+  for (const { match, rewrite } of OPEN_LOOP_REWRITES) {
+    if (match.test(text)) {
+      return rewrite(text);
+    }
+  }
+  // If no specific rewrite matched but it contains "requested", make it open-loop
+  if (/\brequest(ed|ing)?\b/i.test(text)) {
+    const resource = text.replace(/\b(request(ed|ing)?|please|—|control)\b/gi, '').trim();
+    if (resource) return `${resource} not yet confirmed — chase Control`;
+  }
+  return text;
+}
+
+/**
+ * Convert string action items to ActionItem objects with timestamps.
+ */
+export function toActionItems(items: string[], timestamp?: string): ActionItem[] {
+  const ts = timestamp || new Date().toISOString();
+  return items.map(text => ({
+    text: rewriteAsOpenLoop(text),
+    opened_at: ts,
+  }));
+}
+
+/**
+ * Auto-resolve action items based on new transmission content.
+ * Returns { active, resolved } split.
+ */
+export function resolveActionItems(
+  existing: ActionItem[],
+  newTranscript: string,
+  newAssessment?: Assessment | null,
+): { active: ActionItem[]; resolved: ActionItem[] } {
+  const active: ActionItem[] = [];
+  const resolved: ActionItem[] = [];
+  const now = new Date().toISOString();
+  const text = (newTranscript || '').toLowerCase();
+  const newHospitals = newAssessment?.receiving_hospital || [];
+
+  for (const item of existing) {
+    if (item.resolved_at) {
+      resolved.push(item);
+      continue;
+    }
+
+    let isResolved = false;
+
+    // HEMS confirmed on scene or en route
+    if (/HEMS not yet confirmed/i.test(item.text)) {
+      if (/\bHEMS\b.*\b(on\s*scene|landed|arrived|taking\s*over)\b/i.test(text)) {
+        isResolved = true;
+      }
+    }
+
+    // Receiving hospital confirmed
+    if (/receiving hospital.*confirmed|contact Control/i.test(item.text) && /hospital/i.test(item.text)) {
+      if (newHospitals.length > 0 || /\b(conveying|transporting|en\s*route)\s*(to|—)\s*\w/i.test(text)) {
+        isResolved = true;
+      }
+    }
+
+    // Additional units confirmed
+    if (/additional.*not yet confirmed/i.test(item.text) || /backup.*not yet confirmed/i.test(item.text)) {
+      if (/\b(additional|backup|back-?up)\b.*\b(on\s*scene|arrived|confirmed)\b/i.test(text)) {
+        isResolved = true;
+      }
+    }
+
+    // Extrication complete
+    if (/trapped.*extrication/i.test(item.text)) {
+      if (/\b(extricated|extrication\s*(complete|done)|freed|released)\b/i.test(text)) {
+        isResolved = true;
+      }
+    }
+
+    // Status confirmed
+    if (/status unconfirmed/i.test(item.text)) {
+      const pm = item.text.match(/P[1-4]/);
+      if (pm && new RegExp(`${pm[0]}.*\\b(confirmed|stable|deceased|status)\\b`, 'i').test(text)) {
+        isResolved = true;
+      }
+    }
+
+    if (isResolved) {
+      resolved.push({ ...item, resolved_at: now });
+    } else {
+      active.push(item);
+    }
+  }
+
+  return { active, resolved };
+}
+
+/**
+ * Format how long an action item has been open.
+ */
+export function formatActionAge(openedAt: string): string {
+  const ms = Date.now() - new Date(openedAt).getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return 'open <1 min';
+  if (mins < 60) return `open ${mins} min${mins === 1 ? '' : 's'}`;
+  const hrs = Math.floor(mins / 60);
+  return `open ${hrs}h ${mins % 60}m`;
+}
+
 /**
  * Sanitize an assessment for display. Does not mutate the original.
  */
@@ -74,17 +227,18 @@ export function sanitizeAssessment(assessment: Assessment): Assessment {
     }
   }
 
-  // Filter action_items to ambulance-only
+  // Filter action_items to ambulance-only, then rewrite as open loops
   if (sanitized.action_items) {
     sanitized.action_items = sanitized.action_items.filter(
       item => !NON_AMBULANCE_ACTION_PATTERNS.some(p => p.test(item))
     );
-    // Add resource requests moved from ATMIST
     if (movedToActions.length > 0) {
       sanitized.action_items = [...sanitized.action_items, ...movedToActions];
     }
+    // Rewrite all as open loops
+    sanitized.action_items = sanitized.action_items.map(rewriteAsOpenLoop);
   } else if (movedToActions.length > 0) {
-    sanitized.action_items = movedToActions;
+    sanitized.action_items = movedToActions.map(rewriteAsOpenLoop);
   }
 
   // Also filter the legacy `actions` array
