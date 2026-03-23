@@ -256,16 +256,6 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
         </div>
         <div className="flex gap-2 flex-wrap">
           <select
-            value={filters.service}
-            onChange={(e) => updateFilter('service', e.target.value)}
-            style={{ ...selectStyle, width: 'auto', minWidth: 120 }}
-          >
-            <option value="">All services</option>
-            {uniqueServices.map((s) => (
-              <option key={s} value={s}>{SERVICE_LABELS[s] ?? s}</option>
-            ))}
-          </select>
-          <select
             value={filters.station}
             onChange={(e) => updateFilter('station', e.target.value)}
             style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
@@ -289,7 +279,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
             style={{ ...inputStyle, width: 'auto' }}
             title="To date"
           />
-          {(filters.search || filters.service || filters.station || filters.dateFrom || filters.dateTo) && (
+          {(filters.search || filters.station || filters.dateFrom || filters.dateTo) && (
             <button
               onClick={() => setFilters({ search: '', service: '', station: '', dateFrom: '', dateTo: '' })}
               className="px-3 py-1.5 text-sm rounded border cursor-pointer"
