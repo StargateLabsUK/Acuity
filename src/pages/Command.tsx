@@ -247,39 +247,20 @@ export default function Command() {
         <div className="flex flex-col flex-1 overflow-hidden p-3 gap-3">
           <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab !== 'status' ? 'flex-1 flex flex-col' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
-              <button
-                onClick={() => setDesktopUpperTab('status')}
-                className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
-                style={{
-                  color: desktopUpperTab === 'status' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                  borderBottom: desktopUpperTab === 'status' ? '2px solid hsl(var(--primary))' : '2px solid transparent',
-                  background: 'transparent',
-                }}
-              >
-                STATUS
-              </button>
-              <button
-                onClick={() => setDesktopUpperTab('ops')}
-                className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
-                style={{
-                  color: desktopUpperTab === 'ops' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                  borderBottom: desktopUpperTab === 'ops' ? '2px solid hsl(var(--primary))' : '2px solid transparent',
-                  background: 'transparent',
-                }}
-              >
-                OPS LOG
-              </button>
-              <button
-                onClick={() => setDesktopUpperTab('sla')}
-                className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
-                style={{
-                  color: desktopUpperTab === 'sla' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                  borderBottom: desktopUpperTab === 'sla' ? '2px solid hsl(var(--primary))' : '2px solid transparent',
-                  background: 'transparent',
-                }}
-              >
-                SLA
-              </button>
+              {(['status', 'map', 'ops', 'sla'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setDesktopUpperTab(tab)}
+                  className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
+                  style={{
+                    color: desktopUpperTab === tab ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                    borderBottom: desktopUpperTab === tab ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                    background: 'transparent',
+                  }}
+                >
+                  {tab.toUpperCase()}
+                </button>
+              ))}
             </div>
             {desktopUpperTab === 'status' ? (
               <CommandStatus
@@ -289,6 +270,10 @@ export default function Command() {
                 uniqueDevices={uniqueDevices}
                 connected={connected}
               />
+            ) : desktopUpperTab === 'map' ? (
+              <div className="flex-1 overflow-hidden">
+                <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
+              </div>
             ) : desktopUpperTab === 'ops' ? (
               <div className="flex-1 overflow-y-auto">
                 <OpsLogTab onSelectReport={handleOpsReportSelect} />
@@ -301,17 +286,13 @@ export default function Command() {
           </div>
           {desktopUpperTab === 'status' && (
           <div className="flex flex-1 overflow-hidden min-w-0 gap-3">
-            <div className="relative flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
+            <div className="relative flex flex-col overflow-hidden min-w-0 w-1/2 rounded-lg border border-border bg-card shadow-sm">
               <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
               <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
             </div>
-            <div className="relative flex flex-col overflow-hidden min-w-0 w-1/3">
+            <div className="relative flex flex-col overflow-hidden min-w-0 w-1/2">
               <ExpandButton expanded={false} onClick={() => toggleExpand('detail')} />
               <ReportDetail report={selectedReport} />
-            </div>
-            <div className="relative flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
-              <ExpandButton expanded={false} onClick={() => toggleExpand('map')} />
-              <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
             </div>
           </div>
           )}
