@@ -774,17 +774,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           </div>
         </div>
 
-        <div className="mx-3 md:mx-4 mt-3">
-          <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.1em] mb-2">RAW TRANSMISSION</p>
-          <div className="p-3 md:p-4 border border-border rounded bg-card">
-            <p className="text-lg md:text-lg text-foreground italic break-words">"{transcript}"</p>
-            {assessment.confidence != null && (
-              <p className="text-lg md:text-lg text-foreground mt-2 opacity-70">
-                Confidence: {Math.round(assessment.confidence * 100)}%
-              </p>
-            )}
-          </div>
-        </div>
 
         <div className="fixed bottom-12 md:bottom-14 left-0 right-0 flex gap-3 px-3 md:px-4 pb-2 pt-2 bg-background">
           <button
