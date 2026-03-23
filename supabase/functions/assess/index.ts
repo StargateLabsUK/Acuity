@@ -122,7 +122,17 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
   "transmit_to": "who needs this information",
   "formatted_report": "clean ePRF-ready report text",
   "confidence": 0.0
-}`;
+}
+
+CONSOLIDATION: If a transmission references the same callsign and incident context as an existing open record, treat it as an update to that record. Do not open a new report. Incident number is optional at opening — backfill when it appears.
+
+PRIORITY LEVELS: Only use P1/P2/P3/P4 designations explicitly stated in the transmission. Do not infer or create priority levels.
+
+CLINICAL TERMINOLOGY: "Airway compromised" is the correct term for a threatened or obstructed airway. Recognise variations including "airway problem", "airway issue", "airway at risk".
+
+ACTION ITEMS: Only include items the ambulance crew must action. Exclude fire service, police, or scene management items that are not the crew's responsibility.
+
+ATMIST T FIELD: Clinical interventions only — IV access, fluids, airway adjuncts, drugs, CPR, immobilisation, packaging. Resource requests (HEMS, backup units) belong in action items not treatment.`;
 
 const TRAINING_ANALYSIS_PROMPT = `You are reviewing corrections made by trained emergency services operators to AI-generated field reports. Each correction shows what the AI originally produced and what the human changed it to.
 
