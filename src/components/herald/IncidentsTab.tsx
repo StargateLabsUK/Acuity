@@ -143,7 +143,7 @@ export function IncidentsTab({ session, onCloseIncident }: Props) {
                   {Object.entries(inc.assessment.structured).map(([k, v]) => (
                     <div key={k} className="mb-1">
                       <span className="text-lg font-bold" style={{ color: col }}>{k}: </span>
-                      <span className="text-lg text-foreground">{v == null ? '—' : String(v)}</span>
+                      <span className="text-lg text-foreground whitespace-pre-wrap">{renderStructuredValue(v)}</span>
                     </div>
                   ))}
                 </div>

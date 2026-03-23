@@ -162,7 +162,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
                           {Object.entries(structured).map(([k, v]) => (
                             <div key={k}>
                               <div className="text-lg md:text-lg font-bold mb-0.5" style={{ color: pc }}>{k}</div>
-                              <div className="text-lg md:text-lg text-foreground leading-relaxed">{v ?? '—'}</div>
+                              <div className="text-lg md:text-lg text-foreground leading-relaxed whitespace-pre-wrap">{renderStructuredValue(v)}</div>
                             </div>
                           ))}
                         </div>
