@@ -29,6 +29,31 @@ interface Props {
   onCloseIncident: (id: string, incidentNumber: string | null) => void;
 }
 
+function ResolvedActions({ items }: { items: ActionItem[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2">
+      <button onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 text-lg font-bold tracking-[0.15em] bg-transparent border-none cursor-pointer"
+        style={{ color: '#888' }}>
+        <span style={{ transform: open ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▶</span>
+        RESOLVED ({items.length})
+      </button>
+      {open && (
+        <div className="flex flex-col gap-1 mt-1">
+          {items.map((item, i) => (
+            <div key={i} className="rounded p-2 flex gap-2 items-start"
+              style={{ background: 'rgba(136,136,136,0.06)', border: '1px solid rgba(136,136,136,0.15)' }}>
+              <span className="text-lg flex-shrink-0" style={{ color: '#34C759' }}>✓</span>
+              <span className="text-lg text-foreground opacity-50 line-through">{item.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function IncidentsTab({ session, onCloseIncident }: Props) {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
