@@ -113,6 +113,7 @@ export function useHeraldCommand() {
                 incident_number: r.incident_number ?? p.incident_number,
                 transmission_count: r.transmission_count ?? p.transmission_count,
                 latest_transmission_at: r.latest_transmission_at ?? p.latest_transmission_at,
+                status: r.status ?? p.status,
                 priority: r.priority ?? p.priority,
                 headline: r.headline ?? p.headline,
                 isNew: true,
