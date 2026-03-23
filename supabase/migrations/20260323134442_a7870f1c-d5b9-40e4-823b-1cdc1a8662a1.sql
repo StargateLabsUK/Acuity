@@ -1,0 +1,1 @@
+ALTER TABLE public.herald_reports DROP CONSTRAINT IF EXISTS herald_reports_shift_id_fkey;

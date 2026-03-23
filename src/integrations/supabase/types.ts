@@ -105,15 +105,7 @@ export type Database = {
           transmission_count?: number | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "herald_reports_shift_id_fkey"
-            columns: ["shift_id"]
-            isOneToOne: false
-            referencedRelation: "shifts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       incident_transmissions: {
         Row: {
