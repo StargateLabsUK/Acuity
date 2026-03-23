@@ -184,6 +184,29 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
                   </div>
                 )}
 
+                {/* Clinical Findings (ABCDE) */}
+                {clinicalFindings && Object.keys(clinicalFindings).length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-lg md:text-lg font-bold tracking-[0.2em] mb-2" style={{ color: pc }}>
+                      CLINICAL FINDINGS — ABCDE
+                    </p>
+                    <div className="p-3 border border-border rounded bg-card">
+                      <div className="flex flex-col gap-2">
+                        {(['A', 'B', 'C', 'D', 'E'] as const).map((letter) => {
+                          const labels: Record<string, string> = { A: 'Airway', B: 'Breathing', C: 'Circulation', D: 'Disability', E: 'Exposure' };
+                          const val = clinicalFindings[letter] ?? 'Not assessed';
+                          return (
+                            <div key={letter}>
+                              <span className="text-lg font-bold" style={{ color: pc }}>{letter} — {labels[letter]}: </span>
+                              <span className="text-lg text-foreground break-words">{val}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Protocol Fields with empty prompts */}
                 {Object.keys(structured).length > 0 && (
                   <div className="mt-4">
