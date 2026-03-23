@@ -66,10 +66,9 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
         const expanded = expandedId === r.id;
         const structured = (a?.structured as Record<string, string>) ?? {};
         const actions = (a?.actions as string[]) ?? [];
-        const formattedReport = (a?.formatted_report as string) ?? '';
         const priorityLabel = (a?.priority_label as string) ?? '';
-        const transmitTo = (a?.transmit_to as string) ?? '';
-        const confidence = (a?.confidence as number) ?? 0;
+        const actionItems = (a?.action_items as string[]) ?? [];
+        const atmist = (a?.atmist as Record<string, any>) ?? null;
 
         return (
           <div
