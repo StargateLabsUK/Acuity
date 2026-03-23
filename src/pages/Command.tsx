@@ -84,11 +84,7 @@ export default function Command() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
-  const [filters, setFilters] = useState<CommandFilters>({
-    service: '',
-    callsign: '',
-    timeRange: 'today',
-  });
+  const [filters] = useState({ service: '', callsign: '', timeRange: 'today' as const });
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
   const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops' | 'sla' | 'map'>('status');
   const [opsReportId, setOpsReportId] = useState<string | null>(null);
