@@ -81,25 +81,6 @@ export function ShiftLogin({ onShiftStarted }: Props) {
           START OF SHIFT SETUP
         </p>
 
-        {/* SERVICE */}
-        <div className="mb-5">
-          <label style={labelStyle}>SERVICE</label>
-          <select
-            value={service}
-            onChange={(e) => handleServiceChange(e.target.value)}
-            style={{
-              ...inputStyle,
-              color: service ? '#C8D0CC' : '#1E3028',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-            }}
-          >
-            <option value="" disabled>Select service</option>
-            {SERVICE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </div>
 
         {/* CALLSIGN */}
         <div className="mb-5">
