@@ -34,7 +34,7 @@ function useViewMode(): ViewMode {
 
 function applyFilters(
   reports: ReturnType<typeof useHeraldCommand>['reports'],
-  filters: CommandFilters
+  filters: { service: string; callsign: string; timeRange: string }
 ) {
   let filtered = [...reports];
   if (filters.service) {
