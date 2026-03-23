@@ -188,10 +188,11 @@ export function OpsLogTab() {
     [shifts, reports, filters]
   );
 
-  // Orphaned reports (no shift_id) that match filters
+  // Orphaned reports: no shift_id OR shift_id doesn't match any known shift
+  const shiftIds = useMemo(() => new Set(shifts.map((s) => s.id)), [shifts]);
   const orphanReports = useMemo(
-    () => filteredReports.filter((r) => !r.shift_id),
-    [filteredReports]
+    () => filteredReports.filter((r) => !r.shift_id || !shiftIds.has(r.shift_id)),
+    [filteredReports, shiftIds]
   );
 
   const updateFilter = (key: keyof OpsFilters, val: string) => {
