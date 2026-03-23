@@ -25,7 +25,7 @@ Also extract these identifiers if present in the transmission:
 
 - incident_number: any incident reference, job number, CAD number, or incident ID mentioned
 
-- callsign: the crew identifier, vehicle callsign, or unit name stated (e.g. Alpha Two, Tango Seven, Delta One, Trojan 1)
+- callsign: the crew identifier, vehicle callsign, or unit name stated (e.g. Alpha Two, Tango Seven, Delta One, Trojan 1). IMPORTANT: Operators typically address "Control" at the start of transmissions (e.g. "Control, Delta Four..."). "Control" is the addressee, NOT part of the callsign. Extract only the unit identifier (e.g. "Delta Four", not "Control Delta Four").
 
 When extracting callsign be aware that Whisper speech transcription may render phonetic callsigns in unexpected ways. Apply these corrections:
 - ALF 2, ALF2, ALFA 2 → Alpha Two
