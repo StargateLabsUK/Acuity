@@ -4,6 +4,7 @@ import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 import type { Assessment, IncidentTransmission } from '@/lib/herald-types';
 import { renderStructuredValue } from '@/components/StructuredValue';
 import type { HeraldSession } from '@/lib/herald-session';
+import { sanitizeAssessment } from '@/lib/sanitize-assessment';
 
 interface Incident {
   id: string;
