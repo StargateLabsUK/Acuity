@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Assessment, LiveState, Mismatch } from '@/lib/herald-types';
 import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS, detectMismatches } from '@/lib/herald-types';
 import { transcribeAudio, assessTranscript, syncReport } from '@/lib/herald-api';
-import { getReports, markSynced, saveReport } from '@/lib/herald-storage';
+import { getReports, markSynced, saveReport, updateReport } from '@/lib/herald-storage';
 import { computeDiff } from '@/lib/herald-diff';
 import { getSession } from '@/lib/herald-session';
 import { toSyncPayload } from '@/lib/herald-sync';
@@ -377,7 +377,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       ...sessionFields,
     };
 
-    saveReport(report);
+    if (isFollowUp && followUpReportId) {
+      // Update existing parent report in local storage instead of creating a duplicate
+      updateReport(followUpReportId, {
+        assessment: finalAssessment as unknown as Assessment,
+        headline: finalAssessment.headline,
+        priority: finalAssessment.priority,
+        latest_transmission_at: report.timestamp,
+        transmission_count: undefined, // we don't track this locally precisely
+      });
+    } else {
+      saveReport(report);
+    }
 
     // Sync with follow-up awareness
     try {
