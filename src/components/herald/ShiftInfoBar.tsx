@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { HeraldSession } from '@/lib/herald-session';
 import { clearSession, endShiftRemote } from '@/lib/herald-session';
 import { SERVICE_LABELS } from '@/lib/herald-types';
+import { getVehicleLabel } from '@/lib/vehicle-types';
 
 interface Props {
   session: HeraldSession;
