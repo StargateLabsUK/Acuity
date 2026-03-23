@@ -4,7 +4,7 @@ import { SERVICE_LABELS } from '@/lib/herald-types';
 interface Props {
   todayReports: CommandReport[];
   priorityCounts: { P1: number; P2: number; P3: number };
-  serviceCounts: Record<string, number>;
+  serviceCounts?: Record<string, number>;
   uniqueDevices: number;
   connected: boolean;
 }
