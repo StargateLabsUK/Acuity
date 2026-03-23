@@ -10,8 +10,6 @@ import { MapTab } from '@/components/command/MapTab';
 import { TrainingTab } from '@/components/command/TrainingTab';
 import { OpsLogTab } from '@/components/command/OpsLogTab';
 import { UptimeTab } from '@/components/command/UptimeTab';
-import { CommandFilterBar } from '@/components/command/CommandFilterBar';
-import type { CommandFilters } from '@/components/command/CommandFilterBar';
 import type { MapTabHandle } from '@/components/command/MapTab';
 
 type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training' | 'ops' | 'sla';
