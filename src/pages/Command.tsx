@@ -335,7 +335,7 @@ export default function Command() {
                 connected={connected}
               />
             ) : tabletTab === 'map' ? (
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden h-full min-h-0">
                 <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
               </div>
             ) : tabletTab === 'ops' ? (
