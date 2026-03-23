@@ -4,6 +4,7 @@ import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
 import type { IncidentTransmission } from '@/lib/herald-types';
 import { renderStructuredValue } from '@/components/StructuredValue';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeAssessment } from '@/lib/sanitize-assessment';
 
 interface Props {
   report: CommandReport | null;
