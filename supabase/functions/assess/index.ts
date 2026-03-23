@@ -132,7 +132,11 @@ CLINICAL TERMINOLOGY: "Airway compromised" is the correct term for a threatened 
 
 ACTION ITEMS: Only include items the ambulance crew must action. Exclude fire service, police, or scene management items that are not the crew's responsibility.
 
-ATMIST T FIELD: Clinical interventions only — IV access, fluids, airway adjuncts, drugs, CPR, immobilisation, packaging. Resource requests (HEMS, backup units) belong in action items not treatment.`;
+ATMIST T FIELD: Clinical interventions only — IV access, fluids, airway adjuncts, drugs, CPR, immobilisation, packaging. Resource requests (HEMS, backup units) belong in action items not treatment.
+
+SCENE LOCATION: Extract the specific address, road name, junction number, or landmark from the transmission. Examples: "M62 westbound junction 26", "14 Park Road", "A580 near Haydock roundabout". Never use generic descriptors like "vehicle collision scene", "RTC scene", or "incident scene". If no specific location is stated, set scene_location to null.
+
+ATMIST KEYS: Use the casualty's stated priority as the key (P1, P2, P3, P4). For multiple casualties at the same priority, append a suffix (P2-1, P2-2). Only use priority designations explicitly stated in the transmission.`;
 
 const TRAINING_ANALYSIS_PROMPT = `You are reviewing corrections made by trained emergency services operators to AI-generated field reports. Each correction shows what the AI originally produced and what the human changed it to.
 
