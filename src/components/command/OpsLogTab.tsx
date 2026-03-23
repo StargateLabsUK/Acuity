@@ -77,11 +77,13 @@ function ShiftCard({
   reports,
   expanded,
   onToggle,
+  onSelectReport,
 }: {
   shift: Shift;
   reports: OpsReport[];
   expanded: boolean;
   onToggle: () => void;
+  onSelectReport?: (id: string) => void;
 }) {
   const isActive = !shift.ended_at;
   const shiftReports = reports.filter((r) => r.shift_id === shift.id);
@@ -130,7 +132,9 @@ function ShiftCard({
             const isActive = r.status === 'active';
             const isClosed = r.status === 'closed';
             return (
-              <div key={r.id} className="flex items-start gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0">
+              <div key={r.id}
+                onClick={() => onSelectReport?.(r.id)}
+                className="flex items-start gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 cursor-pointer hover:bg-muted/50 transition-colors">
                 <span className="text-sm font-bold flex-shrink-0 mt-0.5" style={{ color, minWidth: 24 }}>
                   {p ?? '—'}
                 </span>
@@ -201,7 +205,7 @@ const selectStyle: React.CSSProperties = {
   WebkitAppearance: 'none' as const,
 };
 
-export function OpsLogTab() {
+export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) => void } = {}) {
   const { shifts, reports, loading, uniqueServices, uniqueStations } = useOpsLog();
   const [expandedShift, setExpandedShift] = useState<string | null>(null);
   const [filters, setFilters] = useState<OpsFilters>({
@@ -316,6 +320,7 @@ export function OpsLogTab() {
                 reports={filteredReports}
                 expanded={expandedShift === shift.id}
                 onToggle={() => setExpandedShift((prev) => (prev === shift.id ? null : shift.id))}
+                onSelectReport={onSelectReport}
               />
             ))}
 
@@ -331,7 +336,9 @@ export function OpsLogTab() {
                     const txCount = r.transmission_count ?? 1;
                     const isClosed = r.status === 'closed';
                     return (
-                      <div key={r.id} className="flex items-start gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0">
+                      <div key={r.id}
+                        onClick={() => onSelectReport?.(r.id)}
+                        className="flex items-start gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 cursor-pointer hover:bg-muted/50 transition-colors">
                         <span className="text-sm font-bold flex-shrink-0 mt-0.5" style={{ color, minWidth: 24 }}>
                           {p ?? '—'}
                         </span>

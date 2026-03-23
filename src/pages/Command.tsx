@@ -200,7 +200,7 @@ export default function Command() {
               <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
             )}
             {expandedPanel === 'ops' && (
-              <OpsLogTab />
+              <OpsLogTab onSelectReport={(id) => { handleSelect(id); setExpandedPanel(null); }} />
             )}
           </div>
         </div>
@@ -251,7 +251,7 @@ export default function Command() {
             ) : (
               <div className="relative" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
                 <ExpandButton expanded={false} onClick={() => toggleExpand('ops')} />
-                <OpsLogTab />
+                <OpsLogTab onSelectReport={handleSelect} />
               </div>
             )}
           </div>
@@ -339,7 +339,7 @@ export default function Command() {
         )}
         {mobileTab === 'ops' && (
           <div className="h-full">
-            <OpsLogTab />
+            <OpsLogTab onSelectReport={(id) => { handleSelect(id); setMobileTab('detail'); }} />
           </div>
         )}
       </div>
