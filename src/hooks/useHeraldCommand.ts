@@ -44,7 +44,7 @@ export function useHeraldCommand() {
         .from('herald_reports')
         .select('*')
         .gte('created_at', todayStart.toISOString())
-        .order('created_at', { ascending: false })
+        .order('latest_transmission_at', { ascending: false, nullsFirst: false })
         .limit(200);
 
       if (error) throw error;
