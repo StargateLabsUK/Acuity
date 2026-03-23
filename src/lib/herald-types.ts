@@ -80,13 +80,18 @@ export function detectMismatches(
 
   // Callsign
   const txCallsign = assessment.structured?.callsign;
-  if (session.callsign && txCallsign && txCallsign !== 'null' && session.callsign.toLowerCase() !== txCallsign.toLowerCase()) {
-    mismatches.push({
-      field: 'callsign',
-      session_value: session.callsign,
-      transcript_value: txCallsign,
-      resolved_to: txCallsign,
-    });
+  if (session.callsign && txCallsign && txCallsign !== 'null') {
+    const sNorm = session.callsign.toLowerCase().trim();
+    const tNorm = txCallsign.toLowerCase().trim();
+    // Skip if one contains the other (e.g. "delta four" vs "control delta four")
+    if (sNorm !== tNorm && !tNorm.includes(sNorm) && !sNorm.includes(tNorm)) {
+      mismatches.push({
+        field: 'callsign',
+        session_value: session.callsign,
+        transcript_value: txCallsign,
+        resolved_to: txCallsign,
+      });
+    }
   }
 
   // Operator ID
