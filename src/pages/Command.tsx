@@ -229,9 +229,6 @@ export default function Command() {
                 <ReportDetail report={selectedReport} />
               </div>
             )}
-            {expandedPanel === 'map' && (
-              <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
-            )}
             {expandedPanel === 'ops' && (
               <OpsLogTab onSelectReport={handleOpsReportSelect} />
             )}
