@@ -272,6 +272,17 @@ export default function Command() {
               >
                 OPS LOG
               </button>
+              <button
+                onClick={() => setDesktopUpperTab('sla')}
+                className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
+                style={{
+                  color: desktopUpperTab === 'sla' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                  borderBottom: desktopUpperTab === 'sla' ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                  background: 'transparent',
+                }}
+              >
+                SLA
+              </button>
             </div>
             {desktopUpperTab === 'status' ? (
               <CommandStatus
