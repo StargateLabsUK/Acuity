@@ -5,6 +5,7 @@ import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 import { renderStructuredValue } from '@/components/StructuredValue';
 import type { HeraldSession } from '@/lib/herald-session';
 import { sanitizeAssessment } from '@/lib/sanitize-assessment';
+import { getVehicleLabel } from '@/lib/vehicle-types';
 
 interface ReportsTabProps {
   reports: HeraldReport[];
@@ -62,6 +63,11 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
         const rawA = r.assessment as unknown as Record<string, unknown> | null;
         const a = rawA ? sanitizeAssessment(rawA as any) as unknown as Record<string, unknown> : null;
         const pc = PRIORITY_COLORS[a?.priority as string] || PRIORITY_COLORS[r.priority as string] || 'hsl(var(--foreground))';
+        const vtCode = (r as any).vehicle_type || session?.vehicle_type;
+        const vtLabel = getVehicleLabel(vtCode);
+        const headerLabel = vtLabel && r.session_callsign
+          ? `${vtLabel} — ${r.session_callsign}`
+          : vtLabel || SERVICE_LABELS[a?.service as string] || SERVICE_LABELS[r.service as string] || 'UNKNOWN';
         const serviceLabel = SERVICE_LABELS[a?.service as string] || SERVICE_LABELS[r.service as string] || 'UNKNOWN';
         const expanded = expandedId === r.id;
         const structured = (a?.structured as Record<string, string>) ?? {};
@@ -86,7 +92,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
                 ) : (
                   <ChevronRight size={18} className="text-foreground opacity-50 flex-shrink-0" />
                 )}
-                <span className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{serviceLabel}</span>
+                <span className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{headerLabel}</span>
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-lg md:text-lg text-foreground">
                     {(a?.headline as string) || r.headline || 'Report'}
@@ -118,7 +124,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
                   }}
                 >
                   <div className="flex items-baseline gap-2 md:gap-3">
-                    <span className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{serviceLabel}</span>
+                    <span className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{headerLabel}</span>
                     <span className="font-heading text-3xl md:text-5xl leading-none" style={{ color: pc }}>
                       {a.priority as string}
                     </span>

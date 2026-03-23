@@ -214,13 +214,19 @@ serve(async (req) => {
     }
 
     // Normal assessment mode
-    const { transcript } = body;
+    const { transcript, vehicle_type, can_transport } = body;
 
     if (!transcript) {
       return new Response(
         JSON.stringify({ error: "No transcript provided" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Build context prefix for vehicle type
+    let contextPrefix = "";
+    if (vehicle_type) {
+      contextPrefix = `[RESOURCE CONTEXT: Vehicle type is ${vehicle_type}. Can transport patients: ${can_transport === false ? 'NO' : 'YES'}. If can_transport is NO and the assessment indicates a patient requires conveyance, automatically generate an action item: "Transporting unit required — ${vehicle_type} cannot convey patients — request DSA from Control".]\n\n`;
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -237,7 +243,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `Field transmission: "${transcript}"`,
+            content: `${contextPrefix}Field transmission: "${transcript}"`,
           },
         ],
       }),

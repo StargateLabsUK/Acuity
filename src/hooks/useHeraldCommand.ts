@@ -27,6 +27,9 @@ export interface CommandReport {
   latest_transmission_at: string | null;
   status: string | null;
   shift_id: string | null;
+  vehicle_type: string | null;
+  can_transport: boolean | null;
+  critical_care: boolean | null;
   isNew?: boolean;
 }
 
@@ -39,6 +42,9 @@ export interface CommandShift {
   started_at: string | null;
   ended_at: string | null;
   created_at: string | null;
+  vehicle_type: string | null;
+  can_transport: boolean | null;
+  critical_care: boolean | null;
 }
 
 export function useHeraldCommand() {

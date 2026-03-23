@@ -58,6 +58,9 @@ function getSessionFields() {
     session_operator_id: session.operator_id ?? undefined,
     session_service: session.service,
     session_station: session.station ?? undefined,
+    vehicle_type: session.vehicle_type ?? undefined,
+    can_transport: session.can_transport ?? true,
+    critical_care: session.critical_care ?? false,
   };
 }
 
@@ -323,7 +326,8 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           const t = await transcribeAudio(base64);
           setTranscript(t);
 
-          const result = await assessTranscript(t);
+          const sessionCtx = getSession();
+          const result = await assessTranscript(t, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
           setAssessment(result);
           onAiStatus('ok');
 
@@ -365,7 +369,8 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
     try {
       setTranscript(text);
-      const result = await assessTranscript(text);
+      const sessionCtx = getSession();
+      const result = await assessTranscript(text, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
       setAssessment(result);
       onAiStatus('ok');
 

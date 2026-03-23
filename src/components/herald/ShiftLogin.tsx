@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { saveSession, startShiftRemote } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
 import { getStationsForService } from '@/lib/uk-stations';
+import { VEHICLE_TYPES } from '@/lib/vehicle-types';
 
 
 interface Props {
@@ -31,10 +32,11 @@ const labelStyle: React.CSSProperties = {
 export function ShiftLogin({ onShiftStarted }: Props) {
   const service = 'ambulance';
   const [callsign, setCallsign] = useState('');
+  const [vehicleType, setVehicleType] = useState('');
   const [collarNumber, setCollarNumber] = useState('');
   const [station, setStation] = useState('');
 
-  const canSubmit = callsign.trim() !== '';
+  const canSubmit = callsign.trim() !== '' && vehicleType !== '';
   const stationOptions = getStationsForService(service);
 
   const [submitting, setSubmitting] = useState(false);
@@ -42,6 +44,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const handleBeginShift = async () => {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
+    const vt = VEHICLE_TYPES.find((v) => v.code === vehicleType);
     const session: HeraldSession = {
       service,
       service_emoji: '',
@@ -50,6 +53,9 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       station: station || null,
       session_date: new Date().toISOString().slice(0, 10),
       shift_started: new Date().toISOString(),
+      vehicle_type: vehicleType,
+      can_transport: vt?.can_transport ?? true,
+      critical_care: vt?.critical_care ?? false,
     };
     // Sync shift to Supabase and get shift_id
     const shiftId = await startShiftRemote(session);
@@ -92,6 +98,28 @@ export function ShiftLogin({ onShiftStarted }: Props) {
             placeholder="e.g. Alpha Two, Bravo Three"
             style={inputStyle}
           />
+        </div>
+
+        {/* VEHICLE TYPE */}
+        <div className="mb-5">
+          <label style={labelStyle}>VEHICLE TYPE</label>
+          <select
+            value={vehicleType}
+            onChange={(e) => setVehicleType(e.target.value)}
+            style={{
+              ...inputStyle,
+              color: vehicleType ? '#C8D0CC' : '#1E3028',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+            }}
+          >
+            <option value="">Select vehicle type</option>
+            {VEHICLE_TYPES.map((v) => (
+              <option key={v.code} value={v.code}>
+                {v.code} — {v.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* COLLAR NUMBER */}

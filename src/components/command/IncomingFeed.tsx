@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
 import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
 import type { Mismatch } from '@/lib/herald-types';
+import { getVehicleLabel, getVehicleType } from '@/lib/vehicle-types';
 
 interface Props {
   reports: CommandReport[];
@@ -132,6 +133,21 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                       {r.session_callsign || getCallsign(r)}
                     </span>
                   )}
+                  {(() => {
+                    const vtCode = (r as any).vehicle_type;
+                    const vt = getVehicleType(vtCode);
+                    if (!vt) return null;
+                    const badgeColor = vt.can_transport ? '#3DFF8C' : '#FF9500';
+                    return (
+                      <span
+                        className="text-lg font-bold rounded-sm px-1.5 py-0.5 flex-shrink-0"
+                        style={{ color: badgeColor, border: `1px solid ${badgeColor}44`, background: `${badgeColor}0A` }}
+                        title={vt.can_transport ? 'Can transport' : 'Cannot transport patients'}
+                      >
+                        {vt.code}
+                      </span>
+                    );
+                  })()}
                   {r.session_operator_id && (
                     <span className="text-lg flex-shrink-0" style={{ color: '#3A5048' }}>
                       {r.session_operator_id}

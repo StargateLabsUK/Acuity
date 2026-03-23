@@ -1,7 +1,8 @@
 import type { HeraldReport } from './herald-types';
-import { getShiftId } from './herald-session';
+import { getShiftId, getSession } from './herald-session';
 
 export function toSyncPayload(report: HeraldReport, followUpOf?: string): Record<string, unknown> {
+  const session = getSession();
   return {
     id: report.id,
     timestamp: report.timestamp,
@@ -26,5 +27,8 @@ export function toSyncPayload(report: HeraldReport, followUpOf?: string): Record
     shift_id: getShiftId() ?? null,
     incident_number: report.incident_number ?? null,
     follow_up_of: followUpOf ?? null,
+    vehicle_type: session?.vehicle_type ?? null,
+    can_transport: session?.can_transport ?? true,
+    critical_care: session?.critical_care ?? false,
   };
 }

@@ -17,8 +17,10 @@ export type Database = {
       herald_reports: {
         Row: {
           assessment: Json | null
+          can_transport: boolean | null
           confirmed_at: string | null
           created_at: string | null
+          critical_care: boolean | null
           device_id: string | null
           diff: Json | null
           edited: boolean | null
@@ -45,11 +47,14 @@ export type Database = {
           transcript: string | null
           transmission_count: number | null
           user_id: string | null
+          vehicle_type: string | null
         }
         Insert: {
           assessment?: Json | null
+          can_transport?: boolean | null
           confirmed_at?: string | null
           created_at?: string | null
+          critical_care?: boolean | null
           device_id?: string | null
           diff?: Json | null
           edited?: boolean | null
@@ -76,11 +81,14 @@ export type Database = {
           transcript?: string | null
           transmission_count?: number | null
           user_id?: string | null
+          vehicle_type?: string | null
         }
         Update: {
           assessment?: Json | null
+          can_transport?: boolean | null
           confirmed_at?: string | null
           created_at?: string | null
+          critical_care?: boolean | null
           device_id?: string | null
           diff?: Json | null
           edited?: boolean | null
@@ -107,6 +115,7 @@ export type Database = {
           transcript?: string | null
           transmission_count?: number | null
           user_id?: string | null
+          vehicle_type?: string | null
         }
         Relationships: []
       }
@@ -196,7 +205,9 @@ export type Database = {
       shifts: {
         Row: {
           callsign: string | null
+          can_transport: boolean | null
           created_at: string | null
+          critical_care: boolean | null
           device_id: string | null
           ended_at: string | null
           id: string
@@ -204,10 +215,13 @@ export type Database = {
           service: string | null
           started_at: string | null
           station: string | null
+          vehicle_type: string | null
         }
         Insert: {
           callsign?: string | null
+          can_transport?: boolean | null
           created_at?: string | null
+          critical_care?: boolean | null
           device_id?: string | null
           ended_at?: string | null
           id?: string
@@ -215,10 +229,13 @@ export type Database = {
           service?: string | null
           started_at?: string | null
           station?: string | null
+          vehicle_type?: string | null
         }
         Update: {
           callsign?: string | null
+          can_transport?: boolean | null
           created_at?: string | null
+          critical_care?: boolean | null
           device_id?: string | null
           ended_at?: string | null
           id?: string
@@ -226,6 +243,7 @@ export type Database = {
           service?: string | null
           started_at?: string | null
           station?: string | null
+          vehicle_type?: string | null
         }
         Relationships: []
       }

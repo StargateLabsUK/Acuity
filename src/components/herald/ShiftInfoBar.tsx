@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { HeraldSession } from '@/lib/herald-session';
 import { clearSession, endShiftRemote } from '@/lib/herald-session';
 import { SERVICE_LABELS } from '@/lib/herald-types';
+import { getVehicleLabel } from '@/lib/vehicle-types';
 
 interface Props {
   session: HeraldSession;
@@ -28,11 +29,14 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
     <>
       <div className="flex-shrink-0 flex flex-col items-center pb-3 pt-0 gap-1" style={{ background: '#1A1E24', marginBottom: 8 }}>
         <span style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase' as const }}>
-          {SERVICE_LABELS[session.service] ?? session.service.toUpperCase()}
+          {getVehicleLabel(session.vehicle_type) || (SERVICE_LABELS[session.service] ?? session.service.toUpperCase())}
         </span>
         <span style={{ color: '#C8D0CC', fontSize: 18, fontWeight: 700 }}>
           {session.callsign}
           {session.operator_id ? ` · ${session.operator_id}` : ''}
+          {session.can_transport === false && (
+            <span style={{ color: '#FF9500', marginLeft: 8 }}>NO TRANSPORT</span>
+          )}
         </span>
         {session.station && (
           <span style={{ color: '#4A6058', fontSize: 18 }}>

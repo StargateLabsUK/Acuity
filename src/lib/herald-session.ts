@@ -7,6 +7,9 @@ export interface HeraldSession {
   session_date: string;
   shift_started: string;
   shift_id?: string;
+  vehicle_type?: string;
+  can_transport?: boolean;
+  critical_care?: boolean;
 }
 
 const SESSION_KEY = 'herald_session';
@@ -60,6 +63,9 @@ export async function startShiftRemote(session: HeraldSession): Promise<string |
         service: session.service,
         station: session.station,
         operator_id: session.operator_id,
+        vehicle_type: session.vehicle_type ?? null,
+        can_transport: session.can_transport ?? true,
+        critical_care: session.critical_care ?? false,
       }),
     });
     if (!res.ok) return null;
