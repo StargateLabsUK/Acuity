@@ -407,9 +407,6 @@ export default function Command() {
         {mobileTabBtn('feed', 'FEED')}
         {mobileTabBtn('detail', 'DETAIL')}
         {mobileTabBtn('map', 'MAP')}
-        {mobileTabBtn('ops', 'OPS')}
-        {mobileTabBtn('sla', 'SLA')}
-        {mobileTabBtn('status', 'STATUS')}
       </div>
     </div>
   );
