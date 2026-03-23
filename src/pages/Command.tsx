@@ -301,13 +301,54 @@ export default function Command() {
     );
   }
 
-  // TABLET
+  // TABLET — same tab bar as desktop
   if (viewMode === 'tablet') {
+    const tabletTab = desktopUpperTab;
     return (
       <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         {topBar}
 
         <div className="flex flex-col flex-1 overflow-hidden p-2 gap-2">
+          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${tabletTab !== 'status' ? 'flex-1 flex flex-col' : 'flex-shrink-0'}`}>
+            <div className="flex border-b border-border flex-shrink-0">
+              {(['status', 'map', 'ops', 'sla'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setDesktopUpperTab(tab)}
+                  className="px-3 py-2 text-sm font-bold tracking-widest cursor-pointer"
+                  style={{
+                    color: tabletTab === tab ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                    borderBottom: tabletTab === tab ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                    background: 'transparent',
+                  }}
+                >
+                  {tab.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            {tabletTab === 'status' ? (
+              <CommandStatus
+                todayReports={filteredReports}
+                priorityCounts={filteredPriorityCounts}
+                serviceCounts={filteredServiceCounts}
+                uniqueDevices={uniqueDevices}
+                connected={connected}
+              />
+            ) : tabletTab === 'map' ? (
+              <div className="flex-1 overflow-hidden">
+                <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
+              </div>
+            ) : tabletTab === 'ops' ? (
+              <div className="flex-1 overflow-y-auto">
+                <OpsLogTab onSelectReport={handleOpsReportSelect} />
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto">
+                <UptimeTab />
+              </div>
+            )}
+          </div>
+          {tabletTab === 'status' && (
           <div className="flex flex-1 overflow-hidden min-w-0 gap-2">
             <div className="relative flex flex-col overflow-hidden min-w-0 w-2/5 rounded-lg border border-border bg-card shadow-sm">
               <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
@@ -318,6 +359,7 @@ export default function Command() {
               <ReportDetail report={selectedReport} />
             </div>
           </div>
+          )}
         </div>
       </div>
     );
