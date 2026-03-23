@@ -248,7 +248,7 @@ export default function Command() {
         {topBar}
 
         <div className="flex flex-col flex-1 overflow-hidden p-3 gap-3">
-          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab === 'ops' ? 'flex-1 flex flex-col' : 'flex-shrink-0'}`}>
+          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab !== 'status' ? 'flex-1 flex flex-col' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
               <button
                 onClick={() => setDesktopUpperTab('status')}
