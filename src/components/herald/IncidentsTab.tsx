@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 import type { Assessment, IncidentTransmission } from '@/lib/herald-types';
+import { renderStructuredValue } from '@/components/StructuredValue';
 import type { HeraldSession } from '@/lib/herald-session';
 
 interface Incident {
