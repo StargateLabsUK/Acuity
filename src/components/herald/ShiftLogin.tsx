@@ -118,9 +118,8 @@ export function ShiftLogin({ onShiftStarted }: Props) {
               appearance: 'none',
               WebkitAppearance: 'none',
             }}
-            disabled={!service}
           >
-            <option value="">{service ? 'Select station / trust' : 'Select a service first'}</option>
+            <option value="">Select station / trust</option>
             {stationOptions.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
