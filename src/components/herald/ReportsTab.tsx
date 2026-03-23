@@ -4,6 +4,7 @@ import type { HeraldReport } from '@/lib/herald-types';
 import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 import { renderStructuredValue } from '@/components/StructuredValue';
 import type { HeraldSession } from '@/lib/herald-session';
+import { sanitizeAssessment } from '@/lib/sanitize-assessment';
 
 interface ReportsTabProps {
   reports: HeraldReport[];
