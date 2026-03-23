@@ -25,7 +25,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
   return (
     <div className="flex flex-col bg-card">
       {/* Top row: Transmissions + By Service */}
-      <div className="grid gap-0" style={{ gridTemplateColumns: '1fr auto 1fr 1fr', gridTemplateRows: 'auto' }}>
+      <div className="grid gap-0" style={{ gridTemplateColumns: 'auto auto 1fr 1fr' }}>
         {/* Total Transmissions */}
         <div className="px-3 py-2.5 md:px-4 md:py-3 border-r border-b md:border-b-0 border-border flex flex-col">
           <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
