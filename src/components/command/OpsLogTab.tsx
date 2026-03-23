@@ -126,18 +126,47 @@ function ShiftCard({
           {shiftReports.map((r) => {
             const p = r.assessment?.priority ?? r.priority;
             const color = p ? PRIORITY_COLORS[p] ?? 'hsl(var(--muted-foreground))' : 'hsl(var(--muted-foreground))';
+            const txCount = r.transmission_count ?? 1;
+            const isActive = r.status === 'active';
+            const isClosed = r.status === 'closed';
             return (
               <div key={r.id} className="flex items-start gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0">
                 <span className="text-sm font-bold flex-shrink-0 mt-0.5" style={{ color, minWidth: 24 }}>
                   {p ?? '—'}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm text-foreground block truncate">
-                    {r.headline ?? r.assessment?.headline ?? r.transcript?.slice(0, 80) ?? 'No transcript'}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-foreground truncate max-w-[300px]">
+                      {r.headline ?? r.assessment?.headline ?? r.transcript?.slice(0, 80) ?? 'No transcript'}
+                    </span>
+                    {r.incident_number && (
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded"
+                        style={{ border: '1px solid hsl(var(--border))', color: 'hsl(var(--foreground))' }}>
+                        #{r.incident_number}
+                      </span>
+                    )}
+                    {txCount > 1 && (
+                      <span className="text-xs font-bold px-1.5 py-0.5 rounded"
+                        style={{ color: '#1E90FF', border: '1px solid rgba(30,144,255,0.3)', background: 'rgba(30,144,255,0.08)' }}>
+                        {txCount} TX
+                      </span>
+                    )}
+                    {isClosed && (
+                      <span className="text-xs font-bold px-1.5 py-0.5 rounded"
+                        style={{ color: '#888', border: '1px solid rgba(136,136,136,0.3)', background: 'rgba(136,136,136,0.08)' }}>
+                        CLOSED
+                      </span>
+                    )}
+                    {isActive && r.incident_number && (
+                      <span className="text-xs font-bold px-1.5 py-0.5 rounded"
+                        style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}>
+                        ACTIVE
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs text-muted-foreground">
-                    {formatTime(r.created_at ?? r.timestamp)}
-                    {r.assessment?.structured?.incident_number && ` · INC ${r.assessment.structured.incident_number}`}
+                    {formatTime(r.latest_transmission_at ?? r.created_at ?? r.timestamp)}
+                    {r.assessment?.structured?.incident_number && !r.incident_number && ` · INC ${r.assessment.structured.incident_number}`}
                   </span>
                 </div>
               </div>
