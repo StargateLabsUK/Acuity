@@ -29,7 +29,7 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
     <>
       <div className="flex-shrink-0 flex flex-col items-center pb-3 pt-0 gap-1" style={{ background: '#1A1E24', marginBottom: 8 }}>
         <span style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase' as const }}>
-          {getVehicleLabel(session.vehicle_type) || SERVICE_LABELS[session.service] ?? session.service.toUpperCase()}
+          {getVehicleLabel(session.vehicle_type) || (SERVICE_LABELS[session.service] ?? session.service.toUpperCase())}
         </span>
         <span style={{ color: '#C8D0CC', fontSize: 18, fontWeight: 700 }}>
           {session.callsign}
