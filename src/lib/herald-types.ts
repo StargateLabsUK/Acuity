@@ -145,19 +145,19 @@ export const SERVICE_LABELS: Record<string, string> = {
 
 export const TEST_TRANSMISSIONS = [
   {
-    label: 'MILITARY',
-    text: 'Control this is Delta Two. Casualty male approximately 35. GSW right thigh arterial bleed tourniquet applied 1423 Zulu. Airway clear breathing fast pulse weak. Request immediate CASEVAC Grid 456789.',
-  },
-  {
-    label: 'AMBULANCE',
+    label: 'METHANE — RTC',
     text: 'Control this is Alpha Two incident 4471. METHANE. Major incident confirmed. RTC M62 westbound junction 26. Three vehicles two HGVs and a car. Hazards diesel spill and vehicle on fire. Access junction 26 westbound slip only. Six casualties two priority one. Police on scene fire ETA two minutes. Requesting two additional ambulances and HEMS.',
   },
   {
-    label: 'FIRE',
-    text: 'Delta one to control. Building entry confirmed 0934. Two BA crews ground floor. Persons reported second floor. Fire spreading east wing. Request additional pump.',
+    label: 'ATMIST — SINGLE CASUALTY',
+    text: 'Control this is Delta Four. ATMIST handover. Male approximately 35 years old. Time of injury 1423. Mechanism high speed RTC unrestrained driver. Injuries open fracture right femur with arterial bleed, suspected pelvic fracture. Signs GCS 12 BP 90 over 60 pulse 120 weak resps 24. Treatment tourniquet applied right thigh 1425, IV access established large bore left AC, one litre normal saline running. Requesting HEMS and conveying to MRI Manchester.',
   },
   {
-    label: 'POLICE',
-    text: 'Trojan 1 to Gold. Suspect vehicle stopped A1 northbound junction 4. Two detained. Weapon seen footwell. Request ARV backup. Scene secure.',
+    label: 'CARDIAC ARREST',
+    text: 'Alpha One to control. On scene cardiac arrest. Male approximately 60. Bystander CPR in progress on arrival. Rhythm VF. Two shocks delivered. Adrenaline one milligram IV given. ROSC achieved at 1438. GCS 3 intubated ventilating. BP 100 over 70. Conveying priority one to Salford Royal.',
+  },
+  {
+    label: 'MULTI-CASUALTY',
+    text: 'Control Bravo Two. Update on incident 4471. P1 casualty one entrapped driver now extricated by fire. Open chest wound left side. Chest seal applied. IV fluids running. HEMS on scene taking over P1. P2 casualty two passenger fractured left arm splinted. P3 casualty three walking wounded laceration to forehead dressed. P2 conveying to MRI Manchester. P3 to Wythenshawe.',
   },
 ];
