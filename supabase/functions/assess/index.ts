@@ -128,8 +128,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
   "action_items": ["open loop action item — what crew must do next"],
   "actions": ["immediate operational action 1", "action 2"],
   "clinical_history": "structured clinical narrative in plain English, third person, chronological order, clinically relevant facts only",
-  "formatted_report": "clean ePRF-ready report text",
-  "confidence": 0.0
+  "formatted_report": "clean ePRF-ready report text"
 }
 
 CLINICAL HISTORY: Generate a structured clinical narrative for the clinical_history field. Write in plain English, third person, chronological order. Include only clinically relevant facts: what was reported, injuries found, clinical findings, interventions performed, and disposition. Do NOT copy the raw transmission verbatim — rewrite it as a professional clinical narrative. Example: "Crew reported RTC involving HGV and two cars on A57 Snake Pass. Three casualties identified on scene. P1 male approximately 40 trapped in vehicle, GCS 6, airway compromised, HEMS requested. Two P2 casualties — female 30s with chest pain and tachycardia, male 60s with minor lacerations, self-extricated. Scene declared safe by fire service." clinical_history is mandatory. Generate a plain English, third person, chronological narrative of clinically relevant facts from the transmission. If specific details are limited, summarise what is known. Never return N/A, null, or blank for this field if a transcript exists.
@@ -274,7 +273,6 @@ serve(async (req) => {
           actions: ["Review transmission — could not be assessed automatically"],
           transmit_to: "Control",
           formatted_report: transcript,
-          confidence: 0.0,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
