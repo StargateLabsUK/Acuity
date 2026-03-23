@@ -18,11 +18,11 @@ export async function transcribeAudio(base64Audio: string, mimeType?: string): P
   return data.transcript;
 }
 
-export async function assessTranscript(transcript: string) {
+export async function assessTranscript(transcript: string, context?: { vehicle_type?: string; can_transport?: boolean }) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/assess`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ transcript }),
+    body: JSON.stringify({ transcript, vehicle_type: context?.vehicle_type, can_transport: context?.can_transport }),
   });
   if (!res.ok) throw new Error('Assessment failed');
   return res.json();

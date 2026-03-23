@@ -58,6 +58,9 @@ function getSessionFields() {
     session_operator_id: session.operator_id ?? undefined,
     session_service: session.service,
     session_station: session.station ?? undefined,
+    vehicle_type: session.vehicle_type ?? undefined,
+    can_transport: session.can_transport ?? true,
+    critical_care: session.critical_care ?? false,
   };
 }
 
