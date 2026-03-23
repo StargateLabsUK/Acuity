@@ -339,7 +339,7 @@ export default function Command() {
         )}
         {mobileTab === 'ops' && (
           <div className="h-full">
-            <OpsLogTab />
+            <OpsLogTab onSelectReport={(id) => { handleSelect(id); setMobileTab('detail'); }} />
           </div>
         )}
       </div>
