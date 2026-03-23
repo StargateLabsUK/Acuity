@@ -305,11 +305,11 @@ export default function Command() {
   if (viewMode === 'tablet') {
     const tabletTab = desktopUpperTab;
     return (
-      <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
+      <div className="flex flex-col" style={{ background: 'var(--herald-command-bg)' }}>
         {topBar}
 
-        <div className="flex flex-col flex-1 overflow-hidden p-2 gap-2">
-          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${tabletTab !== 'status' ? 'flex-1 flex flex-col' : 'flex-shrink-0'}`}>
+        <div className="flex flex-col p-2 gap-2">
+          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${tabletTab !== 'status' ? 'min-h-[80vh] flex flex-col' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
               {(['status', 'map', 'ops', 'sla'] as const).map((tab) => (
                 <button
@@ -349,12 +349,12 @@ export default function Command() {
             )}
           </div>
           {tabletTab === 'status' && (
-          <div className="flex flex-1 overflow-hidden min-w-0 gap-2">
-            <div className="relative flex flex-col overflow-hidden min-w-0 w-2/5 rounded-lg border border-border bg-card shadow-sm">
+          <div className="flex min-w-0 gap-2">
+            <div className="relative flex flex-col min-w-0 w-2/5 rounded-lg border border-border bg-card shadow-sm">
               <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
               <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
             </div>
-            <div className="relative flex flex-col overflow-hidden min-w-0 w-3/5">
+            <div className="relative flex flex-col min-w-0 w-3/5">
               <ExpandButton expanded={false} onClick={() => toggleExpand('detail')} />
               <ReportDetail report={selectedReport} />
             </div>
