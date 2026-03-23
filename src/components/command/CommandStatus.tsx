@@ -1,5 +1,4 @@
 import type { CommandReport } from '@/hooks/useHeraldCommand';
-import { SERVICE_LABELS } from '@/lib/herald-types';
 
 interface Props {
   todayReports: CommandReport[];
@@ -9,23 +8,16 @@ interface Props {
   connected: boolean;
 }
 
-function getColor(p: string) {
-  return p === 'P1' ? '#FF3B30' : p === 'P2' ? '#FF9500' : '#34C759';
-}
-
-export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uniqueDevices, connected }: Props) {
+export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, connected }: Props) {
   const lastReport = todayReports[0];
   const lastTime = lastReport
     ? new Date(lastReport.created_at ?? lastReport.timestamp).getUTCHours().toString().padStart(2, '0') + ':' +
       new Date(lastReport.created_at ?? lastReport.timestamp).getUTCMinutes().toString().padStart(2, '0') + 'Z'
     : '—';
 
-  const recent = todayReports.slice(0, 5);
-
   return (
     <div className="flex flex-col bg-card">
-      {/* Top row: Transmissions + By Service */}
-      <div className="grid gap-0" style={{ gridTemplateColumns: 'auto auto 1fr 1fr' }}>
+      <div className="grid gap-0" style={{ gridTemplateColumns: 'auto auto 1fr' }}>
         {/* Total Transmissions */}
         <div className="px-3 py-2.5 md:px-4 md:py-3 border-r border-b md:border-b-0 border-border flex flex-col">
           <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
@@ -57,11 +49,8 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
           </div>
         </div>
 
-
-        {/* System Status - desktop: col 3 */}
-        <div className="hidden md:block px-4 py-3 border-r border-border">
-          <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-2 font-bold">
-          </div>
+        {/* System Status */}
+        <div className="hidden md:block px-4 py-3">
           <div className="flex flex-col gap-0.5">
             <div className="flex justify-between">
               <span className="text-lg text-foreground">DEVICES</span>
@@ -83,38 +72,11 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
             </div>
           </div>
         </div>
-
-        {/* Recent Timeline - desktop: col 4 */}
-        <div className="hidden md:block px-4 py-3">
-          <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-2 font-bold">
-            RECENT TIMELINE
-          </div>
-          {recent.length === 0 ? (
-            <span className="text-lg text-foreground opacity-50">No recent activity</span>
-          ) : (
-            <div className="flex flex-col gap-0.5">
-              {recent.map((r) => {
-                const p = r.assessment?.priority ?? r.priority ?? 'P3';
-                const d = new Date(r.created_at ?? r.timestamp);
-                const t = d.getUTCHours().toString().padStart(2, '0') + ':' +
-                  d.getUTCMinutes().toString().padStart(2, '0') + 'Z';
-                const h = (r.assessment?.headline ?? r.headline ?? '').slice(0, 22);
-                return (
-                  <div key={r.id} className="flex items-center gap-1.5">
-                    <span className="text-lg text-foreground opacity-70 w-[52px] flex-shrink-0">{t}</span>
-                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: getColor(p) }} />
-                    <span className="text-lg text-foreground truncate">{h}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Mobile: System Status + Timeline stacked full-width */}
+      {/* Mobile: System Status */}
       <div className="md:hidden">
-        <div className="px-3 py-2.5 border-b border-border">
+        <div className="px-3 py-2.5">
           <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
             SYSTEM STATUS
           </div>
@@ -138,32 +100,6 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
               <span className="text-lg text-foreground font-bold">v1.0</span>
             </div>
           </div>
-        </div>
-
-        <div className="px-3 py-2.5">
-          <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
-            RECENT TIMELINE
-          </div>
-          {recent.length === 0 ? (
-            <span className="text-lg text-foreground opacity-50">No recent activity</span>
-          ) : (
-            <div className="flex flex-col gap-0.5">
-              {recent.map((r) => {
-                const p = r.assessment?.priority ?? r.priority ?? 'P3';
-                const d = new Date(r.created_at ?? r.timestamp);
-                const t = d.getUTCHours().toString().padStart(2, '0') + ':' +
-                  d.getUTCMinutes().toString().padStart(2, '0') + 'Z';
-                const h = (r.assessment?.headline ?? r.headline ?? '').slice(0, 30);
-                return (
-                  <div key={r.id} className="flex items-center gap-1.5">
-                    <span className="text-lg text-foreground opacity-70 w-[52px] flex-shrink-0">{t}</span>
-                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: getColor(p) }} />
-                    <span className="text-lg text-foreground truncate">{h}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
     </div>
