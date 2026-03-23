@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { Assessment, LiveState, Mismatch } from '@/lib/herald-types';
+import type { Assessment, LiveState, Mismatch, ActionItem } from '@/lib/herald-types';
 import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS, detectMismatches } from '@/lib/herald-types';
 import { transcribeAudio, assessTranscript, syncReport } from '@/lib/herald-api';
 import { getReports, markSynced, saveReport, updateReport } from '@/lib/herald-storage';
@@ -8,7 +8,7 @@ import { getSession } from '@/lib/herald-session';
 import { toSyncPayload } from '@/lib/herald-sync';
 import type { HeraldReport } from '@/lib/herald-types';
 import { supabase } from '@/integrations/supabase/client';
-import { sanitizeAssessment } from '@/lib/sanitize-assessment';
+import { sanitizeAssessment, toActionItems, formatActionAge } from '@/lib/sanitize-assessment';
 
 const MAX_DURATION_MS = 5 * 60 * 1000;
 
