@@ -249,7 +249,8 @@ export default function Command() {
                 connected={connected}
               />
             ) : (
-              <div style={{ maxHeight: 400, overflow: 'hidden' }}>
+              <div className="relative" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+                <ExpandButton expanded={false} onClick={() => toggleExpand('ops')} />
                 <OpsLogTab />
               </div>
             )}
