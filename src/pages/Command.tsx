@@ -301,6 +301,7 @@ export default function Command() {
               <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
             </div>
           </div>
+          )}
         </div>
       </div>
     );
