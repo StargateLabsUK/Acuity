@@ -10,8 +10,6 @@ import { MapTab } from '@/components/command/MapTab';
 import { TrainingTab } from '@/components/command/TrainingTab';
 import { OpsLogTab } from '@/components/command/OpsLogTab';
 import { UptimeTab } from '@/components/command/UptimeTab';
-import { CommandFilterBar } from '@/components/command/CommandFilterBar';
-import type { CommandFilters } from '@/components/command/CommandFilterBar';
 import type { MapTabHandle } from '@/components/command/MapTab';
 
 type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training' | 'ops' | 'sla';
@@ -36,7 +34,7 @@ function useViewMode(): ViewMode {
 
 function applyFilters(
   reports: ReturnType<typeof useHeraldCommand>['reports'],
-  filters: CommandFilters
+  filters: { service: string; callsign: string; timeRange: string }
 ) {
   let filtered = [...reports];
   if (filters.service) {
@@ -86,11 +84,7 @@ export default function Command() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
-  const [filters, setFilters] = useState<CommandFilters>({
-    service: '',
-    callsign: '',
-    timeRange: 'today',
-  });
+  const [filters] = useState({ service: '', callsign: '', timeRange: 'today' as const });
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
   const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops' | 'sla' | 'map'>('status');
   const [opsReportId, setOpsReportId] = useState<string | null>(null);
@@ -177,15 +171,7 @@ export default function Command() {
     );
   };
 
-  const filterSlot = (
-    <CommandFilterBar
-      services={uniqueServices}
-      callsigns={uniqueCallsigns}
-      onFilterChange={setFilters}
-    />
-  );
-
-  const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} filterSlot={filterSlot} />;
+  const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} />;
 
   // OPS LOG REPORT DETAIL — full page with report + map
   if (opsReport) {
