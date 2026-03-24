@@ -350,13 +350,13 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           const loc = await getLocation();
           const reportId = crypto.randomUUID();
           setCurrentReportId(reportId);
-          // Store location and timestamp for use at confirm time
           pendingReportRef.current = {
             id: reportId,
             timestamp: new Date().toISOString(),
             transcript: t,
             ...loc,
           };
+          lastSubmissionRef.current = { content: t, callsign: dedupCallsign, timestamp: Date.now() };
           setState('ready');
         } catch {
           onAiStatus('error');
