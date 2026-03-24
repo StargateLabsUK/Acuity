@@ -103,10 +103,42 @@ serve(async (req) => {
         mergedActionItems = stillActive;
       }
 
-      // Add new action items from this transmission
+      // Add new action items from this transmission — deduplicated
       const newItems = newAssessment?.action_items || [];
       if (Array.isArray(newItems) && newItems.length > 0) {
-        mergedActionItems = [...mergedActionItems, ...newItems];
+        for (const newItem of newItems) {
+          const newText = typeof newItem === 'string' ? newItem : newItem?.text || '';
+          const newCategory = actionItemCategory(newText);
+          let isDuplicate = false;
+
+          for (let i = 0; i < mergedActionItems.length; i++) {
+            const existingText = typeof mergedActionItems[i] === 'string'
+              ? mergedActionItems[i] : mergedActionItems[i]?.text || '';
+            if (actionItemsMatch(existingText, newText, newCategory, actionItemCategory(existingText))) {
+              // Update timestamp on existing item but don't add duplicate
+              if (typeof mergedActionItems[i] === 'object') {
+                mergedActionItems[i].opened_at = new Date().toISOString();
+              }
+              isDuplicate = true;
+              break;
+            }
+          }
+
+          // Also check resolved items — don't re-add something already resolved
+          if (!isDuplicate) {
+            for (const resolved of resolvedItems) {
+              const resolvedText = typeof resolved === 'string' ? resolved : resolved?.text || '';
+              if (actionItemsMatch(resolvedText, newText, newCategory, actionItemCategory(resolvedText))) {
+                isDuplicate = true;
+                break;
+              }
+            }
+          }
+
+          if (!isDuplicate) {
+            mergedActionItems.push(newItem);
+          }
+        }
       }
 
       // Merge into assessment
@@ -287,4 +319,31 @@ async function findMatchingIncident(
   }
 
   return null;
+}
+
+/**
+ * Categorise an action item into a semantic bucket for deduplication.
+ */
+function actionItemCategory(text: string): string {
+  const t = text.toLowerCase();
+  if (/hems/i.test(t)) return 'hems';
+  if (/receiv(ing|e)\s*hospital/i.test(t)) return 'hospital';
+  if (/transport(ing)?\s*unit/i.test(t) || /cannot\s*convey/i.test(t)) return 'transport';
+  if (/additional\s*(unit|ambulance|crew|resource)/i.test(t)) return 'additional_unit';
+  if (/back-?up/i.test(t)) return 'backup';
+  if (/trapped|extrication/i.test(t)) return 'extrication';
+  if (/status\s*(unconfirmed|unknown)/i.test(t)) return 'status_unconfirmed';
+  return '';
+}
+
+/**
+ * Check if two action items are semantically the same.
+ * Same category = duplicate. Also does normalised text comparison.
+ */
+function actionItemsMatch(a: string, b: string, catA: string, catB: string): boolean {
+  // Same non-empty category = semantic match
+  if (catA && catB && catA === catB) return true;
+  // Normalised text match
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return norm(a) === norm(b);
 }
