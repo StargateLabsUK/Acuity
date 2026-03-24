@@ -72,7 +72,7 @@ const Index = () => {
             onReportSaved={refreshReports}
           />
         ) : activeTab === 'incidents' ? (
-          <IncidentsTab session={session} onCloseIncident={handleCloseIncident} />
+          <IncidentsTab session={session} onCloseIncident={handleCloseIncident} refreshKey={incidentRefresh} />
         ) : (
           <ReportsTab reports={closedReports} session={session} />
         )}
