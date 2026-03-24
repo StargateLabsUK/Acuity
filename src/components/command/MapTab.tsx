@@ -65,6 +65,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       mapRef.current = map;
 
       return () => {
+        clearTimeout(resizeTimer);
         map.remove();
         mapRef.current = null;
         markersRef.current.clear();
