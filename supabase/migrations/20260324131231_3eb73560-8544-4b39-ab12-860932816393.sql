@@ -1,0 +1,1 @@
+TRUNCATE incident_transmissions, herald_reports CASCADE;
