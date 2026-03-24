@@ -211,9 +211,27 @@ export default function Command() {
             {expandedPanel === 'feed' && (
               <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
             )}
-            {expandedPanel === 'detail' && (
+            {expandedPanel === 'detail' && selectedReport && (
+              <>
+                <button
+                  onClick={() => setExpandedPanel(null)}
+                  className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded bg-card/90 border border-border hover:bg-card cursor-pointer transition-colors text-sm font-bold tracking-widest text-foreground flex items-center gap-2"
+                >
+                  <Minimize2 size={16} /> BACK
+                </button>
+                <div className="flex h-full gap-3">
+                  <div className="flex-1 rounded-lg border border-border bg-card shadow-sm overflow-y-auto">
+                    <ReportDetail report={selectedReport} />
+                  </div>
+                  <div className="w-2/5 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+                    <MapTab reports={[selectedReport]} onSelectReport={() => {}} />
+                  </div>
+                </div>
+              </>
+            )}
+            {expandedPanel === 'detail' && !selectedReport && (
               <div className="h-full overflow-y-auto">
-                <ReportDetail report={selectedReport} />
+                <ReportDetail report={null} />
               </div>
             )}
             {expandedPanel === 'ops' && (
