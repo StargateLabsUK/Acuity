@@ -30,7 +30,7 @@ export function useCommandPull(onUpdate?: () => void) {
       try {
         const { data } = await supabase
           .from('herald_reports')
-          .select('id, incident_number, receiving_hospital')
+          .select('id, incident_number, receiving_hospital, status')
           .in('id', ids);
 
         if (!data) return;
@@ -51,6 +51,12 @@ export function useCommandPull(onUpdate?: () => void) {
           const remoteHospital = (row as any).receiving_hospital;
           if (remoteHospital && remoteHospital !== (local as any).receiving_hospital) {
             (updates as any).receiving_hospital = remoteHospital;
+          }
+
+          // Status — sync closures from command
+          const remoteStatus = (row as any).status;
+          if (remoteStatus && remoteStatus !== local.status) {
+            updates.status = remoteStatus;
           }
 
           if (Object.keys(updates).length > 0) {

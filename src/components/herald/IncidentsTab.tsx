@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { updateReport } from '@/lib/herald-storage';
 import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 import type { Assessment, IncidentTransmission, ActionItem } from '@/lib/herald-types';
 import { renderStructuredValue } from '@/components/StructuredValue';
@@ -93,10 +94,13 @@ export function IncidentsTab({ session, onCloseIncident }: Props) {
   }, []);
 
   const confirmClose = useCallback(async (inc: Incident) => {
+    const closedAt = inc.confirmed_at ?? new Date().toISOString();
     await supabase
       .from('herald_reports')
-      .update({ status: 'closed', confirmed_at: inc.confirmed_at ?? new Date().toISOString() })
+      .update({ status: 'closed', confirmed_at: closedAt })
       .eq('id', inc.id);
+    // Also update local storage so field app immediately reflects closure
+    updateReport(inc.id, { status: 'closed', confirmed_at: closedAt } as any);
     setClosing(null);
     onCloseIncident(inc.id, inc.incident_number);
     fetchIncidents();

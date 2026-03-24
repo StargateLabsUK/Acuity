@@ -421,6 +421,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       diff: { ...diff, mismatches } as any,
       edited: diff.has_edits,
       incident_number: followUpIncidentNumber ?? undefined,
+      status: 'active' as const,
       ...sessionFields,
     };
 

@@ -98,7 +98,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
       <div className="flex-1 flex flex-col items-center justify-center px-4">
         <span className="text-lg uppercase font-bold mb-4" style={{ color: '#4A6058' }}>{SERVICE_LABELS[session.service] ?? session.service}</span>
         <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.2em', marginBottom: 8 }}>
-          NO REPORTS THIS SHIFT
+          NO CLOSED INCIDENTS THIS SHIFT
         </p>
         <p style={{ color: '#1E3028', fontSize: 18 }}>
           {session.callsign} · {session.session_date}
@@ -110,12 +110,12 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
   return (
     <div className="flex-1 overflow-auto px-3 py-3">
       <p className="text-lg text-foreground tracking-[0.1em] mb-3 font-bold">
-        CONFIRMED TRANSMISSIONS
+        CLOSED INCIDENTS
       </p>
 
       {reports.length === 0 && (
         <p className="text-center mt-12 text-lg text-foreground opacity-50">
-          No confirmed reports yet
+          No closed incidents yet
         </p>
       )}
 
