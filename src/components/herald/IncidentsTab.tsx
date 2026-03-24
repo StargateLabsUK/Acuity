@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, FileText, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getReports, updateReport, saveCasualtyDisposition, isCasualtyClosed } from '@/lib/herald-storage';
@@ -590,6 +590,8 @@ function ResolvedActions({ items }: { items: ActionItem[] }) {
 export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [nav, setNav] = useState<NavState>({ view: 'list' });
+  const navRef = useRef<NavState>(nav);
+  navRef.current = nav;
 
   const fetchIncidents = useCallback(async () => {
     const localIncidents: Incident[] = getReports()
@@ -656,22 +658,23 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
 
     setIncidents(sorted);
 
-    // Update current nav state with fresh data
-    if (nav.view === 'incident' || nav.view === 'casualty') {
-      const fresh = sorted.find(i => i.id === (nav.view === 'incident' ? nav.incident.id : nav.incident.id));
+    // Update current nav state with fresh data (using ref to avoid dependency loop)
+    const currentNav = navRef.current;
+    if (currentNav.view === 'incident' || currentNav.view === 'casualty') {
+      const incId = currentNav.incident.id;
+      const fresh = sorted.find(i => i.id === incId);
       if (fresh) {
-        if (nav.view === 'incident') {
+        if (currentNav.view === 'incident') {
           setNav({ view: 'incident', incident: fresh });
         } else {
-          // Re-extract casualty
-          const freshCas = extractCasualties(fresh).find(c => c.key === nav.casualty.key);
+          const freshCas = extractCasualties(fresh).find(c => c.key === currentNav.casualty.key);
           if (freshCas) {
             setNav({ view: 'casualty', incident: fresh, casualty: freshCas });
           }
         }
       }
     }
-  }, [session.callsign, session.session_date, session.shift_id, nav]);
+  }, [session.callsign, session.session_date, session.shift_id]);
 
   useEffect(() => { fetchIncidents(); }, [fetchIncidents, refreshKey]);
 
@@ -682,25 +685,24 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
 
   const handleCasualtyClosed = useCallback((d: CasualtyDisposition) => {
     onCasualtyClosed(d);
-    // Go back to incident detail or list
-    if (nav.view === 'casualty') {
-      const remaining = extractCasualties(nav.incident).filter(c => !isCasualtyClosed(nav.incident.id, c.key) && c.key !== d.casualty_key);
+    const currentNav = navRef.current;
+    if (currentNav.view === 'casualty') {
+      const remaining = extractCasualties(currentNav.incident).filter(c => !isCasualtyClosed(currentNav.incident.id, c.key) && c.key !== d.casualty_key);
       if (remaining.length === 0) {
-        // All casualties closed — close the incident too
         supabase.from('herald_reports')
           .update({ status: 'closed', confirmed_at: new Date().toISOString() })
-          .eq('id', nav.incident.id)
+          .eq('id', currentNav.incident.id)
           .then(() => {
-            updateReport(nav.incident.id, { status: 'closed', confirmed_at: new Date().toISOString() } as any);
+            updateReport(currentNav.incident.id, { status: 'closed', confirmed_at: new Date().toISOString() } as any);
             fetchIncidents();
           });
         setNav({ view: 'list' });
       } else {
-        setNav({ view: 'incident', incident: nav.incident });
+        setNav({ view: 'incident', incident: currentNav.incident });
       }
     }
     fetchIncidents();
-  }, [nav, onCasualtyClosed, fetchIncidents]);
+  }, [onCasualtyClosed, fetchIncidents]);
 
   // Filter to only show incidents with open casualties
   const activeWithCasualties = incidents.filter(inc => {
