@@ -157,6 +157,146 @@ function EditableField({
   );
 }
 
+/* ── Casualty card with expandable ePRF for handed-over patients ── */
+
+function CasualtyCard({ casualtyKey, val, cCol, statusColor, casualtyStatus, disp, dispLabel, dispFields, handoverTimeStr, reportCallsign, report }: {
+  casualtyKey: string;
+  val: any;
+  cCol: string;
+  statusColor: string;
+  casualtyStatus: string;
+  disp: CommandDisposition | null;
+  dispLabel: string | null;
+  dispFields: DispositionFields | undefined;
+  handoverTimeStr: string | null;
+  reportCallsign: string | null;
+  report: CommandReport;
+}) {
+  const [showEprf, setShowEprf] = useState(false);
+
+  const eprfText = disp ? buildCommandEprf(casualtyKey, val, disp, report) : '';
+
+  return (
+    <DetailCard>
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-bold" style={{ color: cCol }}>{casualtyKey}</span>
+          <span className="text-lg text-foreground">{val?.M ?? '—'}</span>
+        </div>
+        <span className="text-lg font-bold rounded-sm px-1.5 py-0.5"
+          style={{
+            color: statusColor,
+            border: `1px solid ${statusColor}66`,
+            background: disp ? `${statusColor}15` : undefined,
+          }}>
+          {casualtyStatus.toUpperCase()}
+        </span>
+      </div>
+      <div className="text-lg text-foreground opacity-80">
+        {val?.I ? `Injuries: ${val.I}` : 'Injuries: —'}
+      </div>
+      {reportCallsign && (
+        <div className="text-lg mt-1" style={{ color: '#3DFF8C' }}>
+          Crew: {reportCallsign}
+        </div>
+      )}
+
+      {/* Disposition details for handed-over patients */}
+      {disp && (
+        <div className="mt-2 pt-2 border-t border-border">
+          <div className="text-lg font-bold mb-1" style={{ color: '#34C759' }}>
+            {dispLabel}
+          </div>
+          {dispFields?.receiving_hospital && (
+            <div className="text-lg text-foreground">Hospital: {dispFields.receiving_hospital}</div>
+          )}
+          {dispFields?.handover_given_to && (
+            <div className="text-lg text-foreground">Handed to: {dispFields.handover_given_to}</div>
+          )}
+          {dispFields?.referral_destination && (
+            <div className="text-lg text-foreground">Referred to: {dispFields.referral_destination}</div>
+          )}
+          {handoverTimeStr && (
+            <div className="text-lg text-foreground opacity-60">Handover: {handoverTimeStr}</div>
+          )}
+
+          {/* View ePRF button */}
+          <button onClick={() => setShowEprf(!showEprf)}
+            className="mt-2 flex items-center gap-2 text-lg font-bold tracking-[0.1em] border rounded px-3 py-1.5 cursor-pointer transition-colors"
+            style={{
+              color: showEprf ? '#1A1E24' : 'hsl(var(--primary))',
+              background: showEprf ? 'hsl(var(--primary))' : 'transparent',
+              borderColor: 'hsl(var(--primary))',
+            }}>
+            <FileText size={16} />
+            {showEprf ? 'HIDE ePRF' : 'VIEW ePRF'}
+          </button>
+          {showEprf && (
+            <div className="mt-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-lg font-bold tracking-[0.15em]" style={{ color: 'hsl(var(--primary))' }}>ePRF</span>
+                <CopyBtn text={eprfText} label="COPY" />
+              </div>
+              <div className="border border-border rounded bg-card p-3">
+                <div className="text-lg text-foreground leading-7 whitespace-pre-wrap break-words">{eprfText}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </DetailCard>
+  );
+}
+
+function buildCommandEprf(casualtyKey: string, val: any, disp: CommandDisposition, report: CommandReport): string {
+  const ts = new Date(report.created_at ?? report.timestamp);
+  const dateStr = ts.toISOString().slice(0, 10);
+  const timeStr = ts.getUTCHours().toString().padStart(2, '0') + ':' +
+    ts.getUTCMinutes().toString().padStart(2, '0') + ':' +
+    ts.getUTCSeconds().toString().padStart(2, '0') + 'Z';
+  const a = report.assessment;
+  const incidentNum = report.incident_number ?? (a?.structured as any)?.incident_number ?? '—';
+  const dispLabel = DISPOSITION_LABELS[disp.disposition as DispositionType];
+  const fields = (disp.fields || {}) as DispositionFields;
+
+  let header = `ePRF — PATIENT HANDOVER
+═══════════════════════════
+INCIDENT: ${incidentNum}
+DATE/TIME: ${dateStr} ${timeStr}
+CALLSIGN: ${report.session_callsign ?? '—'}
+
+PATIENT: ${disp.casualty_label}
+PRIORITY: ${disp.priority}
+
+ATMIST:
+  Age/Sex: ${val?.A ?? '—'}
+  Time of Injury: ${val?.T ?? '—'}
+  Mechanism: ${val?.M ?? '—'}
+  Injuries: ${val?.I ?? '—'}${val?.status ? `\n  Status: ${val.status}` : ''}
+  Signs/Vitals: ${val?.S ?? '—'}${val?.downtime ? `\n  Downtime: ${val.downtime}` : ''}
+  Treatment: ${val?.T_treatment ?? '—'}
+
+DISPOSITION: ${dispLabel}`;
+
+  let dispSection = '';
+  if (disp.disposition === 'conveyed') {
+    dispSection = `\nRECEIVING HOSPITAL: ${fields.receiving_hospital || '—'}\nTIME OF HANDOVER: ${fields.time_of_handover || '—'}\nHANDOVER GIVEN TO: ${fields.handover_given_to || '—'}\nePRF HANDED OVER: ${fields.eprf_handed_over ? 'Yes' : 'No'}`;
+  } else if (disp.disposition === 'see_and_treat') {
+    dispSection = `\nCLINICAL JUSTIFICATION: ${fields.clinical_justification || '—'}\nOBSERVATIONS: ${fields.discharge_observations || '—'}\nADVICE GIVEN: ${fields.advice_given || '—'}\nSAFETY NET: ${fields.safety_net_given ? 'Given' : 'Not given'}\nTIME OF DISCHARGE: ${fields.time_of_discharge || '—'}`;
+  } else if (disp.disposition === 'see_and_refer') {
+    dispSection = `\nREFERRAL DESTINATION: ${fields.referral_destination || '—'}\nREFERRAL PATHWAY: ${fields.referral_pathway || '—'}\nREFERRAL ACCEPTED: ${fields.referral_accepted ? 'Accepted' : 'Advised only'}\nREFERENCE: ${fields.reference_number || '—'}`;
+  } else if (disp.disposition === 'refused_transport') {
+    dispSection = `\nCAPACITY ASSESSED: ${fields.capacity_assessed ? 'Yes' : 'No'}\nPATIENT HAS CAPACITY: ${fields.patient_has_capacity ? 'Yes' : 'No'}\nRISKS EXPLAINED: ${fields.risks_explained ? 'Yes' : 'No'}\nREFUSAL WITNESSED BY: ${fields.refusal_witnessed_by || '—'}\nTIME OF REFUSAL: ${fields.time_of_refusal || '—'}\nSIGNED FORM: ${fields.signed_refusal_form ? 'Obtained' : 'Not obtained'}`;
+  } else if (disp.disposition === 'role') {
+    dispSection = `\nTIME OF RECOGNITION: ${fields.time_of_recognition || '—'}\nCRITERIA: ${fields.role_criteria || '—'}\nRESUSCITATION ATTEMPTED: ${fields.resuscitation_attempted ? 'Yes' : 'No'}\nGP NOTIFIED: ${fields.gp_notified ? 'Yes' : 'No'}\nPOLICE NOTIFIED: ${fields.police_notified ? 'Yes' : 'No'}\nCORONER REFERRAL: ${fields.coroner_referral ? 'Yes' : 'No'}\nNOK NOTIFIED: ${fields.nok_notified ? 'Yes' : 'No'}`;
+  }
+
+  return `${header}${dispSection}
+HANDED OVER: ${new Date(disp.closed_at).toISOString().slice(0, 16).replace('T', ' ')}Z
+═══════════════════════════
+Generated by Herald Radio Intelligence`;
+}
+
 /* ── Main component ── */
 
 export function ReportDetail({ report, dispositions = [] }: Props) {
