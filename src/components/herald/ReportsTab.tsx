@@ -129,7 +129,11 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
         const atmist = (a?.atmist as Record<string, any>) ?? null;
         const actionItems: (string | ActionItem)[] = (a?.action_items as any[]) ?? [];
         const treatmentGiven: string[] = (a?.treatment_given as string[]) ?? [];
-        const receivingHospital: string[] = (a?.receiving_hospital as string[]) ?? [];
+        // Receiving hospital: report-level (command override) > assessment
+        const reportHospital = (r as any).receiving_hospital as string | undefined;
+        const assessmentHospital: string[] = (a?.receiving_hospital as string[]) ?? [];
+        const receivingHospitalDisplay = reportHospital || (assessmentHospital.length > 0 ? assessmentHospital.join(', ') : '');
+        const incidentNumber = r.incident_number ?? ((a?.structured as any)?.incident_number as string) ?? '';
         const incidentType = (a?.incident_type as string) ?? (a?.protocol as string) ?? '';
         const priorityLabel = (a?.priority_label as string) ?? '';
         const ts = new Date(r.timestamp);
