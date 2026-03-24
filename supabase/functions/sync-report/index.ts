@@ -103,10 +103,42 @@ serve(async (req) => {
         mergedActionItems = stillActive;
       }
 
-      // Add new action items from this transmission
+      // Add new action items from this transmission — deduplicated
       const newItems = newAssessment?.action_items || [];
       if (Array.isArray(newItems) && newItems.length > 0) {
-        mergedActionItems = [...mergedActionItems, ...newItems];
+        for (const newItem of newItems) {
+          const newText = typeof newItem === 'string' ? newItem : newItem?.text || '';
+          const newCategory = actionItemCategory(newText);
+          let isDuplicate = false;
+
+          for (let i = 0; i < mergedActionItems.length; i++) {
+            const existingText = typeof mergedActionItems[i] === 'string'
+              ? mergedActionItems[i] : mergedActionItems[i]?.text || '';
+            if (actionItemsMatch(existingText, newText, newCategory, actionItemCategory(existingText))) {
+              // Update timestamp on existing item but don't add duplicate
+              if (typeof mergedActionItems[i] === 'object') {
+                mergedActionItems[i].opened_at = new Date().toISOString();
+              }
+              isDuplicate = true;
+              break;
+            }
+          }
+
+          // Also check resolved items — don't re-add something already resolved
+          if (!isDuplicate) {
+            for (const resolved of resolvedItems) {
+              const resolvedText = typeof resolved === 'string' ? resolved : resolved?.text || '';
+              if (actionItemsMatch(resolvedText, newText, newCategory, actionItemCategory(resolvedText))) {
+                isDuplicate = true;
+                break;
+              }
+            }
+          }
+
+          if (!isDuplicate) {
+            mergedActionItems.push(newItem);
+          }
+        }
       }
 
       // Merge into assessment
