@@ -19,3 +19,9 @@ Rules for transmission consolidation and action item resolution
 - METHANE placeholder guard also applies to structured keys: hazards, access/access_routes, num_casualties/number_of_casualties/casualties, emergency_services
 - major_incident sticky guard treats any non-true follow-up value as no-change when existing is true
 - incident_type merge policy: only allow same/broader/more severe updates; block downgrades and over-specific replacements
+- ATMIST merge guard: if existing P1/P2 field has data, placeholder/"Not specified"/no-update values from follow-ups cannot overwrite it
+- ATMIST mechanism guard: mechanism updates are accepted only when supported by current transcript cues (prevents inferred vehicle-type hallucinations)
+- ATMIST signs guard: non-vitals scene text cannot overwrite existing vitals-rich signs
+- ATMIST treatment guard: non-clinical scene management text (extrication/awaiting resource) cannot overwrite clinical treatment
+- clinical_findings A-E merges per casualty segment (e.g. keep P1 while applying P2 updates)
+- normalize assessment before merge: backfill structured METHANE keys (hazards, access, number_of_casualties, emergency_services) from alternate keys/formatted report when present
