@@ -33,6 +33,35 @@ export interface OpsReport {
   transmission_count: number | null;
   latest_transmission_at: string | null;
   status: string | null;
+  confirmed_at: string | null;
+  receiving_hospital: string | null;
+  vehicle_type: string | null;
+}
+
+export interface OpsTransmission {
+  id: string;
+  report_id: string | null;
+  timestamp: string;
+  transcript: string | null;
+  assessment: Assessment | null;
+  headline: string | null;
+  priority: string | null;
+  session_callsign: string | null;
+  operator_id: string | null;
+  created_at: string | null;
+}
+
+export interface OpsDisposition {
+  id: string;
+  report_id: string;
+  casualty_key: string;
+  casualty_label: string;
+  priority: string;
+  disposition: string;
+  fields: Record<string, unknown> | null;
+  closed_at: string;
+  session_callsign: string | null;
+  incident_number: string | null;
 }
 
 export interface OpsFilters {
@@ -41,17 +70,21 @@ export interface OpsFilters {
   station: string;
   dateFrom: string;
   dateTo: string;
+  outcome: string;
+  incidentType: string;
 }
 
 export function useOpsLog() {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [reports, setReports] = useState<OpsReport[]>([]);
+  const [transmissions, setTransmissions] = useState<OpsTransmission[]>([]);
+  const [dispositions, setDispositions] = useState<OpsDisposition[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [shiftsRes, reportsRes] = await Promise.all([
+      const [shiftsRes, reportsRes, txRes, dispRes] = await Promise.all([
         supabase
           .from('shifts')
           .select('*')
@@ -59,23 +92,29 @@ export function useOpsLog() {
           .limit(200),
         supabase
           .from('herald_reports')
-          .select('id, timestamp, transcript, assessment, headline, priority, service, shift_id, session_callsign, session_operator_id, session_service, session_station, created_at, incident_number, transmission_count, latest_transmission_at, status')
+          .select('id, timestamp, transcript, assessment, headline, priority, service, shift_id, session_callsign, session_operator_id, session_service, session_station, created_at, incident_number, transmission_count, latest_transmission_at, status, confirmed_at, receiving_hospital, vehicle_type')
           .order('created_at', { ascending: false })
           .limit(500),
+        supabase
+          .from('incident_transmissions')
+          .select('*')
+          .order('timestamp', { ascending: true })
+          .limit(2000),
+        supabase
+          .from('casualty_dispositions')
+          .select('*')
+          .order('closed_at', { ascending: false })
+          .limit(1000),
       ]);
 
       if (shiftsRes.data) {
-        // Count reports per shift
         const reportsByShift: Record<string, number> = {};
         (reportsRes.data ?? []).forEach((r: any) => {
           if (r.shift_id) reportsByShift[r.shift_id] = (reportsByShift[r.shift_id] || 0) + 1;
         });
-
-        const enriched = shiftsRes.data.map((s: any) => ({
-          ...s,
-          report_count: reportsByShift[s.id] || 0,
-        }));
-        setShifts(enriched);
+        setShifts(
+          shiftsRes.data.map((s: any) => ({ ...s, report_count: reportsByShift[s.id] || 0 }))
+        );
       }
 
       if (reportsRes.data) {
@@ -85,6 +124,19 @@ export function useOpsLog() {
             assessment: r.assessment ? (r.assessment as unknown as Assessment) : null,
           }))
         );
+      }
+
+      if (txRes.data) {
+        setTransmissions(
+          txRes.data.map((t: any) => ({
+            ...t,
+            assessment: t.assessment ? (t.assessment as unknown as Assessment) : null,
+          }))
+        );
+      }
+
+      if (dispRes.data) {
+        setDispositions(dispRes.data as unknown as OpsDisposition[]);
       }
     } catch {
       // silent
@@ -100,5 +152,5 @@ export function useOpsLog() {
   const uniqueServices = Array.from(new Set(shifts.map((s) => s.service).filter(Boolean))).sort();
   const uniqueStations = Array.from(new Set(shifts.map((s) => s.station).filter(Boolean) as string[])).sort();
 
-  return { shifts, reports, loading, refresh: fetchData, uniqueServices, uniqueStations };
+  return { shifts, reports, transmissions, dispositions, loading, refresh: fetchData, uniqueServices, uniqueStations };
 }
