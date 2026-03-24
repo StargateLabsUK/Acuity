@@ -590,6 +590,8 @@ function ResolvedActions({ items }: { items: ActionItem[] }) {
 export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [nav, setNav] = useState<NavState>({ view: 'list' });
+  const navRef = useRef<NavState>(nav);
+  navRef.current = nav;
 
   const fetchIncidents = useCallback(async () => {
     const localIncidents: Incident[] = getReports()
@@ -656,22 +658,23 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
 
     setIncidents(sorted);
 
-    // Update current nav state with fresh data
-    if (nav.view === 'incident' || nav.view === 'casualty') {
-      const fresh = sorted.find(i => i.id === (nav.view === 'incident' ? nav.incident.id : nav.incident.id));
+    // Update current nav state with fresh data (using ref to avoid dependency loop)
+    const currentNav = navRef.current;
+    if (currentNav.view === 'incident' || currentNav.view === 'casualty') {
+      const incId = currentNav.incident.id;
+      const fresh = sorted.find(i => i.id === incId);
       if (fresh) {
-        if (nav.view === 'incident') {
+        if (currentNav.view === 'incident') {
           setNav({ view: 'incident', incident: fresh });
         } else {
-          // Re-extract casualty
-          const freshCas = extractCasualties(fresh).find(c => c.key === nav.casualty.key);
+          const freshCas = extractCasualties(fresh).find(c => c.key === currentNav.casualty.key);
           if (freshCas) {
             setNav({ view: 'casualty', incident: fresh, casualty: freshCas });
           }
         }
       }
     }
-  }, [session.callsign, session.session_date, session.shift_id, nav]);
+  }, [session.callsign, session.session_date, session.shift_id]);
 
   useEffect(() => { fetchIncidents(); }, [fetchIncidents, refreshKey]);
 
