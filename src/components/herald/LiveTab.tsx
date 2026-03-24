@@ -329,6 +329,11 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
           const sessionCtx = getSession();
           const result = await assessTranscript(t, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
+          // Override callsign and operator_id from shift data — never from transcript
+          if (result && result.structured) {
+            result.structured.callsign = sessionCtx?.callsign || null;
+            result.structured.operator_id = sessionCtx?.operator_id || null;
+          }
           setAssessment(result);
           onAiStatus('ok');
 
@@ -371,6 +376,11 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       setTranscript(text);
       const sessionCtx = getSession();
       const result = await assessTranscript(text, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
+      // Override callsign and operator_id from shift data — never from transcript
+      if (result && result.structured) {
+        result.structured.callsign = sessionCtx?.callsign || null;
+        result.structured.operator_id = sessionCtx?.operator_id || null;
+      }
       setAssessment(result);
       onAiStatus('ok');
 
