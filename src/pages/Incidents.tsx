@@ -13,7 +13,9 @@ import type { HeraldReport, CasualtyDisposition } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 
 const IncidentsPage = () => {
-  const [activeTab, setActiveTab] = useState<'live' | 'reports' | 'incidents'>('incidents');
+  const location = useLocation();
+  const initialTab = (location.state as any)?.tab === 'reports' ? 'reports' : 'incidents';
+  const [activeTab, setActiveTab] = useState<'live' | 'reports' | 'incidents'>(initialTab as any);
   const [reports, setReports] = useState<HeraldReport[]>([]);
   const [session, setSession] = useState<HeraldSession | null>(getSession());
   const [incidentRefresh, setIncidentRefresh] = useState(0);
