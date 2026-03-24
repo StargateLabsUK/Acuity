@@ -257,6 +257,7 @@ serve(async (req) => {
       headline: reportData.headline ?? null,
       operator_id: reportData.session_operator_id ?? null,
       session_callsign: reportData.session_callsign ?? null,
+      trust_id: reportData.trust_id ?? null,
     });
 
     return new Response(
