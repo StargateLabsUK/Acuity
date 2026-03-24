@@ -181,6 +181,14 @@ export function useHeraldCommand() {
           }, 800);
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'casualty_dispositions' },
+        (payload) => {
+          const d = payload.new as unknown as CommandDisposition;
+          setDispositions((prev) => [d, ...prev]);
+        }
+      )
       .subscribe((status) => {
         setConnected(status === 'SUBSCRIBED');
       });
