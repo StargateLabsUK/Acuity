@@ -413,6 +413,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         transcript: text,
         ...loc,
       };
+      lastSubmissionRef.current = { content: text, callsign: dedupCallsign, timestamp: Date.now() };
       setState('ready');
     } catch {
       onAiStatus('error');
