@@ -73,7 +73,7 @@ PRIORITY: ${d.priority}
 ATMIST:
 ${atmistLines}
 
-DISPOSITION: ${dispLabel}${d.refer_to ? ` — ${d.refer_to}` : ''}${d.capacity_assessed ? ' (Capacity assessed)' : ''}
+DISPOSITION: ${dispLabel}${d.fields?.referral_destination ? ` — ${d.fields.referral_destination}` : ''}${d.fields?.capacity_assessed ? ' (Capacity assessed)' : ''}
 ${hospitalLine}
 HANDED OVER: ${new Date(d.closed_at).toISOString().slice(0, 16).replace('T', ' ')}Z
 ═══════════════════════════
