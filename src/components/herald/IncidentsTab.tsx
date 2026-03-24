@@ -137,6 +137,8 @@ function extractCasualties(inc: Incident): CasualtyData[] {
         atmist: {
           A: val?.A ?? '—', T: val?.T ?? '—', M: val?.M ?? '—',
           I: val?.I ?? '—', S: val?.S ?? '—', T_treatment: val?.T_treatment ?? '—',
+          ...(val?.downtime ? { downtime: val.downtime } : {}),
+          ...(val?.status ? { status: val.status } : {}),
         },
         receivingHospital: hospital,
         actionItems: filterActionItemsForCasualty(a, key, isSingle),
