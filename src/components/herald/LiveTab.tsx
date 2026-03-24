@@ -639,53 +639,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           </div>
         )}
 
-        {mismatches.length > 0 && (
-          <div className="mx-3 md:mx-4 mt-2 p-3 rounded border" style={{ background: 'rgba(255,149,0,0.08)', borderColor: '#FF9500' }}>
-            <p className="text-lg font-bold mb-2" style={{ color: '#FF9500', letterSpacing: '0.15em' }}>⚠ DATA MISMATCH — TAP TO PICK</p>
-            {mismatches.map((m) => {
-              const currentVal = editStructured[m.field] ?? m.resolved_to;
-              const sessionPicked = currentVal === m.session_value;
-              const transcriptPicked = currentVal === m.transcript_value;
-              return (
-                <div key={m.field} className="mb-2 last:mb-0">
-                  <p className="text-lg font-bold uppercase mb-1" style={{ color: '#FF9500' }}>{m.field.replace('_', ' ')}</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditStructured((prev) => ({ ...prev, [m.field]: m.session_value }));
-                        setMismatches((prev) => prev.map((mm) => mm.field === m.field ? { ...mm, resolved_to: m.session_value } : mm));
-                      }}
-                      className="flex-1 py-2 px-3 rounded text-lg font-bold text-left transition-all"
-                      style={{
-                        border: sessionPicked ? '2px solid #3DFF8C' : '1px solid rgba(255,149,0,0.3)',
-                        background: sessionPicked ? 'rgba(61,255,140,0.1)' : 'transparent',
-                        color: sessionPicked ? '#3DFF8C' : 'hsl(var(--foreground))',
-                      }}
-                    >
-                      <span className="text-lg opacity-60 block" style={{ fontSize: 14, color: '#FF9500' }}>SESSION</span>
-                      {m.session_value}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditStructured((prev) => ({ ...prev, [m.field]: m.transcript_value }));
-                        setMismatches((prev) => prev.map((mm) => mm.field === m.field ? { ...mm, resolved_to: m.transcript_value } : mm));
-                      }}
-                      className="flex-1 py-2 px-3 rounded text-lg font-bold text-left transition-all"
-                      style={{
-                        border: transcriptPicked ? '2px solid #3DFF8C' : '1px solid rgba(255,149,0,0.3)',
-                        background: transcriptPicked ? 'rgba(61,255,140,0.1)' : 'transparent',
-                        color: transcriptPicked ? '#3DFF8C' : 'hsl(var(--foreground))',
-                      }}
-                    >
-                      <span className="text-lg opacity-60 block" style={{ fontSize: 14, color: '#FF9500' }}>TRANSCRIPT</span>
-                      {m.transcript_value}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
 
         {hasEdits && (
           <div className="mx-3 md:mx-4 mt-2 flex items-center gap-1">
