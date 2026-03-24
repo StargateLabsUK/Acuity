@@ -51,6 +51,9 @@ const Index = () => {
       )
     : reports;
 
+  // Only closed incidents go to Reports tab
+  const closedReports = sessionReports.filter((r) => r.status === 'closed');
+
   // No active session — show shift login
   if (!session) {
     return <ShiftLogin onShiftStarted={handleShiftStarted} />;
