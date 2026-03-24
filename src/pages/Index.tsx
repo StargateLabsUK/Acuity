@@ -19,6 +19,7 @@ const Index = () => {
   const [reports, setReports] = useState<HeraldReport[]>([]);
   const [session, setSession] = useState<HeraldSession | null>(getSession());
   const syncStatus = useHeraldSync();
+  useCommandPull(refreshReports);
 
   useEffect(() => {
     setReports(getReports());
