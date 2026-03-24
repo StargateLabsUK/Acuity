@@ -487,7 +487,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
     setFields(prev => ({ ...prev, [key]: val }));
   }, []);
 
-  const doHandover = useCallback(() => {
+  const doHandover = useCallback(async () => {
     const d: CasualtyDisposition = {
       disposition,
       closed_at: new Date().toISOString(),
@@ -500,6 +500,36 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
     };
     saveCasualtyDisposition(d);
     onHandover(d);
+
+    // Sync to Supabase
+    try {
+      const { syncDisposition } = await import('@/lib/herald-api');
+      const session = (await import('@/lib/herald-session')).getSession();
+      await syncDisposition({
+        report_id: inc.id,
+        casualty_key: cas.key,
+        casualty_label: cas.label,
+        priority: cas.priority,
+        disposition,
+        fields,
+        incident_number: inc.incident_number,
+        closed_at: d.closed_at,
+        session_callsign: session?.callsign ?? null,
+        trust_id: session?.trust_id ?? null,
+      });
+
+      // Check if all casualties are now closed — if so, mark incident as closed
+      const allCasualties = extractCasualties(inc);
+      const allClosed = allCasualties.every(c =>
+        c.key === cas.key || isCasualtyClosed(inc.id, c.key)
+      );
+      if (allClosed) {
+        const { supabase } = await import('@/integrations/supabase/client');
+        await supabase.from('herald_reports').update({ status: 'closed' }).eq('id', inc.id);
+      }
+    } catch (e) {
+      console.error('Failed to sync disposition:', e);
+    }
   }, [disposition, fields, cas, inc, onHandover]);
 
   // Now/current time helper
