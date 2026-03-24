@@ -137,6 +137,8 @@ function extractCasualties(inc: Incident): CasualtyData[] {
         atmist: {
           A: val?.A ?? '—', T: val?.T ?? '—', M: val?.M ?? '—',
           I: val?.I ?? '—', S: val?.S ?? '—', T_treatment: val?.T_treatment ?? '—',
+          ...(val?.downtime ? { downtime: val.downtime } : {}),
+          ...(val?.status ? { status: val.status } : {}),
         },
         receivingHospital: hospital,
         actionItems: filterActionItemsForCasualty(a, key, isSingle),
@@ -203,8 +205,8 @@ ATMIST:
   Age/Sex: ${cas.atmist.A}
   Time of Injury: ${cas.atmist.T}
   Mechanism: ${cas.atmist.M}
-  Injuries: ${cas.atmist.I}
-  Signs/Vitals: ${cas.atmist.S}
+  Injuries: ${cas.atmist.I}${cas.atmist.status ? `\n  Status: ${cas.atmist.status}` : ''}
+  Signs/Vitals: ${cas.atmist.S}${cas.atmist.downtime ? `\n  Downtime: ${cas.atmist.downtime}` : ''}
   Treatment: ${cas.atmist.T_treatment}
 
 DISPOSITION: ${dispLabel}`;
@@ -530,13 +532,34 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
             {[
               { k: 'A', label: 'Age / Sex' }, { k: 'T', label: 'Time of Injury' },
               { k: 'M', label: 'Mechanism' }, { k: 'I', label: 'Injuries' },
-              { k: 'S', label: 'Signs / Vitals' }, { k: 'T_treatment', label: 'Treatment Given' },
             ].map(({ k, label }) => (
-              <div key={k} className="mb-2 last:mb-0">
+              <div key={k} className="mb-2">
                 <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>{label}: </span>
                 <span className="text-lg text-foreground break-words">{cas.atmist[k] ?? '—'}</span>
               </div>
             ))}
+            {/* Status (e.g. ROSC achieved) — between Injuries and Signs */}
+            {cas.atmist.status && (
+              <div className="mb-2">
+                <span className="text-lg font-bold" style={{ color: '#34C759' }}>Status: </span>
+                <span className="text-lg font-bold break-words" style={{ color: '#34C759' }}>{cas.atmist.status}</span>
+              </div>
+            )}
+            <div className="mb-2">
+              <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>Signs / Vitals: </span>
+              <span className="text-lg text-foreground break-words">{cas.atmist.S ?? '—'}</span>
+            </div>
+            {/* Downtime — after Signs/Vitals */}
+            {cas.atmist.downtime && (
+              <div className="mb-2">
+                <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>Downtime: </span>
+                <span className="text-lg text-foreground break-words">{cas.atmist.downtime}</span>
+              </div>
+            )}
+            <div className="mb-2 last:mb-0">
+              <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>Treatment Given: </span>
+              <span className="text-lg text-foreground break-words">{cas.atmist.T_treatment ?? '—'}</span>
+            </div>
           </div>
         </div>
 

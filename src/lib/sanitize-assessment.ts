@@ -279,14 +279,51 @@ export function sanitizeAssessment(assessment: Assessment): Assessment {
     );
   }
 
-  // Also fix in ATMIST I (injuries) field if present
+  // Also fix in ATMIST fields if present
   if (sanitized.atmist) {
-    for (const casualty of Object.values(sanitized.atmist)) {
-      if ((casualty as any)?.I) {
-        (casualty as any).I = (casualty as any).I.replace(
-          /airway\s+compressed/gi,
-          'Airway compromised'
-        );
+    for (const [key, casualty] of Object.entries(sanitized.atmist)) {
+      const c = casualty as any;
+      if (!c) continue;
+
+      // Airway compressed → compromised in I field
+      if (c.I) {
+        c.I = c.I.replace(/airway\s+compressed/gi, 'Airway compromised');
+      }
+
+      // FIX 2: T field — separate clock time from downtime
+      if (c.T) {
+        const tVal = (c.T as string).trim();
+        // Match clock times like "14:23", "1423", "14:23Z", "14:23 hours"
+        const clockMatch = tVal.match(/\b(\d{1,2}[:.]\d{2})\s*(Z|hours?|hrs?)?\b/i);
+        // Match downtime like "approximately 8 minutes down", "8 mins", "10 minutes"
+        const downtimeMatch = tVal.match(/((?:approximately|approx\.?|about|~)?\s*\d+\s*(?:minutes?|mins?|seconds?|secs?)\s*(?:down(?:time)?)?)/i);
+
+        if (clockMatch && downtimeMatch) {
+          // Both present — split them
+          c.T = clockMatch[1] + (clockMatch[2] ? clockMatch[2] : '');
+          c.downtime = downtimeMatch[1].trim();
+        } else if (!clockMatch && downtimeMatch) {
+          // Only downtime, no clock time
+          c.T = 'Not stated';
+          c.downtime = downtimeMatch[1].trim();
+        } else if (clockMatch) {
+          // Only clock time
+          c.T = clockMatch[1] + (clockMatch[2] ? clockMatch[2] : '');
+        }
+        // If neither matches, leave T as-is (might be descriptive text)
+      }
+
+      // FIX 3: Cardiac arrest — "Post-cardiac arrest" → "Cardiac arrest" + ROSC status
+      if (c.I && /post[- ]cardiac\s*arrest/i.test(c.I)) {
+        // Extract rhythm if present
+        const rhythmMatch = c.I.match(/\b(VF|VT|PEA|asystole|shockable|non[- ]shockable)\b/i);
+        const rhythm = rhythmMatch ? ` (${rhythmMatch[1].toUpperCase()})` : '';
+        c.I = c.I.replace(/post[- ]cardiac\s*arrest/gi, 'Cardiac arrest');
+        c.status = 'ROSC achieved';
+      }
+      // Also handle cases where ROSC is mentioned in S (signs) or transcript
+      if (c.I && /cardiac\s*arrest/i.test(c.I) && c.S && /\bROSC\b/i.test(c.S)) {
+        c.status = 'ROSC achieved';
       }
     }
   }

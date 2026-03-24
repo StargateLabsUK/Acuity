@@ -52,7 +52,9 @@ function buildClosedEprf(d: CasualtyDisposition, report: HeraldReport): string {
     `  Time of Injury: ${atmistData.T ?? '—'}`,
     `  Mechanism: ${atmistData.M ?? '—'}`,
     `  Injuries: ${atmistData.I ?? '—'}`,
+    ...(atmistData.status ? [`  Status: ${atmistData.status}`] : []),
     `  Signs/Vitals: ${atmistData.S ?? '—'}`,
+    ...(atmistData.downtime ? [`  Downtime: ${atmistData.downtime}`] : []),
     `  Treatment: ${atmistData.T_treatment ?? '—'}`,
   ].join('\n') : '  No ATMIST data';
 
@@ -171,14 +173,32 @@ export function ReportsTab({ closedCasualties, reports, session }: ReportsTabPro
                         { k: 'T', label: 'Time of Injury' },
                         { k: 'M', label: 'Mechanism' },
                         { k: 'I', label: 'Injuries' },
-                        { k: 'S', label: 'Signs / Vitals' },
-                        { k: 'T_treatment', label: 'Treatment Given' },
                       ].map(({ k, label }) => (
-                        <div key={k} className="mb-2 last:mb-0">
+                        <div key={k} className="mb-2">
                           <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>{label}: </span>
                           <span className="text-lg text-foreground break-words">{atmistData[k] ?? '—'}</span>
                         </div>
                       ))}
+                      {atmistData.status && (
+                        <div className="mb-2">
+                          <span className="text-lg font-bold" style={{ color: '#34C759' }}>Status: </span>
+                          <span className="text-lg font-bold break-words" style={{ color: '#34C759' }}>{atmistData.status}</span>
+                        </div>
+                      )}
+                      <div className="mb-2">
+                        <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>Signs / Vitals: </span>
+                        <span className="text-lg text-foreground break-words">{atmistData.S ?? '—'}</span>
+                      </div>
+                      {atmistData.downtime && (
+                        <div className="mb-2">
+                          <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>Downtime: </span>
+                          <span className="text-lg text-foreground break-words">{atmistData.downtime}</span>
+                        </div>
+                      )}
+                      <div className="mb-2 last:mb-0">
+                        <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>Treatment Given: </span>
+                        <span className="text-lg text-foreground break-words">{atmistData.T_treatment ?? '—'}</span>
+                      </div>
                     </div>
                   </div>
                 )}
