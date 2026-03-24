@@ -8,9 +8,10 @@ import { ShiftLogin } from '@/components/herald/ShiftLogin';
 import { ShiftInfoBar } from '@/components/herald/ShiftInfoBar';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
 import { useCommandPull } from '@/lib/useCommandPull';
-import { getReports } from '@/lib/herald-storage';
+import { getReports, getDispositionsForShift } from '@/lib/herald-storage';
 import { getSession } from '@/lib/herald-session';
 import type { HeraldReport } from '@/lib/herald-types';
+import type { CasualtyDisposition } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 
 const Index = () => {
@@ -19,19 +20,26 @@ const Index = () => {
   const [reports, setReports] = useState<HeraldReport[]>([]);
   const [session, setSession] = useState<HeraldSession | null>(getSession());
   const [incidentRefresh, setIncidentRefresh] = useState(0);
+  const [closedCasualties, setClosedCasualties] = useState<CasualtyDisposition[]>([]);
   const syncStatus = useHeraldSync();
 
   const refreshReports = useCallback(() => {
     setReports(getReports());
     setIncidentRefresh(n => n + 1);
-  }, []);
+    if (session) {
+      setClosedCasualties(getDispositionsForShift(session.callsign, session.session_date));
+    }
+  }, [session]);
 
   useCommandPull(refreshReports);
 
   useEffect(() => {
     setReports(getReports());
+    if (session) {
+      setClosedCasualties(getDispositionsForShift(session.callsign, session.session_date));
+    }
     if (activeTab === 'incidents') setIncidentRefresh(n => n + 1);
-  }, [activeTab]);
+  }, [activeTab, session]);
 
   const handleShiftStarted = useCallback((s: HeraldSession) => {
     setSession(s);
@@ -41,21 +49,9 @@ const Index = () => {
     setSession(null);
   }, []);
 
-  const handleCloseIncident = useCallback((_id: string, _num: string | null) => {
+  const handleCasualtyClosed = useCallback((_d: CasualtyDisposition) => {
     refreshReports();
   }, [refreshReports]);
-
-  // Filter reports to current session
-  const sessionReports = session
-    ? reports.filter(
-        (r) =>
-          r.session_callsign === session.callsign &&
-          new Date(r.timestamp).toISOString().slice(0, 10) === session.session_date
-      )
-    : reports;
-
-  // Only closed incidents go to Reports tab
-  const closedReports = sessionReports.filter((r) => r.status === 'closed');
 
   // No active session — show shift login
   if (!session) {
@@ -73,9 +69,9 @@ const Index = () => {
             onReportSaved={refreshReports}
           />
         ) : activeTab === 'incidents' ? (
-          <IncidentsTab session={session} onCloseIncident={handleCloseIncident} refreshKey={incidentRefresh} />
+          <IncidentsTab session={session} onCasualtyClosed={handleCasualtyClosed} refreshKey={incidentRefresh} />
         ) : (
-          <ReportsTab reports={closedReports} session={session} />
+          <ReportsTab closedCasualties={closedCasualties} reports={reports} session={session} />
         )}
       </div>
 

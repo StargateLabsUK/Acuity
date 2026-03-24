@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react';
 import { ChevronRight, ChevronDown, FileText } from 'lucide-react';
-import type { HeraldReport } from '@/lib/herald-types';
-import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
+import type { HeraldReport, CasualtyDisposition } from '@/lib/herald-types';
+import { PRIORITY_COLORS, DISPOSITION_LABELS, SERVICE_LABELS } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 import { sanitizeAssessment, formatActionAge } from '@/lib/sanitize-assessment';
-import { getVehicleLabel } from '@/lib/vehicle-types';
-import { renderStructuredValue } from '@/components/StructuredValue';
-import type { ActionItem } from '@/lib/herald-types';
+import type { ActionItem, Assessment } from '@/lib/herald-types';
+import { getReports } from '@/lib/herald-storage';
 
 interface ReportsTabProps {
+  closedCasualties: CasualtyDisposition[];
   reports: HeraldReport[];
   session?: HeraldSession;
 }
@@ -20,85 +20,78 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [text]);
-
   return (
-    <button
-      onClick={copy}
-      className="text-lg text-foreground border border-border px-3 py-1.5 rounded-sm bg-transparent cursor-pointer tracking-wide hover:border-primary transition-colors"
-    >
+    <button onClick={copy}
+      className="text-lg text-foreground border border-border px-3 py-1.5 rounded-sm bg-transparent cursor-pointer tracking-wide hover:border-primary transition-colors">
       {copied ? 'COPIED' : label}
     </button>
   );
 }
 
-function SectionLabel({ children, color }: { children: React.ReactNode; color?: string }) {
-  return (
-    <div className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: color ?? 'hsl(var(--foreground))' }}>
-      {children}
-    </div>
-  );
+function getTime(ts: string | null) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.getUTCHours().toString().padStart(2, '0') + ':' +
+    d.getUTCMinutes().toString().padStart(2, '0') + 'Z';
 }
 
-function FieldCard({ children }: { children: React.ReactNode }) {
-  return <div className="border border-border rounded bg-card p-3">{children}</div>;
-}
-
-/** Build ePRF text from stored assessment data */
-function buildEprfText(a: any, report: HeraldReport): string {
-  const structured = a?.structured ?? {};
+/** Build ePRF for a closed casualty */
+function buildClosedEprf(d: CasualtyDisposition, report: HeraldReport): string {
+  const a = report.assessment ? sanitizeAssessment(report.assessment as unknown as Assessment) : null;
   const ts = new Date(report.timestamp);
   const dateStr = ts.toISOString().slice(0, 10);
   const timeStr = ts.getUTCHours().toString().padStart(2, '0') + ':' +
     ts.getUTCMinutes().toString().padStart(2, '0') + ':' +
     ts.getUTCSeconds().toString().padStart(2, '0') + 'Z';
-  const clinicalFindings = a?.clinical_findings ?? null;
-  const atmist = a?.atmist ?? null;
-  const assessmentHospital: string[] = a?.receiving_hospital ?? [];
-  // Use report-level fields (command override) with assessment fallback
-  const reportHospital = (report as any).receiving_hospital as string | undefined;
-  const hospitalDisplay = reportHospital || (assessmentHospital.length > 0 ? assessmentHospital.join(', ') : 'Not specified');
-  const incidentNum = report.incident_number ?? structured.incident_number ?? '—';
-  const treatmentGiven: string[] = a?.treatment_given ?? [];
-  const actionItems: string[] = a?.action_items ?? [];
+  const incidentNum = report.incident_number ?? (a?.structured as any)?.incident_number ?? '—';
 
-  const abcdeText = clinicalFindings
-    ? `A (Airway): ${clinicalFindings.A ?? 'Not assessed'}\nB (Breathing): ${clinicalFindings.B ?? 'Not assessed'}\nC (Circulation): ${clinicalFindings.C ?? 'Not assessed'}\nD (Disability): ${clinicalFindings.D ?? 'Not assessed'}\nE (Exposure): ${clinicalFindings.E ?? 'Not assessed'}`
-    : Object.entries(structured).map(([k, v]) => `${k}: ${renderStructuredValue(v)}`).join('\n');
+  // Extract casualty ATMIST
+  const atmistData = a?.atmist ? (a.atmist as any)[d.casualty_key] : null;
+  const atmistLines = atmistData ? [
+    `  Age/Sex: ${atmistData.A ?? '—'}`,
+    `  Time of Injury: ${atmistData.T ?? '—'}`,
+    `  Mechanism: ${atmistData.M ?? '—'}`,
+    `  Injuries: ${atmistData.I ?? '—'}`,
+    `  Signs/Vitals: ${atmistData.S ?? '—'}`,
+    `  Treatment: ${atmistData.T_treatment ?? '—'}`,
+  ].join('\n') : '  No ATMIST data';
 
-  const atmistText = atmist
-    ? Object.entries(atmist).map(([key, val]: [string, any]) =>
-        `${key}:\n  A: ${val?.A ?? '—'}\n  T: ${val?.T ?? '—'}\n  M: ${val?.M ?? '—'}\n  I: ${val?.I ?? '—'}\n  S: ${val?.S ?? '—'}\n  T (Treatment): ${val?.T_treatment ?? '—'}`
-      ).join('\n')
+  const dispLabel = DISPOSITION_LABELS[d.disposition];
+  const hospitalLine = d.disposition === 'conveyed'
+    ? `RECEIVING HOSPITAL: ${(report as any).receiving_hospital || (a?.receiving_hospital as string[])?.join(', ') || 'Not specified'}`
     : '';
 
-  return `INCIDENT NUMBER: ${incidentNum}
-INCIDENT DATE/TIME: ${dateStr} ${timeStr}
-INCIDENT TYPE: ${a?.incident_type ?? a?.protocol ?? 'Unknown'}${a?.major_incident ? ' [MAJOR INCIDENT]' : ''}
-SCENE LOCATION: ${a?.scene_location ?? structured['Location'] ?? 'Not specified'}
-RECEIVING HOSPITAL: ${hospitalDisplay}
-PRIORITY: ${a?.priority ?? 'P3'} ${a?.priority_label ?? ''}
-CALLSIGN: ${structured.callsign ?? '—'}
-OPERATOR ID: ${structured.operator_id ?? '—'}
-CHIEF COMPLAINT: ${a?.headline ?? ''}
-HISTORY: ${a?.clinical_history || 'N/A'}
-CLINICAL FINDINGS (ABCDE):
-${abcdeText}
-TREATMENT GIVEN: ${treatmentGiven.length > 0 ? treatmentGiven.join('; ') : 'None recorded'}
-${atmistText ? `ATMIST:\n${atmistText}` : ''}
-${actionItems.length > 0 ? `ACTION ITEMS:\n${actionItems.map((item: string, i: number) => `${i + 1}. ${item}`).join('\n')}` : ''}
-CREW NOTES: Generated by Herald Radio Intelligence`;
+  return `ePRF — PATIENT HANDOVER
+═══════════════════════════
+INCIDENT: ${incidentNum}
+DATE/TIME: ${dateStr} ${timeStr}
+CALLSIGN: ${report.session_callsign ?? '—'}
+
+PATIENT: ${d.casualty_label}
+PRIORITY: ${d.priority}
+
+ATMIST:
+${atmistLines}
+
+DISPOSITION: ${dispLabel}${d.refer_to ? ` — ${d.refer_to}` : ''}${d.capacity_assessed ? ' (Capacity assessed)' : ''}
+${hospitalLine}
+HANDED OVER: ${new Date(d.closed_at).toISOString().slice(0, 16).replace('T', ' ')}Z
+═══════════════════════════
+Generated by Herald Radio Intelligence`;
 }
 
-export function ReportsTab({ reports, session }: ReportsTabProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [eprfId, setEprfId] = useState<string | null>(null);
+export function ReportsTab({ closedCasualties, reports, session }: ReportsTabProps) {
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [eprfKey, setEprfKey] = useState<string | null>(null);
 
-  if (reports.length === 0 && session) {
+  if (closedCasualties.length === 0 && session) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-4">
-        <span className="text-lg uppercase font-bold mb-4" style={{ color: '#4A6058' }}>{SERVICE_LABELS[session.service] ?? session.service}</span>
+        <span className="text-lg uppercase font-bold mb-4" style={{ color: '#4A6058' }}>
+          {SERVICE_LABELS[session.service] ?? session.service}
+        </span>
         <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.2em', marginBottom: 8 }}>
-          NO CLOSED INCIDENTS THIS SHIFT
+          NO HANDED OVER PATIENTS THIS SHIFT
         </p>
         <p style={{ color: '#1E3028', fontSize: 18 }}>
           {session.callsign} · {session.session_date}
@@ -110,239 +103,124 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
   return (
     <div className="flex-1 overflow-auto px-3 py-3">
       <p className="text-lg text-foreground tracking-[0.1em] mb-3 font-bold">
-        CLOSED INCIDENTS
+        HANDED OVER ({closedCasualties.length})
       </p>
 
-      {reports.length === 0 && (
-        <p className="text-center mt-12 text-lg text-foreground opacity-50">
-          No closed incidents yet
-        </p>
-      )}
+      {closedCasualties.map((d) => {
+        const uniqueKey = `${d.incident_id}-${d.casualty_key}`;
+        const report = reports.find(r => r.id === d.incident_id) ?? getReports().find(r => r.id === d.incident_id);
+        if (!report) return null;
 
-      {reports.map((r) => {
-        const rawA = r.assessment as unknown as Record<string, unknown> | null;
-        const a = rawA ? sanitizeAssessment(rawA as any) as unknown as Record<string, unknown> : null;
-        const pc = PRIORITY_COLORS[a?.priority as string] || PRIORITY_COLORS[r.priority as string] || 'hsl(var(--foreground))';
-        const vtCode = (r as any).vehicle_type || session?.vehicle_type;
-        const vtLabel = getVehicleLabel(vtCode);
-        const headerLabel = vtLabel && r.session_callsign
-          ? `${vtLabel} — ${r.session_callsign}`
-          : vtLabel || r.session_callsign || 'UNKNOWN';
-        const expanded = expandedId === r.id;
-        const showEprf = eprfId === r.id;
-        const atmist = (a?.atmist as Record<string, any>) ?? null;
-        const actionItems: (string | ActionItem)[] = (a?.action_items as any[]) ?? [];
-        const treatmentGiven: string[] = (a?.treatment_given as string[]) ?? [];
-        // Receiving hospital: report-level (command override) > assessment
-        const reportHospital = (r as any).receiving_hospital as string | undefined;
-        const assessmentHospital: string[] = (a?.receiving_hospital as string[]) ?? [];
-        const receivingHospitalDisplay = reportHospital || (assessmentHospital.length > 0 ? assessmentHospital.join(', ') : '');
-        const incidentNumber = r.incident_number ?? ((a?.structured as any)?.incident_number as string) ?? '';
-        const incidentType = (a?.incident_type as string) ?? (a?.protocol as string) ?? '';
-        const priorityLabel = (a?.priority_label as string) ?? '';
-        const ts = new Date(r.timestamp);
-        const timeStr = ts.getUTCHours().toString().padStart(2, '0') + ':' +
-          ts.getUTCMinutes().toString().padStart(2, '0') + 'Z';
+        const a = report.assessment ? sanitizeAssessment(report.assessment as unknown as Assessment) : null;
+        const col = PRIORITY_COLORS[d.priority] ?? '#34C759';
+        const expanded = expandedKey === uniqueKey;
+        const showEprf = eprfKey === uniqueKey;
+        const dispLabel = DISPOSITION_LABELS[d.disposition];
 
-        // Split active vs resolved action items
-        const activeActions: (string | ActionItem)[] = [];
-        const resolvedActions: ActionItem[] = [];
-        for (const item of actionItems) {
-          if (typeof item === 'object' && (item as ActionItem).resolved_at) {
-            resolvedActions.push(item as ActionItem);
-          } else {
-            activeActions.push(item);
-          }
-        }
+        // Extract ATMIST for this casualty
+        const atmistData = a?.atmist ? (a.atmist as any)[d.casualty_key] : null;
 
         return (
-          <div
-            key={r.id}
-            className="mb-3 rounded-lg border border-border bg-card shadow-sm overflow-hidden"
-          >
-            {/* Collapsed header */}
+          <div key={uniqueKey} className="mb-3 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
             <button
-              onClick={() => setExpandedId(expanded ? null : r.id)}
-              className="w-full text-left p-3"
-            >
-              <div className="flex items-center gap-2">
-                {expanded ? (
-                  <ChevronDown size={18} className="text-foreground opacity-50 flex-shrink-0" />
-                ) : (
-                  <ChevronRight size={18} className="text-foreground opacity-50 flex-shrink-0" />
-                )}
+              onClick={() => setExpandedKey(expanded ? null : uniqueKey)}
+              className="w-full text-left p-3">
+              <div className="flex items-center gap-3">
+                {expanded
+                  ? <ChevronDown size={18} className="text-foreground opacity-50 flex-shrink-0" />
+                  : <ChevronRight size={18} className="text-foreground opacity-50 flex-shrink-0" />}
+                <span className="text-lg font-bold rounded-sm px-2 py-0.5 flex-shrink-0"
+                  style={{ color: col, border: `1px solid ${col}66`, background: `${col}1A` }}>
+                  {d.priority}
+                </span>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-lg text-foreground font-medium">
-                    {(a?.headline as string) || r.headline || 'Report'}
+                  <p className="text-lg text-foreground font-medium truncate">
+                    {d.casualty_label.replace(/^P\d\s*—\s*/, '') || 'Patient'}
                   </p>
-                  <p className="text-lg text-foreground opacity-70">
-                    {headerLabel} · {timeStr}
+                  <p className="text-lg text-foreground opacity-60">
+                    {dispLabel} · {getTime(d.closed_at)}
                   </p>
                 </div>
-                <span
-                  className="font-heading px-2 py-0.5 text-lg font-bold rounded-sm flex-shrink-0"
-                  style={{ color: pc, border: `1px solid ${pc}` }}
-                >
-                  {(a?.priority as string) || r.priority}
-                </span>
               </div>
             </button>
 
-            {expanded && a && (
+            {expanded && (
               <div className="px-3 pb-4 border-t border-border">
+                {/* Disposition */}
+                <div className="mt-3 rounded-lg p-3" style={{ background: `${col}1A`, borderLeft: `4px solid ${col}` }}>
+                  <p className="text-lg font-bold" style={{ color: col }}>{d.priority} — {dispLabel}</p>
+                  {d.refer_to && (
+                    <p className="text-lg text-foreground mt-1">Referred to: {d.refer_to}</p>
+                  )}
+                  {d.capacity_assessed && (
+                    <p className="text-lg mt-1" style={{ color: '#34C759' }}>✓ Capacity assessment completed</p>
+                  )}
+                  <p className="text-lg text-foreground opacity-60 mt-1">
+                    Handed over {getTime(d.closed_at)}
+                    {d.incident_number ? ` · Incident #${d.incident_number}` : ''}
+                  </p>
+                </div>
 
-                {/* 1. Incident Header */}
-                <div
-                  className="mt-3 rounded p-3"
-                  style={{ background: `${pc}1F`, borderBottom: `3px solid ${pc}` }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-heading text-3xl leading-none" style={{ color: pc }}>
-                          {a.priority as string}
-                        </span>
-                        <span className="font-heading text-lg" style={{ color: pc }}>
-                          {priorityLabel}
-                        </span>
-                      </div>
-                      {incidentType && incidentType !== 'Unknown' && (
-                        <div className="text-lg font-bold mt-1 tracking-wide" style={{ color: pc }}>
-                          {incidentType}
+                {/* ATMIST */}
+                {atmistData && (
+                  <div className="mt-4">
+                    <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>ATMIST</p>
+                    <div className="border border-border rounded-lg bg-card p-3">
+                      {[
+                        { k: 'A', label: 'Age / Sex' },
+                        { k: 'T', label: 'Time of Injury' },
+                        { k: 'M', label: 'Mechanism' },
+                        { k: 'I', label: 'Injuries' },
+                        { k: 'S', label: 'Signs / Vitals' },
+                        { k: 'T_treatment', label: 'Treatment Given' },
+                      ].map(({ k, label }) => (
+                        <div key={k} className="mb-2 last:mb-0">
+                          <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>{label}: </span>
+                          <span className="text-lg text-foreground break-words">{atmistData[k] ?? '—'}</span>
                         </div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{headerLabel}</div>
-                      <div className="text-lg text-foreground">{timeStr}</div>
+                      ))}
                     </div>
                   </div>
-                  <p className="text-lg text-foreground font-medium mt-2">{a.headline as string}</p>
-                </div>
+                )}
 
-                {/* 2. ATMIST — per casualty, formatted for hospital handover */}
-                {atmist && Object.keys(atmist).length > 0 && (
+                {/* Receiving hospital for conveyed */}
+                {d.disposition === 'conveyed' && (
                   <div className="mt-4">
-                    <SectionLabel color="#1E90FF">ATMIST — HOSPITAL HANDOVER</SectionLabel>
-                    <div className="flex flex-col gap-3">
-                      {Object.entries(atmist).map(([casualtyKey, val]: [string, any]) => {
-                        const cCol = PRIORITY_COLORS[casualtyKey] ?? PRIORITY_COLORS[casualtyKey.replace(/-\d+$/, '')] ?? '#1E90FF';
-                        return (
-                          <FieldCard key={casualtyKey}>
-                            <div className="text-lg font-bold mb-2 tracking-wide" style={{ color: cCol }}>
-                              {casualtyKey}
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                              {[
-                                { k: 'A', label: 'Age' },
-                                { k: 'T', label: 'Time of injury' },
-                                { k: 'M', label: 'Mechanism' },
-                                { k: 'I', label: 'Injuries' },
-                                { k: 'S', label: 'Signs / vitals' },
-                                { k: 'T_treatment', label: 'Treatment' },
-                              ].map(({ k, label }) => (
-                                <div key={k}>
-                                  <span className="text-lg font-bold" style={{ color: cCol }}>{label}: </span>
-                                  <span className="text-lg text-foreground break-words">{val?.[k] ?? '—'}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </FieldCard>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. Active Action Items only */}
-                {activeActions.length > 0 && (
-                  <div className="mt-4">
-                    <SectionLabel color="#FF9500">⚠ ACTION ITEMS</SectionLabel>
-                    <div className="flex flex-col gap-1.5">
-                      {activeActions.map((item, i) => {
-                        const text = typeof item === 'object' ? (item as ActionItem).text : item;
-                        const openedAt = typeof item === 'object' ? (item as ActionItem).opened_at : r.timestamp;
-                        return (
-                          <div key={i} className="rounded p-2.5 flex gap-2 items-start"
-                            style={{ background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.2)' }}>
-                            <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>⚠</span>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-lg text-foreground font-medium break-words">{text}</span>
-                              <span className="text-lg ml-2 opacity-60" style={{ color: '#FF9500' }}>
-                                — {formatActionAge(openedAt)}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Resolved actions — collapsed, hidden by default */}
-                {resolvedActions.length > 0 && (
-                  <div className="mt-2">
-                    <ResolvedToggle items={resolvedActions} />
-                  </div>
-                )}
-
-                {/* 4. Treatment Given */}
-                {treatmentGiven.length > 0 && (
-                  <div className="mt-4">
-                    <SectionLabel color={pc}>TREATMENT GIVEN</SectionLabel>
-                    <FieldCard>
-                      <div className="flex flex-col gap-1.5">
-                        {treatmentGiven.map((t, i) => (
-                          <div key={i} className="flex gap-3">
-                            <span className="text-lg font-bold min-w-[20px]" style={{ color: pc }}>{i + 1}.</span>
-                            <span className="text-lg text-foreground break-words">{t}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </FieldCard>
-                  </div>
-                )}
-
-                {/* 5. Receiving Hospital — prominent */}
-                <div className="mt-4">
-                  <SectionLabel color={pc}>RECEIVING HOSPITAL</SectionLabel>
-                  <FieldCard>
-                    {receivingHospitalDisplay ? (
-                      <p className="text-lg text-foreground font-bold break-words">{receivingHospitalDisplay}</p>
-                    ) : (
-                      <p className="text-lg py-1 px-2 rounded" style={{ color: '#FF9500', background: 'rgba(255,149,0,0.06)', border: '1px dashed rgba(255,149,0,0.3)' }}>
-                        No receiving hospital confirmed — contact Control
+                    <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: col }}>RECEIVING HOSPITAL</p>
+                    <div className="border border-border rounded-lg p-3">
+                      <p className="text-xl text-foreground font-bold break-words">
+                        {(report as any).receiving_hospital || (a?.receiving_hospital as string[])?.join(', ') || 'Not specified'}
                       </p>
-                    )}
-                  </FieldCard>
-                </div>
+                    </div>
+                  </div>
+                )}
 
-                {/* 6. ePRF Button */}
+                {/* ePRF */}
                 <div className="mt-4">
                   <button
-                    onClick={(e) => { e.stopPropagation(); setEprfId(showEprf ? null : r.id); }}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded text-lg font-bold tracking-[0.15em] border cursor-pointer transition-colors"
+                    onClick={() => setEprfKey(showEprf ? null : uniqueKey)}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-lg font-bold tracking-[0.15em] border cursor-pointer transition-colors"
                     style={{
                       color: showEprf ? '#1A1E24' : 'hsl(var(--primary))',
                       background: showEprf ? 'hsl(var(--primary))' : 'transparent',
                       borderColor: 'hsl(var(--primary))',
-                    }}
-                  >
+                    }}>
                     <FileText size={20} />
                     {showEprf ? 'HIDE ePRF' : 'VIEW ePRF'}
                   </button>
-
                   {showEprf && (
                     <div className="mt-3">
                       <div className="flex items-center justify-between mb-2">
-                        <SectionLabel color="hsl(var(--primary))">ePRF — HANDOVER DOCUMENT</SectionLabel>
-                        <CopyBtn text={buildEprfText(a, r)} label="COPY ePRF" />
+                        <p className="text-lg font-bold tracking-[0.2em]" style={{ color: 'hsl(var(--primary))' }}>
+                          ePRF — PATIENT HANDOVER
+                        </p>
+                        <CopyBtn text={buildClosedEprf(d, report)} label="COPY ePRF" />
                       </div>
-                      <FieldCard>
+                      <div className="border border-border rounded-lg bg-card p-3">
                         <div className="text-lg text-foreground leading-7 whitespace-pre-wrap break-words">
-                          {buildEprfText(a, r)}
+                          {buildClosedEprf(d, report)}
                         </div>
-                      </FieldCard>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -351,34 +229,6 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-/** Collapsed resolved action items toggle */
-function ResolvedToggle({ items }: { items: ActionItem[] }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div>
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-lg font-bold tracking-[0.15em] bg-transparent border-none cursor-pointer"
-        style={{ color: '#888' }}
-      >
-        <span style={{ transform: open ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▶</span>
-        RESOLVED ({items.length})
-      </button>
-      {open && (
-        <div className="flex flex-col gap-1.5 mt-1.5">
-          {items.map((item, i) => (
-            <div key={i} className="rounded p-2 flex gap-2 items-start"
-              style={{ background: 'rgba(136,136,136,0.06)', border: '1px solid rgba(136,136,136,0.15)' }}>
-              <span className="text-lg flex-shrink-0" style={{ color: '#34C759' }}>✓</span>
-              <span className="text-lg text-foreground opacity-60 line-through break-words">{item.text}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
