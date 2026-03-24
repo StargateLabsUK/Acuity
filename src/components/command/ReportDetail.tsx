@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Pencil, Check, X } from 'lucide-react';
-import type { CommandReport } from '@/hooks/useHeraldCommand';
-import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
+import { Pencil, Check, X, FileText } from 'lucide-react';
+import type { CommandReport, CommandDisposition } from '@/hooks/useHeraldCommand';
+import { SERVICE_LABELS, PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
+import type { DispositionType, DispositionFields } from '@/lib/herald-types';
 import { getVehicleLabel } from '@/lib/vehicle-types';
 import type { IncidentTransmission, ActionItem } from '@/lib/herald-types';
 import { renderStructuredValue } from '@/components/StructuredValue';
@@ -10,6 +11,7 @@ import { sanitizeAssessment, formatActionAge } from '@/lib/sanitize-assessment';
 
 interface Props {
   report: CommandReport | null;
+  dispositions?: CommandDisposition[];
 }
 
 /* ── Small UI helpers ── */
