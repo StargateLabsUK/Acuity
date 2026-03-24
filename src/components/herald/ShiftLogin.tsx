@@ -37,11 +37,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const [callsign, setCallsign] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [collarNumber, setCollarNumber] = useState('');
-  const [station, setStation] = useState('');
   const [trust, setTrust] = useState<CachedTrust | null>(getCachedTrust());
-
-  const canSubmit = callsign.trim() !== '' && vehicleType !== '';
-  const stationOptions = getStationsForService(service);
 
   const [submitting, setSubmitting] = useState(false);
 
