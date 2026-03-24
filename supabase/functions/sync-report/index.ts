@@ -118,8 +118,8 @@ serve(async (req) => {
         .eq("id", parentId)
         .single();
 
-      const parentAssessment = parentReport?.data?.assessment as any;
-      const newAssessment = report.assessment as any;
+      const parentAssessment = normalizeAssessmentForMerge((parentReport?.data?.assessment as Record<string, unknown>) || {});
+      const newAssessment = normalizeAssessmentForMerge((report.assessment as Record<string, unknown>) || {});
       const newTranscript = (report.transcript as string) || "";
 
       let mergedActionItems = parentAssessment?.action_items || [];
@@ -232,11 +232,12 @@ serve(async (req) => {
         mergedAssessment.atmist = deepMergeCasualtyMap(
           parentAssessment?.atmist || {},
           newAssessment?.atmist || {},
+          newTranscript,
         );
       }
 
       if (parentAssessment?.clinical_findings || newAssessment?.clinical_findings) {
-        mergedAssessment.clinical_findings = mergeShallow(
+        mergedAssessment.clinical_findings = mergeClinicalFindings(
           parentAssessment?.clinical_findings || {},
           newAssessment?.clinical_findings || {},
         );
@@ -332,6 +333,10 @@ serve(async (req) => {
 
     // --- NEW REPORT ---
     const { follow_up_of, ...reportData } = report;
+
+    if (reportData.assessment && typeof reportData.assessment === 'object') {
+      reportData.assessment = normalizeAssessmentForMerge(reportData.assessment as Record<string, unknown>);
+    }
 
     reportData.latest_transmission_at = reportData.latest_transmission_at || report.timestamp;
     reportData.transmission_count = reportData.transmission_count || 1;
@@ -459,6 +464,114 @@ function actionItemsMatch(a: string, b: string, catA: string, catB: string): boo
   return norm(a) === norm(b);
 }
 
+const NON_CLINICAL_TREATMENT_PATTERNS = [
+  /extrication/i,
+  /fire\s*(service|crew)/i,
+  /police/i,
+  /awaiting/i,
+  /request(ed|ing)?/i,
+  /hems\s*(request|requested|tasking|confirmation|acknowledgement|acknowledgment)/i,
+  /not\s+yet\s+confirmed/i,
+];
+
+const VITALS_SIGNAL_PATTERN = /(gcs|\bhr\b|heart\s*rate|\brr\b|resp(iratory)?\s*rate|spo2|sats?|\bbp\b|blood\s*pressure|pulse)/i;
+
+const MECHANISM_KEYWORDS = [
+  'mechanism', 'moi', 'rtc', 'rta', 'collision', 'impact', 'rollover',
+  'head-on', 'intrusion', 'hgv', 'lorry', 'truck', 'car', 'cars', 'vehicle',
+  'van', 'motorbike', 'motorcycle', 'bike', 'pedestrian', 'struck',
+];
+
+const MECHANISM_CONCRETE_KEYWORDS = [
+  'hgv', 'lorry', 'truck', 'car', 'cars', 'van', 'motorbike', 'motorcycle', 'bike', 'pedestrian', 'head-on',
+];
+
+function extractFromFormattedReport(text: string, patterns: RegExp[]): string | undefined {
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    const value = match?.[1]?.trim();
+    if (value && !isPlaceholder(value)) return value;
+  }
+  return undefined;
+}
+
+function firstNonPlaceholder(...values: unknown[]): unknown {
+  for (const value of values) {
+    if (!isPlaceholder(value)) return value;
+  }
+  return undefined;
+}
+
+function normalizeAssessmentForMerge(raw: Record<string, unknown>): Record<string, unknown> {
+  if (!raw || typeof raw !== 'object') return {};
+
+  const normalized: Record<string, unknown> = { ...raw };
+  const structuredRaw = normalized.structured;
+  const structured: Record<string, unknown> =
+    structuredRaw && typeof structuredRaw === 'object' && !Array.isArray(structuredRaw)
+      ? { ...(structuredRaw as Record<string, unknown>) }
+      : {};
+
+  const formattedReport = typeof normalized.formatted_report === 'string' ? normalized.formatted_report : '';
+
+  const hazards = firstNonPlaceholder(
+    structured.hazards,
+    structured.H,
+    normalized.methane_hazards,
+    extractFromFormattedReport(formattedReport, [
+      /(?:^|\n)\s*H(?:azards?)?\s*[:?-]\s*(.+)$/im,
+      /(?:^|\n)\s*Hazards?\??\s*(.+)$/im,
+    ]),
+  );
+
+  const access = firstNonPlaceholder(
+    structured.access,
+    structured.access_routes,
+    structured.A,
+    normalized.methane_access,
+    extractFromFormattedReport(formattedReport, [
+      /(?:^|\n)\s*A(?:ccess(?:\s*routes?)?)?\s*[:?-]\s*(.+)$/im,
+      /(?:^|\n)\s*Access(?:\s*routes?)?\??\s*(.+)$/im,
+    ]),
+  );
+
+  const numberOfCasualties = firstNonPlaceholder(
+    structured.number_of_casualties,
+    structured.num_casualties,
+    structured.casualties,
+    structured.N,
+    normalized.methane_number,
+    extractFromFormattedReport(formattedReport, [
+      /(?:^|\n)\s*N(?:umber\s*of\s*casualties)?\s*[:?-]\s*(.+)$/im,
+      /(?:^|\n)\s*Number\s*of\s*casualties\??\s*(.+)$/im,
+      /(?:^|\n)\s*Casualties\??\s*(.+)$/im,
+    ]),
+  );
+
+  const emergencyServices = firstNonPlaceholder(
+    structured.emergency_services,
+    structured.e_services,
+    structured.E_services,
+    structured.E,
+    normalized.methane_emergency,
+    extractFromFormattedReport(formattedReport, [
+      /(?:^|\n)\s*Emergency\s*services\??\s*(.+)$/im,
+      /(?:^|\n)\s*E(?:mergency\s*services?)?\s*[:?-]\s*(.+)$/im,
+    ]),
+  );
+
+  if (hazards !== undefined) structured.hazards = hazards;
+  if (access !== undefined) structured.access = access;
+  if (numberOfCasualties !== undefined) structured.number_of_casualties = numberOfCasualties;
+  if (emergencyServices !== undefined) structured.emergency_services = emergencyServices;
+
+  if (Object.keys(structured).length > 0) {
+    normalized.structured = structured;
+  }
+
+  return normalized;
+}
+
 // Fields that, once set to true, must never be downgraded by a follow-up
 const STICKY_TRUE_FIELDS = new Set(['major_incident']);
 
@@ -500,12 +613,135 @@ function isPlaceholder(value: unknown): boolean {
   if (Array.isArray(value) && value.length === 0) return true;
   if (typeof value === 'string') {
     const normalized = normalizeText(value);
+    if (/^(not\s+(declared|reported|stated|mentioned|specified|provided|available|known|assessed))(\b|\s*-)/.test(normalized)) return true;
+    if (/^none(\s+(reported|stated|mentioned|specified|provided|known|identified))?(\b|\s*-)/.test(normalized)) return true;
     if (PLACEHOLDER_VALUES.has(normalized)) return true;
     if (/^not\s+(declared|reported|stated|mentioned|specified|provided|available|known)$/.test(normalized)) return true;
     if (/^none(\s+(reported|stated|mentioned|specified|provided|known|identified))?$/.test(normalized)) return true;
     if (/^no\s+(hazards?|access|casualt(y|ies)|emergency\s+services?)\s+(reported|stated|declared|specified)$/.test(normalized)) return true;
   }
   return false;
+}
+
+function hasMechanismEvidenceInTranscript(transcript: string, value: string): boolean {
+  const t = normalizeText(transcript || '');
+  const v = normalizeText(value || '');
+  if (!t || !v) return false;
+
+  const valueKeywords = MECHANISM_KEYWORDS.filter((k) => v.includes(k));
+  if (valueKeywords.length === 0) {
+    return /\bmechanism\b|\bmoi\b/.test(t);
+  }
+
+  const concrete = valueKeywords.filter((k) => MECHANISM_CONCRETE_KEYWORDS.includes(k));
+  if (concrete.length > 0) {
+    return concrete.some((k) => t.includes(k));
+  }
+
+  return valueKeywords.some((k) => t.includes(k));
+}
+
+function shouldKeepExistingAtmistField(
+  fieldKey: string,
+  existingValue: unknown,
+  incomingValue: unknown,
+  transcript: string,
+): boolean {
+  if (isPlaceholder(existingValue)) return false;
+  if (isPlaceholder(incomingValue)) return true;
+
+  if (fieldKey === 'M' && typeof incomingValue === 'string') {
+    if (!hasMechanismEvidenceInTranscript(transcript, incomingValue)) {
+      return true;
+    }
+  }
+
+  if (fieldKey === 'S' && typeof existingValue === 'string' && typeof incomingValue === 'string') {
+    if (VITALS_SIGNAL_PATTERN.test(existingValue) && !VITALS_SIGNAL_PATTERN.test(incomingValue)) {
+      return true;
+    }
+  }
+
+  if (fieldKey === 'T_treatment' && typeof incomingValue === 'string') {
+    if (NON_CLINICAL_TREATMENT_PATTERNS.some((p) => p.test(incomingValue))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function extractCasualtySegments(value: string): Map<string, string> {
+  const segments = new Map<string, string>();
+  const regex = /\b(P[1-4](?:-\d+)?)\s*:\s*([\s\S]*?)(?=\s+\bP[1-4](?:-\d+)?\s*:|$)/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(value)) !== null) {
+    const key = match[1].toUpperCase();
+    const text = match[2].trim();
+    if (text) segments.set(key, text);
+  }
+
+  return segments;
+}
+
+function isClinicalNoUpdateSegment(value: string): boolean {
+  const text = normalizeText(value);
+  return /^(not assessed( in this update)?|not stated|unknown|no update)/.test(text);
+}
+
+function mergeClinicalFieldValues(existingValue: unknown, incomingValue: unknown): unknown {
+  if (typeof existingValue !== 'string' || typeof incomingValue !== 'string') {
+    return incomingValue;
+  }
+
+  const existingSegments = extractCasualtySegments(existingValue);
+  const incomingSegments = extractCasualtySegments(incomingValue);
+
+  if (existingSegments.size === 0 || incomingSegments.size === 0) {
+    if (!isPlaceholder(existingValue) && isPlaceholder(incomingValue)) {
+      return existingValue;
+    }
+    return incomingValue;
+  }
+
+  const orderedKeys = Array.from(new Set([...existingSegments.keys(), ...incomingSegments.keys()]))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  const mergedParts: string[] = [];
+  for (const key of orderedKeys) {
+    const incomingSegment = incomingSegments.get(key);
+    const existingSegment = existingSegments.get(key);
+
+    if (incomingSegment && !isClinicalNoUpdateSegment(incomingSegment)) {
+      mergedParts.push(`${key}: ${incomingSegment}`);
+      continue;
+    }
+
+    if (existingSegment) {
+      mergedParts.push(`${key}: ${existingSegment}`);
+      continue;
+    }
+
+    if (incomingSegment) {
+      mergedParts.push(`${key}: ${incomingSegment}`);
+    }
+  }
+
+  return mergedParts.length > 0 ? mergedParts.join('. ') : incomingValue;
+}
+
+function mergeClinicalFindings(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged = mergeShallow(existing, incoming);
+  for (const key of ['A', 'B', 'C', 'D', 'E']) {
+    if (key in existing && key in incoming) {
+      merged[key] = mergeClinicalFieldValues(existing[key], incoming[key]);
+    }
+  }
+  return merged;
 }
 
 function incidentTypeSeverity(value: string): number {
@@ -584,6 +820,7 @@ function mergeShallow(
 function deepMergeCasualtyMap(
   existing: Record<string, Record<string, unknown>>,
   incoming: Record<string, Record<string, unknown>>,
+  transcript: string,
 ): Record<string, Record<string, unknown>> {
   const result: Record<string, Record<string, unknown>> = {};
 
@@ -596,7 +833,19 @@ function deepMergeCasualtyMap(
     if (!result[key]) {
       result[key] = { ...incomingCasualty };
     } else {
-      result[key] = mergeShallow(result[key], incomingCasualty as Record<string, unknown>);
+      const existingCasualty = result[key];
+      const mergedCasualty = mergeShallow(
+        existingCasualty,
+        incomingCasualty as Record<string, unknown>,
+      );
+
+      for (const [fieldKey, incomingValue] of Object.entries(incomingCasualty as Record<string, unknown>)) {
+        if (shouldKeepExistingAtmistField(fieldKey, existingCasualty[fieldKey], incomingValue, transcript)) {
+          mergedCasualty[fieldKey] = existingCasualty[fieldKey];
+        }
+      }
+
+      result[key] = mergedCasualty;
     }
   }
 
