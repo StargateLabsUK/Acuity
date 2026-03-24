@@ -35,21 +35,7 @@ Extract these identifiers if present in the transmission:
 
 - incident_number: any incident reference, job number, CAD number, or incident ID mentioned. Set to null if not mentioned.
 
-- callsign: the crew identifier, vehicle callsign, or unit name stated (e.g. Alpha Two, Tango Seven, Delta One). IMPORTANT: Operators typically address "Control" at the start of transmissions (e.g. "Control, Alpha Two..."). "Control" is the addressee, NOT part of the callsign. Extract only the unit identifier.
-
-When extracting callsign be aware that Whisper speech transcription may render phonetic callsigns in unexpected ways. Apply these corrections:
-- ALF 2, ALF2, ALFA 2 → Alpha Two
-- ALF 1, ALF1 → Alpha One
-- ALF 3, ALF3 → Alpha Three
-- TANG 7, TAN 7 → Tango Seven
-- DELT 1, DEL 1 → Delta One
-- TROY 1, TRO 1 → Trojan One
-- BRAV 2, BRA 2 → Bravo Two
-- CHAR 1, CHA 1 → Charlie One
-
-More generally: if a callsign looks like a truncated or misheard version of a NATO phonetic alphabet word followed by a number, correct it to the full NATO word plus number.
-
-- operator_id: any collar number, badge number, warrant number, or officer ID mentioned. Set to null if not mentioned.
+IMPORTANT: Do NOT extract callsign or operator_id from the transmission. These fields are populated from the active shift record and must never be overwritten by transcript data. Always set structured.callsign and structured.operator_id to null in your output. Any callsign-like words in the transcript (e.g. "Control, Alpha Two...") should be ignored for identification purposes — they may be misheard by Whisper and the authoritative value comes from the shift record.
 
 Extraction Rules
 
