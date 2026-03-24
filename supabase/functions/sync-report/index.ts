@@ -45,6 +45,7 @@ serve(async (req) => {
         headline: report.headline ?? null,
         operator_id: report.session_operator_id ?? null,
         session_callsign: report.session_callsign ?? null,
+        trust_id: report.trust_id ?? null,
       });
 
       if (txError) {
