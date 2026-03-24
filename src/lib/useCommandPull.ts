@@ -53,6 +53,12 @@ export function useCommandPull(onUpdate?: () => void) {
             (updates as any).receiving_hospital = remoteHospital;
           }
 
+          // Status — sync closures from command
+          const remoteStatus = (row as any).status;
+          if (remoteStatus && remoteStatus !== local.status) {
+            updates.status = remoteStatus;
+          }
+
           if (Object.keys(updates).length > 0) {
             updateReport(row.id, updates as any);
             changed = true;
