@@ -9,6 +9,7 @@ import { useHeraldSync } from '@/hooks/useHeraldSync';
 import { useCommandPull } from '@/lib/useCommandPull';
 import { getReports, getDispositionsForShift } from '@/lib/herald-storage';
 import { getSession } from '@/lib/herald-session';
+import { supabase } from '@/integrations/supabase/client';
 import type { HeraldReport, CasualtyDisposition } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 
@@ -23,22 +24,57 @@ const IncidentsPage = () => {
   const syncStatus = useHeraldSync();
   const navigate = useNavigate();
 
-  const refreshReports = useCallback(() => {
+  const refreshReports = useCallback(async () => {
     setReports(getReports());
     setIncidentRefresh(n => n + 1);
-    if (session) {
-      setClosedCasualties(getDispositionsForShift(session.callsign, session.session_date));
+    if (!session) return;
+
+    // Get local dispositions
+    const localDisps = getDispositionsForShift(session.callsign, session.session_date);
+
+    // Also fetch from Supabase as fallback
+    try {
+      const todayStart = session.session_date + 'T00:00:00.000Z';
+      const { data } = await supabase
+        .from('casualty_dispositions')
+        .select('*')
+        .eq('session_callsign', session.callsign)
+        .gte('created_at', todayStart);
+
+      if (data && data.length > 0) {
+        // Merge: use Supabase data keyed by report_id+casualty_key, overlay with local
+        const merged = new Map<string, CasualtyDisposition>();
+        for (const row of data) {
+          const key = `${row.report_id}-${row.casualty_key}`;
+          merged.set(key, {
+            disposition: row.disposition as CasualtyDisposition['disposition'],
+            closed_at: row.closed_at,
+            casualty_key: row.casualty_key,
+            casualty_label: row.casualty_label,
+            priority: row.priority,
+            incident_id: row.report_id,
+            incident_number: row.incident_number,
+            fields: (row.fields as CasualtyDisposition['fields']) ?? {},
+          });
+        }
+        // Local data takes priority (more recent)
+        for (const d of localDisps) {
+          merged.set(`${d.incident_id}-${d.casualty_key}`, d);
+        }
+        setClosedCasualties(Array.from(merged.values()));
+      } else {
+        setClosedCasualties(localDisps);
+      }
+    } catch {
+      setClosedCasualties(localDisps);
     }
   }, [session]);
 
   useCommandPull(refreshReports);
 
   useEffect(() => {
-    setReports(getReports());
-    if (session) {
-      setClosedCasualties(getDispositionsForShift(session.callsign, session.session_date));
-    }
-  }, [activeTab, session]);
+    refreshReports();
+  }, [activeTab, session, refreshReports]);
 
   const handleShiftStarted = useCallback((s: HeraldSession) => {
     setSession(s);
