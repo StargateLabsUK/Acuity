@@ -98,11 +98,22 @@ export default function Command() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+      if (!session?.user?.email) {
         navigate('/login', { replace: true });
-      } else {
-        setAuthChecked(true);
+        return;
       }
+      // Verify user has command or admin role
+      supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .then(({ data }) => {
+          if (data?.some(r => r.role === 'command' || r.role === 'admin')) {
+            setAuthChecked(true);
+          } else {
+            navigate('/login', { replace: true });
+          }
+        });
     });
   }, [navigate]);
 
