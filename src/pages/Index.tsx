@@ -23,6 +23,7 @@ const Index = () => {
 
   const refreshReports = useCallback(() => {
     setReports(getReports());
+    setIncidentRefresh(n => n + 1);
   }, []);
 
   useCommandPull(refreshReports);
