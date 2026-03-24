@@ -95,9 +95,9 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
   "scene_location": "where the incident happened — NEVER a hospital",
   "receiving_hospital": [],
   "structured": {
-    "callsign": "value or null",
+    "callsign": null,
     "incident_number": "value or null",
-    "operator_id": "value or null",
+    "operator_id": null,
     "hazards": "METHANE H value if explicitly stated, else null",
     "access": "METHANE A — physical scene access routes ONLY (road names, entry points, approach directions, door access). NEVER clinical data, patient demographics, or treatment info. Null if not stated",
     "number_of_casualties": "METHANE N value if explicitly stated, else null",
