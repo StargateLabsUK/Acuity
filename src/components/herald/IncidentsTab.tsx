@@ -791,23 +791,11 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
       ) : (
         activeWithCasualties.map(inc => {
           const casualties = extractCasualties(inc).filter(c => !isCasualtyClosed(inc.id, c.key));
-          // Single casualty — go straight to casualty report
-          if (casualties.length === 1) {
-            return (
-              <IncidentListItem
-                key={inc.id}
-                inc={inc}
-                casualtyCount={1}
-                onTap={() => setNav({ view: 'casualty', incident: inc, casualty: casualties[0] })}
-              />
-            );
-          }
           return (
-            <IncidentListItem
+            <IncidentCard
               key={inc.id}
               inc={inc}
-              casualtyCount={casualties.length}
-              onTap={() => setNav({ view: 'incident', incident: inc })}
+              onSelectCasualty={(cas) => setNav({ view: 'casualty', incident: inc, casualty: cas })}
             />
           );
         })
