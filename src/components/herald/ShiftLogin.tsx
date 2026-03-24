@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { saveSession, startShiftRemote } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
-
 import { VEHICLE_TYPES } from '@/lib/vehicle-types';
 import { getCachedTrust } from '@/lib/trust-cache';
 import { TrustPinEntry } from './TrustPinEntry';
 import type { CachedTrust } from '@/lib/trust-cache';
-
 
 interface Props {
   onShiftStarted: (session: HeraldSession) => void;
@@ -38,10 +36,10 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const [vehicleType, setVehicleType] = useState('');
   const [collarNumber, setCollarNumber] = useState('');
   const [trust, setTrust] = useState<CachedTrust | null>(getCachedTrust());
+  const [submitting, setSubmitting] = useState(false);
 
   const canSubmit = callsign.trim() !== '' && vehicleType !== '';
 
-  // If no cached trust, show PIN entry
   if (!trust) {
     return <TrustPinEntry onValidated={(t) => setTrust(t)} />;
   }
@@ -55,7 +53,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       service_emoji: '',
       callsign: callsign.trim(),
       operator_id: collarNumber.trim() || null,
-      station: station || null,
+      station: null,
       session_date: new Date().toISOString().slice(0, 10),
       shift_started: new Date().toISOString(),
       vehicle_type: vehicleType,
@@ -63,7 +61,6 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       critical_care: vt?.critical_care ?? false,
       trust_id: trust.trust_id,
     };
-    // Sync shift to Supabase and get shift_id
     const shiftId = await startShiftRemote(session);
     if (shiftId) session.shift_id = shiftId;
     saveSession(session);
@@ -77,7 +74,6 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       style={{ background: '#080B10' }}
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
-        {/* Wordmark */}
         <h1 className="font-heading text-2xl text-foreground tracking-[0.08em] text-center mb-1">
           HERALD
         </h1>
@@ -144,7 +140,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
         </div>
 
         {/* COLLAR NUMBER */}
-        <div className="mb-5">
+        <div className="mb-8">
           <label style={labelStyle}>COLLAR NUMBER</label>
           <input
             type="text"
@@ -153,26 +149,6 @@ export function ShiftLogin({ onShiftStarted }: Props) {
             placeholder="Your personal ID number"
             style={inputStyle}
           />
-        </div>
-
-        {/* STATION / TRUST */}
-        <div className="mb-8">
-          <label style={labelStyle}>STATION / TRUST</label>
-          <select
-            value={station}
-            onChange={(e) => setStation(e.target.value)}
-            style={{
-              ...inputStyle,
-              color: station ? '#C8D0CC' : '#1E3028',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-            }}
-          >
-            <option value="">Select station / trust</option>
-            {stationOptions.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
         </div>
 
         {/* BEGIN SHIFT */}
