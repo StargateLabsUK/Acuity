@@ -30,7 +30,7 @@ export function useCommandPull(onUpdate?: () => void) {
       try {
         const { data } = await supabase
           .from('herald_reports')
-          .select('id, incident_number, receiving_hospital')
+          .select('id, incident_number, receiving_hospital, status')
           .in('id', ids);
 
         if (!data) return;
