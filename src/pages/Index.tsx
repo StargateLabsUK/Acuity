@@ -30,6 +30,7 @@ const Index = () => {
 
   useEffect(() => {
     setReports(getReports());
+    if (activeTab === 'incidents') setIncidentRefresh(n => n + 1);
   }, [activeTab]);
 
   const handleShiftStarted = useCallback((s: HeraldSession) => {
