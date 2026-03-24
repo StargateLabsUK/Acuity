@@ -78,7 +78,7 @@ export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
     }
   }, [session.shift_id]);
 
-  useEffect(() => { fetchIncidents(); }, [fetchIncidents]);
+  useEffect(() => { fetchIncidents(); }, [fetchIncidents, refreshKey]);
 
   useEffect(() => {
     if (!expandedId) { setTransmissions([]); return; }
