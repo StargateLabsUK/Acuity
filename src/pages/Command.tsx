@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useHeraldCommand } from '@/hooks/useHeraldCommand';
 import { CommandTopBar } from '@/components/command/CommandTopBar';
 import { IncomingFeed } from '@/components/command/IncomingFeed';
@@ -73,6 +75,17 @@ function ExpandButton({ expanded, onClick }: { expanded: boolean; onClick: () =>
 }
 
 export default function Command() {
+  const navigate = useNavigate();
+  const [authChecked, setAuthChecked] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
+  const [filters] = useState({ service: '', callsign: '', timeRange: 'today' as const });
+  const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
+  const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops' | 'sla' | 'map'>('status');
+  const [opsReportId, setOpsReportId] = useState<string | null>(null);
+  const viewMode = useViewMode();
+  const mapRef = useRef<MapTabHandle>(null);
+
   const {
     reports,
     todayReports,
@@ -83,14 +96,15 @@ export default function Command() {
     activeShifts,
   } = useHeraldCommand();
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
-  const [filters] = useState({ service: '', callsign: '', timeRange: 'today' as const });
-  const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
-  const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops' | 'sla' | 'map'>('status');
-  const [opsReportId, setOpsReportId] = useState<string | null>(null);
-  const viewMode = useViewMode();
-  const mapRef = useRef<MapTabHandle>(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate('/login', { replace: true });
+      } else {
+        setAuthChecked(true);
+      }
+    });
+  }, [navigate]);
 
   const filteredReports = useMemo(() => applyFilters(reports, filters), [reports, filters]);
   const selectedReport = filteredReports.find((r) => r.id === selectedId) ?? null;
@@ -172,9 +186,13 @@ export default function Command() {
     );
   };
 
+
+  if (!authChecked) {
+    return <div className="min-h-screen" style={{ background: 'var(--herald-command-bg)' }} />;
+  }
+
   const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} />;
 
-  // OPS LOG REPORT DETAIL — full page with report + map
   if (opsReport) {
     const singleReports = [opsReport];
     return (
