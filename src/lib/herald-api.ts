@@ -46,14 +46,23 @@ export async function syncReport(report: Record<string, unknown>): Promise<boole
 
 export async function syncDisposition(disposition: Record<string, unknown>): Promise<boolean> {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { error } = await supabase.from('casualty_dispositions').upsert(disposition as any, {
-      onConflict: 'report_id,casualty_key',
+    const payload = {
+      ...disposition,
+      trust_id: (disposition as any)?.trust_id ?? getTrustId(),
+    };
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-disposition`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
     });
-    if (error) {
-      console.error('Sync disposition error:', error);
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Sync disposition error:', errText);
       return false;
     }
+
     return true;
   } catch (e) {
     console.error('Sync disposition failed:', e);
