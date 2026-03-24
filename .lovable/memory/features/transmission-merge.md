@@ -16,3 +16,6 @@ Rules for transmission consolidation and action item resolution
 - incident_type with "Multi-Casualty" can never be downgraded to single-type (e.g. "Trauma")
 - METHANE fields (methane_major/exact/type/hazards/access/number/emergency) protected from placeholder overwrite
 - Placeholder values: "Not declared", "None reported", "Unknown", "Not stated", etc. treated as empty
+- METHANE placeholder guard also applies to structured keys: hazards, access/access_routes, num_casualties/number_of_casualties/casualties, emergency_services
+- major_incident sticky guard treats any non-true follow-up value as no-change when existing is true
+- incident_type merge policy: only allow same/broader/more severe updates; block downgrades and over-specific replacements
