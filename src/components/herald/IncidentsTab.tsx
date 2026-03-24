@@ -488,6 +488,11 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
   }, []);
 
   const doHandover = useCallback(async () => {
+    const conveyedHospital =
+      disposition === 'conveyed' && typeof fields.receiving_hospital === 'string' && fields.receiving_hospital.trim()
+        ? fields.receiving_hospital.trim()
+        : null;
+
     const d: CasualtyDisposition = {
       disposition,
       closed_at: new Date().toISOString(),
@@ -497,10 +502,14 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
       incident_id: inc.id,
       incident_number: inc.incident_number,
       session_callsign: inc.session_callsign ?? null,
-      fields,
+      fields: conveyedHospital ? { ...fields, receiving_hospital: conveyedHospital } : fields,
     };
+
     // Save locally first
     saveCasualtyDisposition(d);
+    if (conveyedHospital) {
+      updateReport(inc.id, { receiving_hospital: conveyedHospital } as any);
+    }
 
     // Sync to Supabase BEFORE triggering navigation (onHandover unmounts this component)
     try {
@@ -512,7 +521,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
         casualty_label: cas.label,
         priority: cas.priority,
         disposition,
-        fields,
+        fields: conveyedHospital ? { ...fields, receiving_hospital: conveyedHospital } : fields,
         incident_number: inc.incident_number,
         closed_at: d.closed_at,
         session_callsign: session?.callsign ?? null,
@@ -527,9 +536,21 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
       const allClosed = allCasualties.every(c =>
         c.key === cas.key || isCasualtyClosed(inc.id, c.key)
       );
+      const reportUpdates: Record<string, unknown> = {};
+      if (allClosed) {
+        reportUpdates.status = 'closed';
+        reportUpdates.confirmed_at = d.closed_at;
+      }
+      if (conveyedHospital) {
+        reportUpdates.receiving_hospital = conveyedHospital;
+      }
+
       if (allClosed) {
         const { supabase } = await import('@/integrations/supabase/client');
-        await supabase.from('herald_reports').update({ status: 'closed' }).eq('id', inc.id);
+        await supabase.from('herald_reports').update(reportUpdates).eq('id', inc.id);
+      } else if (conveyedHospital) {
+        const { supabase } = await import('@/integrations/supabase/client');
+        await supabase.from('herald_reports').update({ receiving_hospital: conveyedHospital }).eq('id', inc.id);
       }
     } catch (e) {
       console.error('Failed to sync disposition:', e);
