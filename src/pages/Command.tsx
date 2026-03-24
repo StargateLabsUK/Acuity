@@ -254,7 +254,7 @@ export default function Command() {
   // DESKTOP
   if (viewMode === 'desktop') {
     return (
-      <div className="flex flex-col" style={{ background: 'var(--herald-command-bg)' }}>
+      <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         {topBar}
 
         <div className="flex flex-col p-3 gap-3">
