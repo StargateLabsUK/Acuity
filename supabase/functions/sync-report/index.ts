@@ -216,13 +216,18 @@ serve(async (req) => {
         }
       }
 
-      const mergedAssessment = {
-        ...(parentAssessment || {}),
-        ...(newAssessment || {}),
-        action_items: mergedActionItems,
-        resolved_action_items: resolvedItems,
-      };
+      // Use mergeShallow for top-level so empty/null fields in new assessment
+      // don't wipe existing data. "No mention" = "no change".
+      const mergedAssessment = mergeShallow(
+        parentAssessment || {},
+        newAssessment || {},
+      ) as Record<string, unknown>;
 
+      // Explicitly set merged action items (overrides any spread value)
+      mergedAssessment.action_items = mergedActionItems;
+      mergedAssessment.resolved_action_items = resolvedItems;
+
+      // Deep merge nested structures to preserve per-field casualty data
       if (parentAssessment?.atmist || newAssessment?.atmist) {
         mergedAssessment.atmist = deepMergeCasualtyMap(
           parentAssessment?.atmist || {},
@@ -244,13 +249,38 @@ serve(async (req) => {
         );
       }
 
+      // Preserve scene_location unless new one is explicitly provided
       if (parentAssessment?.scene_location && !newAssessment?.scene_location) {
         mergedAssessment.scene_location = parentAssessment.scene_location;
       }
 
+      // Receiving hospital: only overwrite if new transmission explicitly provides one
       const newHospitals2 = newAssessment?.receiving_hospital;
       if (Array.isArray(newHospitals2) && newHospitals2.length > 0) {
         mergedAssessment.receiving_hospital = newHospitals2;
+      } else if (parentAssessment?.receiving_hospital) {
+        mergedAssessment.receiving_hospital = parentAssessment.receiving_hospital;
+      }
+
+      // Treatment given: merge arrays, don't replace
+      if (parentAssessment?.treatment_given || newAssessment?.treatment_given) {
+        const existingTreatments = parentAssessment?.treatment_given || [];
+        const newTreatments = newAssessment?.treatment_given || [];
+        const allTreatments = [...existingTreatments];
+        for (const t of newTreatments) {
+          if (!allTreatments.some((e: string) => e.toLowerCase() === t.toLowerCase())) {
+            allTreatments.push(t);
+          }
+        }
+        mergedAssessment.treatment_given = allTreatments;
+      }
+
+      // Structured fields: merge, don't replace
+      if (parentAssessment?.structured || newAssessment?.structured) {
+        mergedAssessment.structured = mergeShallow(
+          parentAssessment?.structured || {},
+          newAssessment?.structured || {},
+        );
       }
 
       const updatePayload: Record<string, unknown> = {
