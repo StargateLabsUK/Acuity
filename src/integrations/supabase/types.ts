@@ -52,6 +52,66 @@ export type Database = {
           },
         ]
       }
+      casualty_dispositions: {
+        Row: {
+          casualty_key: string
+          casualty_label: string
+          closed_at: string
+          created_at: string | null
+          disposition: string
+          fields: Json | null
+          id: string
+          incident_number: string | null
+          priority: string
+          report_id: string
+          session_callsign: string | null
+          trust_id: string | null
+        }
+        Insert: {
+          casualty_key: string
+          casualty_label: string
+          closed_at: string
+          created_at?: string | null
+          disposition: string
+          fields?: Json | null
+          id?: string
+          incident_number?: string | null
+          priority: string
+          report_id: string
+          session_callsign?: string | null
+          trust_id?: string | null
+        }
+        Update: {
+          casualty_key?: string
+          casualty_label?: string
+          closed_at?: string
+          created_at?: string | null
+          disposition?: string
+          fields?: Json | null
+          id?: string
+          incident_number?: string | null
+          priority?: string
+          report_id?: string
+          session_callsign?: string | null
+          trust_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "casualty_dispositions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "herald_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "casualty_dispositions_trust_id_fkey"
+            columns: ["trust_id"]
+            isOneToOne: false
+            referencedRelation: "trusts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       herald_reports: {
         Row: {
           assessment: Json | null

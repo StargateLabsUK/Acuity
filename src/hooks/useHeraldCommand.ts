@@ -1,6 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Assessment } from '@/lib/herald-types';
+import type { Assessment, DispositionType, DispositionFields } from '@/lib/herald-types';
+
+export interface CommandDisposition {
+  id: string;
+  report_id: string;
+  casualty_key: string;
+  casualty_label: string;
+  priority: string;
+  disposition: DispositionType;
+  fields: DispositionFields;
+  incident_number: string | null;
+  closed_at: string;
+  session_callsign: string | null;
+  created_at: string | null;
+}
 
 export interface CommandReport {
   id: string;
@@ -51,6 +65,7 @@ export interface CommandShift {
 export function useHeraldCommand() {
   const [reports, setReports] = useState<CommandReport[]>([]);
   const [shifts, setShifts] = useState<CommandShift[]>([]);
+  const [dispositions, setDispositions] = useState<CommandDisposition[]>([]);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const retryRef = useRef<ReturnType<typeof setInterval>>();
@@ -60,7 +75,7 @@ export function useHeraldCommand() {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      const [reportsRes, shiftsRes] = await Promise.all([
+      const [reportsRes, shiftsRes, dispositionsRes] = await Promise.all([
         supabase
           .from('herald_reports')
           .select('*')
@@ -73,6 +88,12 @@ export function useHeraldCommand() {
           .is('ended_at', null)
           .order('created_at', { ascending: false })
           .limit(50),
+        supabase
+          .from('casualty_dispositions')
+          .select('*')
+          .gte('created_at', todayStart.toISOString())
+          .order('closed_at', { ascending: false })
+          .limit(500),
       ]);
 
       if (reportsRes.error) throw reportsRes.error;
@@ -89,6 +110,9 @@ export function useHeraldCommand() {
 
       if (shiftsRes.data) {
         setShifts(shiftsRes.data as CommandShift[]);
+      }
+      if (dispositionsRes.data) {
+        setDispositions(dispositionsRes.data as unknown as CommandDisposition[]);
       }
     } catch {
       // silent
@@ -157,6 +181,14 @@ export function useHeraldCommand() {
           }, 800);
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'casualty_dispositions' },
+        (payload) => {
+          const d = payload.new as unknown as CommandDisposition;
+          setDispositions((prev) => [d, ...prev]);
+        }
+      )
       .subscribe((status) => {
         setConnected(status === 'SUBSCRIBED');
       });
@@ -214,5 +246,6 @@ export function useHeraldCommand() {
     connected,
     loading,
     activeShifts,
+    dispositions,
   };
 }
