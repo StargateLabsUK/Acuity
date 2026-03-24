@@ -21,7 +21,7 @@ serve(async (req) => {
     );
 
     if (action === "start") {
-      const { callsign, service, station, operator_id, device_id, vehicle_type, can_transport, critical_care } = body;
+      const { callsign, service, station, operator_id, device_id, vehicle_type, can_transport, critical_care, trust_id } = body;
       if (!callsign || !service) {
         return new Response(
           JSON.stringify({ error: "Missing required fields: callsign, service" }),
@@ -38,6 +38,7 @@ serve(async (req) => {
         vehicle_type: vehicle_type || null,
         can_transport: can_transport ?? true,
         critical_care: critical_care ?? false,
+        trust_id: trust_id || null,
       }).select("id").single();
 
       if (error) {
