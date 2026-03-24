@@ -459,15 +459,54 @@ function actionItemsMatch(a: string, b: string, catA: string, catB: string): boo
   return norm(a) === norm(b);
 }
 
+// Fields that, once set to true, must never be downgraded by a follow-up
+const STICKY_TRUE_FIELDS = new Set(['major_incident']);
+
+// Fields that, once set to a non-placeholder value, must not be overwritten
+// by a follow-up unless the new value is also non-placeholder.
+const METHANE_FIELDS = new Set([
+  'methane_major', 'methane_exact', 'methane_type',
+  'methane_hazards', 'methane_access', 'methane_number', 'methane_emergency',
+  // Also protect incident_type from downgrades (e.g. Multi-Casualty → Trauma)
+  'incident_type',
+]);
+
+const PLACEHOLDER_VALUES = new Set([
+  'not declared', 'none reported', 'not reported', 'unknown',
+  'not stated', 'not mentioned', 'none', 'n/a', 'none stated',
+  'none mentioned', 'not specified', 'not provided',
+]);
+
+function isPlaceholder(value: unknown): boolean {
+  if (value === null || value === undefined || value === '' || value === '—') return true;
+  if (typeof value === 'string' && PLACEHOLDER_VALUES.has(value.toLowerCase().trim())) return true;
+  return false;
+}
+
 function mergeShallow(
   existing: Record<string, unknown>,
   incoming: Record<string, unknown>,
 ): Record<string, unknown> {
   const result = { ...existing };
   for (const [key, value] of Object.entries(incoming)) {
-    if (value !== null && value !== undefined && value !== '' && value !== '—') {
-      result[key] = value;
+    // Skip null/empty/dash — silence means no change
+    if (value === null || value === undefined || value === '' || value === '—') continue;
+
+    // Sticky boolean fields: once true, never revert to false
+    if (STICKY_TRUE_FIELDS.has(key) && result[key] === true && value === false) continue;
+
+    // METHANE + incident_type: don't overwrite real data with placeholders
+    if (METHANE_FIELDS.has(key) && !isPlaceholder(result[key]) && isPlaceholder(value)) continue;
+
+    // incident_type: don't downgrade Multi-Casualty to single-type
+    if (key === 'incident_type' && typeof result[key] === 'string' && typeof value === 'string') {
+      const existingLower = (result[key] as string).toLowerCase();
+      if (existingLower.includes('multi-casualty') && !((value as string).toLowerCase().includes('multi-casualty'))) {
+        continue;
+      }
     }
+
+    result[key] = value;
   }
   return result;
 }

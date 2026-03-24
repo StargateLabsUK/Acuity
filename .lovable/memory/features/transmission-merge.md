@@ -12,3 +12,7 @@ Rules for transmission consolidation and action item resolution
 - Extrication resolves on: extricated, extrication complete/done, freed, released
 - Triage resolves on: triage complete/done, all casualties assessed/accounted
 - Additional units/backup resolves on: on scene, arrived, confirmed
+- STICKY FIELDS: major_incident=true can never be reverted to false by a follow-up
+- incident_type with "Multi-Casualty" can never be downgraded to single-type (e.g. "Trauma")
+- METHANE fields (methane_major/exact/type/hazards/access/number/emergency) protected from placeholder overwrite
+- Placeholder values: "Not declared", "None reported", "Unknown", "Not stated", etc. treated as empty
