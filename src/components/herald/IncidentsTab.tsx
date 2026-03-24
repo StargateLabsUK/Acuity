@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, FileText, ArrowLeft } from 'luc
 import { supabase } from '@/integrations/supabase/client';
 import { getReports, updateReport, saveCasualtyDisposition, isCasualtyClosed } from '@/lib/herald-storage';
 import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
-import type { Assessment, ActionItem, DispositionType, CasualtyDisposition } from '@/lib/herald-types';
+import type { Assessment, ActionItem, DispositionType, CasualtyDisposition, DispositionFields } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 import { sanitizeAssessment, formatActionAge } from '@/lib/sanitize-assessment';
 
