@@ -829,8 +829,19 @@ function mergeShallow(
     // incident_type can only broaden/escalate, never downgrade/specialize
     if (key === INCIDENT_TYPE_KEY && shouldKeepExistingIncidentType(result[key], value)) continue;
 
-    // METHANE fields: silence/default placeholders = no change
-    if (METHANE_PRESERVE_FIELDS.has(key) && !isPlaceholder(result[key]) && isPlaceholder(value)) continue;
+    // scene_location: protect against truncation
+    if (key === 'scene_location' && shouldKeepExistingSceneLocation(result[key], value)) continue;
+
+    // METHANE access field: only preserve if existing value is valid access-route content
+    if ((key === 'access' || key === 'access_routes') && METHANE_PRESERVE_FIELDS.has(key)) {
+      if (!isPlaceholder(result[key]) && isPlaceholder(value)) {
+        // Only preserve if existing is valid access content
+        if (isValidAccessValue(result[key])) continue;
+        // Otherwise allow overwrite (existing was invalid)
+      }
+    } else if (METHANE_PRESERVE_FIELDS.has(key) && !isPlaceholder(result[key]) && isPlaceholder(value)) {
+      continue;
+    }
 
     result[key] = value;
   }
