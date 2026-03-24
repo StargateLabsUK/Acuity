@@ -141,13 +141,37 @@ serve(async (req) => {
         }
       }
 
-      // Merge into assessment
+      // Merge into assessment — deep-merge clinical data per casualty
       const mergedAssessment = {
         ...(parentAssessment || {}),
         ...(newAssessment || {}),
         action_items: mergedActionItems,
         resolved_action_items: resolvedItems,
       };
+
+      // Deep-merge ATMIST per casualty key (P1, P2, etc.)
+      if (parentAssessment?.atmist || newAssessment?.atmist) {
+        mergedAssessment.atmist = deepMergeCasualtyMap(
+          parentAssessment?.atmist || {},
+          newAssessment?.atmist || {},
+        );
+      }
+
+      // Deep-merge clinical_findings (A, B, C, D, E fields)
+      if (parentAssessment?.clinical_findings || newAssessment?.clinical_findings) {
+        mergedAssessment.clinical_findings = mergeShallow(
+          parentAssessment?.clinical_findings || {},
+          newAssessment?.clinical_findings || {},
+        );
+      }
+
+      // Deep-merge vitals — never clear existing values
+      if (parentAssessment?.vitals || newAssessment?.vitals) {
+        mergedAssessment.vitals = mergeShallow(
+          parentAssessment?.vitals || {},
+          newAssessment?.vitals || {},
+        );
+      }
 
       // Backfill receiving_hospital if newly confirmed
       const newHospitals2 = newAssessment?.receiving_hospital;
