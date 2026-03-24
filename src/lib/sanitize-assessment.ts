@@ -283,6 +283,7 @@ export function sanitizeAssessment(assessment: Assessment): Assessment {
   if (sanitized.atmist) {
     for (const casualty of Object.values(sanitized.atmist)) {
       if ((casualty as any)?.I) {
+        // Airway compressed → compromised
         (casualty as any).I = (casualty as any).I.replace(
           /airway\s+compressed/gi,
           'Airway compromised'

@@ -69,6 +69,8 @@ export interface Assessment {
     I?: string;
     S?: string;
     T_treatment?: string;
+    downtime?: string;
+    status?: string;
   }>;
   treatment_given?: string[];
   action_items?: string[];
