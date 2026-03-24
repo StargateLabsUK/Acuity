@@ -115,7 +115,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
 
       {reports.length === 0 && (
         <p className="text-center mt-12 text-lg text-foreground opacity-50">
-          No confirmed reports yet
+          No closed incidents yet
         </p>
       )}
 
