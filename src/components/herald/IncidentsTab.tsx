@@ -88,21 +88,32 @@ export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
         confirmed_at: r.confirmed_at ?? null,
       }));
 
-    // Remote incidents for this shift/callsign
+    // Remote incidents — try shift_id first, fallback to callsign + today's date
     let remoteIncidents: Incident[] = [];
+    const todayStart = session.session_date + 'T00:00:00.000Z';
+
+    let query = supabase
+      .from('herald_reports')
+      .select('*')
+      .eq('session_callsign', session.callsign)
+      .gte('created_at', todayStart)
+      .order('latest_transmission_at', { ascending: false, nullsFirst: false });
+
     if (session.shift_id) {
-      const { data } = await supabase
+      // Prefer shift_id but also get any callsign matches for today
+      query = supabase
         .from('herald_reports')
         .select('*')
-        .eq('shift_id', session.shift_id)
+        .or(`shift_id.eq.${session.shift_id},and(session_callsign.eq.${session.callsign},created_at.gte.${todayStart})`)
         .order('latest_transmission_at', { ascending: false, nullsFirst: false });
+    }
 
-      if (data) {
-        remoteIncidents = data.map((r: any) => ({
-          ...r,
-          assessment: r.assessment ? sanitizeAssessment(r.assessment as unknown as Assessment) : null,
-        }));
-      }
+    const { data } = await query;
+    if (data) {
+      remoteIncidents = data.map((r: any) => ({
+        ...r,
+        assessment: r.assessment ? sanitizeAssessment(r.assessment as unknown as Assessment) : null,
+      }));
     }
 
     // Merge remote + local (remote wins on same id)
