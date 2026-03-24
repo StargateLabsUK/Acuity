@@ -186,7 +186,11 @@ export default function Command() {
     );
   };
 
-  const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} />;
+
+  if (!authChecked) {
+    return <div className="min-h-screen" style={{ background: 'var(--herald-command-bg)' }} />;
+  }
+
 
   // OPS LOG REPORT DETAIL — full page with report + map
   if (opsReport) {
