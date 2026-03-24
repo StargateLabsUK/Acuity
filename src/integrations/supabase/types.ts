@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          trust_id: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          trust_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          trust_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_trust_id_fkey"
+            columns: ["trust_id"]
+            isOneToOne: false
+            referencedRelation: "trusts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       herald_reports: {
         Row: {
           assessment: Json | null
@@ -46,6 +84,7 @@ export type Database = {
           timestamp: string
           transcript: string | null
           transmission_count: number | null
+          trust_id: string | null
           user_id: string | null
           vehicle_type: string | null
         }
@@ -80,6 +119,7 @@ export type Database = {
           timestamp: string
           transcript?: string | null
           transmission_count?: number | null
+          trust_id?: string | null
           user_id?: string | null
           vehicle_type?: string | null
         }
@@ -114,10 +154,19 @@ export type Database = {
           timestamp?: string
           transcript?: string | null
           transmission_count?: number | null
+          trust_id?: string | null
           user_id?: string | null
           vehicle_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "herald_reports_trust_id_fkey"
+            columns: ["trust_id"]
+            isOneToOne: false
+            referencedRelation: "trusts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       incident_log: {
         Row: {
@@ -167,6 +216,7 @@ export type Database = {
           session_callsign: string | null
           timestamp: string
           transcript: string | null
+          trust_id: string | null
         }
         Insert: {
           assessment?: Json | null
@@ -179,6 +229,7 @@ export type Database = {
           session_callsign?: string | null
           timestamp: string
           transcript?: string | null
+          trust_id?: string | null
         }
         Update: {
           assessment?: Json | null
@@ -191,6 +242,7 @@ export type Database = {
           session_callsign?: string | null
           timestamp?: string
           transcript?: string | null
+          trust_id?: string | null
         }
         Relationships: [
           {
@@ -198,6 +250,57 @@ export type Database = {
             columns: ["report_id"]
             isOneToOne: false
             referencedRelation: "herald_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_transmissions_trust_id_fkey"
+            columns: ["trust_id"]
+            isOneToOne: false
+            referencedRelation: "trusts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          failed_login_attempts: number
+          full_name: string | null
+          id: string
+          locked: boolean
+          locked_until: string | null
+          trust_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          failed_login_attempts?: number
+          full_name?: string | null
+          id: string
+          locked?: boolean
+          locked_until?: string | null
+          trust_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          failed_login_attempts?: number
+          full_name?: string | null
+          id?: string
+          locked?: boolean
+          locked_until?: string | null
+          trust_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_trust_id_fkey"
+            columns: ["trust_id"]
+            isOneToOne: false
+            referencedRelation: "trusts"
             referencedColumns: ["id"]
           },
         ]
@@ -215,6 +318,7 @@ export type Database = {
           service: string | null
           started_at: string | null
           station: string | null
+          trust_id: string | null
           vehicle_type: string | null
         }
         Insert: {
@@ -229,6 +333,7 @@ export type Database = {
           service?: string | null
           started_at?: string | null
           station?: string | null
+          trust_id?: string | null
           vehicle_type?: string | null
         }
         Update: {
@@ -243,7 +348,43 @@ export type Database = {
           service?: string | null
           started_at?: string | null
           station?: string | null
+          trust_id?: string | null
           vehicle_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_trust_id_fkey"
+            columns: ["trust_id"]
+            isOneToOne: false
+            referencedRelation: "trusts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trusts: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          trust_pin_hash: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          trust_pin_hash: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          trust_pin_hash?: string
         }
         Relationships: []
       }
@@ -270,7 +411,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "command" | "field"

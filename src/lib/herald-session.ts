@@ -10,6 +10,7 @@ export interface HeraldSession {
   vehicle_type?: string;
   can_transport?: boolean;
   critical_care?: boolean;
+  trust_id?: string;
 }
 
 const SESSION_KEY = 'herald_session';
@@ -51,6 +52,10 @@ export function getShiftId(): string | undefined {
   return getSession()?.shift_id;
 }
 
+export function getTrustId(): string | undefined {
+  return getSession()?.trust_id;
+}
+
 /** Start a shift in Supabase, returns the shift_id */
 export async function startShiftRemote(session: HeraldSession): Promise<string | null> {
   try {
@@ -66,6 +71,7 @@ export async function startShiftRemote(session: HeraldSession): Promise<string |
         vehicle_type: session.vehicle_type ?? null,
         can_transport: session.can_transport ?? true,
         critical_care: session.critical_care ?? false,
+        trust_id: session.trust_id ?? null,
       }),
     });
     if (!res.ok) return null;

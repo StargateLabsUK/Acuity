@@ -3,6 +3,9 @@ import { saveSession, startShiftRemote } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
 import { getStationsForService } from '@/lib/uk-stations';
 import { VEHICLE_TYPES } from '@/lib/vehicle-types';
+import { getCachedTrust } from '@/lib/trust-cache';
+import { TrustPinEntry } from './TrustPinEntry';
+import type { CachedTrust } from '@/lib/trust-cache';
 
 
 interface Props {
@@ -35,11 +38,17 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const [vehicleType, setVehicleType] = useState('');
   const [collarNumber, setCollarNumber] = useState('');
   const [station, setStation] = useState('');
+  const [trust, setTrust] = useState<CachedTrust | null>(getCachedTrust());
 
   const canSubmit = callsign.trim() !== '' && vehicleType !== '';
   const stationOptions = getStationsForService(service);
 
   const [submitting, setSubmitting] = useState(false);
+
+  // If no cached trust, show PIN entry
+  if (!trust) {
+    return <TrustPinEntry onValidated={(t) => setTrust(t)} />;
+  }
 
   const handleBeginShift = async () => {
     if (!canSubmit || submitting) return;
@@ -56,6 +65,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       vehicle_type: vehicleType,
       can_transport: vt?.can_transport ?? true,
       critical_care: vt?.critical_care ?? false,
+      trust_id: trust.trust_id,
     };
     // Sync shift to Supabase and get shift_id
     const shiftId = await startShiftRemote(session);
@@ -81,12 +91,27 @@ export function ShiftLogin({ onShiftStarted }: Props) {
             fontSize: 14,
             letterSpacing: '0.25em',
             textAlign: 'center',
-            marginBottom: 48,
+            marginBottom: 24,
           }}
         >
           START OF SHIFT SETUP
         </p>
 
+        {/* Trust indicator */}
+        <div
+          className="flex items-center justify-center gap-2 mb-8"
+          style={{
+            padding: '8px 16px',
+            background: 'rgba(61, 255, 140, 0.06)',
+            border: '1px solid rgba(61, 255, 140, 0.2)',
+            borderRadius: 4,
+          }}
+        >
+          <span style={{ color: 'hsl(147, 100%, 62%)', fontSize: 14, fontWeight: 600 }}>✓</span>
+          <span style={{ color: '#C8D0CC', fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>
+            Trust: {trust.trust_name}
+          </span>
+        </div>
 
         {/* CALLSIGN */}
         <div className="mb-5">
