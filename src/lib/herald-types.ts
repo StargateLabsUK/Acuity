@@ -88,16 +88,54 @@ export type DispositionType =
   | 'refused_transport'
   | 'role';
 
+export interface DispositionFields {
+  // Conveyed
+  receiving_hospital?: string;
+  time_of_handover?: string;
+  handover_given_to?: string;
+  eprf_handed_over?: boolean;
+  // See and Treat
+  clinical_justification?: string;
+  discharge_observations?: string;
+  advice_given?: string;
+  safety_net_given?: boolean;
+  time_of_discharge?: string;
+  patient_understands?: boolean;
+  // See and Refer (extends See and Treat)
+  referral_destination?: string;
+  referral_pathway?: string; // GP / 111 / Walk-in / Mental health crisis team / Other
+  referral_accepted?: boolean; // true = accepted, false = advised only
+  reference_number?: string;
+  // Refused transport
+  capacity_assessed?: boolean;
+  patient_has_capacity?: boolean;
+  risks_explained?: boolean;
+  patient_understanding_confirmed?: boolean;
+  refusal_witnessed_by?: string;
+  time_of_refusal?: string;
+  safeguarding_concern?: boolean;
+  best_interests_decision?: string;
+  signed_refusal_form?: boolean;
+  // ROLE
+  time_of_recognition?: string;
+  role_criteria?: string;
+  resuscitation_attempted?: boolean;
+  resuscitation_details?: string;
+  gp_notified?: boolean;
+  police_notified?: boolean;
+  coroner_referral?: boolean;
+  nok_notified?: boolean;
+}
+
 export interface CasualtyDisposition {
   disposition: DispositionType;
-  closed_at: string; // ISO timestamp
-  refer_to?: string; // for see_and_refer
-  capacity_assessed?: boolean; // for refused_transport
+  closed_at: string;
   casualty_key: string;
   casualty_label: string;
   priority: string;
   incident_id: string;
   incident_number: string | null;
+  fields: DispositionFields;
 }
 
 export const DISPOSITION_LABELS: Record<DispositionType, string> = {
