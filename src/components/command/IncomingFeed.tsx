@@ -183,6 +183,55 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
             );
           })
         )}
+
+        {/* Closed incidents section */}
+        {closedReports.length > 0 && (
+          <div className="mt-4">
+            <button onClick={() => setShowClosed(!showClosed)}
+              className="w-full text-left text-lg tracking-[0.2em] font-bold mb-2 flex items-center gap-2 cursor-pointer bg-transparent border-none"
+              style={{ color: '#8E8E93' }}>
+              {showClosed ? '▾' : '▸'} CLOSED ({closedReports.length})
+            </button>
+            {showClosed && closedReports.map((r) => {
+              const p = getPriority(r);
+              const col = getColor(p);
+              const selected = selectedId === r.id;
+              return (
+                <button
+                  key={r.id}
+                  onClick={() => onSelect(r.id)}
+                  className="w-full text-left block rounded-lg cursor-pointer mb-2 transition-all shadow-sm opacity-70"
+                  style={{
+                    border: `1px solid ${selected ? col : 'hsl(var(--border))'}`,
+                    padding: '10px 14px',
+                    background: selected ? `${col}0A` : 'hsl(var(--card))',
+                  }}
+                >
+                  <div className="flex items-center gap-3" style={{ marginBottom: 4 }}>
+                    <span className="text-lg font-bold rounded-sm px-1.5 py-0.5 flex-shrink-0"
+                      style={{ color: col, border: `1px solid ${col}66`, minWidth: 36, textAlign: 'center' }}>{p}</span>
+                    <span className="text-lg text-foreground flex-shrink-0">{getTime(r)}</span>
+                    <span className="text-lg font-bold rounded-sm px-1.5 py-0.5 flex-shrink-0"
+                      style={{ color: '#8E8E93', border: '1px solid rgba(142,142,147,0.3)', background: 'rgba(142,142,147,0.08)' }}>
+                      CLOSED
+                    </span>
+                  </div>
+                  <div className="truncate text-lg text-foreground font-semibold" style={{ marginBottom: 4 }}>
+                    {getHeadline(r)}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {(r.session_callsign || getCallsign(r)) && (
+                      <span className="text-lg font-semibold rounded-sm px-1.5 py-0.5 flex-shrink-0"
+                        style={{ color: '#3DFF8C', border: '1px solid rgba(61,255,140,0.2)' }}>
+                        {r.session_callsign || getCallsign(r)}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
