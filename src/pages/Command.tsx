@@ -94,6 +94,7 @@ export default function Command() {
     uniqueDevices,
     connected,
     activeShifts,
+    dispositions,
   } = useHeraldCommand();
 
   useEffect(() => {
