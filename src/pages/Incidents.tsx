@@ -108,7 +108,7 @@ const IncidentsPage = () => {
         )}
       </div>
 
-      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} hideTabs={['live']} />
     </div>
   );
 };
