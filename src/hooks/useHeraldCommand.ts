@@ -1,6 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Assessment } from '@/lib/herald-types';
+import type { Assessment, DispositionType, DispositionFields } from '@/lib/herald-types';
+
+export interface CommandDisposition {
+  id: string;
+  report_id: string;
+  casualty_key: string;
+  casualty_label: string;
+  priority: string;
+  disposition: DispositionType;
+  fields: DispositionFields;
+  incident_number: string | null;
+  closed_at: string;
+  session_callsign: string | null;
+  created_at: string | null;
+}
 
 export interface CommandReport {
   id: string;
