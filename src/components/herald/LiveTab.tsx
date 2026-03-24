@@ -85,7 +85,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const [editFormattedReport, setEditFormattedReport] = useState('');
   const [originalAssessment, setOriginalAssessment] = useState<Assessment | null>(null);
   const [hasEdits, setHasEdits] = useState(false);
-  const [mismatches, setMismatches] = useState<Mismatch[]>([]);
+  const [mismatches] = useState<Mismatch[]>([]);
   const [isFollowUp, setIsFollowUp] = useState(false);
   const [followUpReportId, setFollowUpReportId] = useState<string | null>(null);
   const [followUpIncidentNumber, setFollowUpIncidentNumber] = useState<string | null>(null);
