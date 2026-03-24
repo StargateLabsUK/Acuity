@@ -131,6 +131,13 @@ const RULES: Rule[] = [
 
   // 2. Protocol term misreads
   { pattern: /\bat\s+miss(?:ed|t)\b/gi, replacement: 'ATMIST', label: 'at-mist→ATMIST' },
+  { pattern: /\bat\s+mist\b/gi, replacement: 'ATMIST', label: 'at-mist→ATMIST' },
+  { pattern: /\bat\s+missed\b/gi, replacement: 'ATMIST', label: 'at-missed→ATMIST' },
+  { pattern: /\bAT\s+MIST\b/g, replacement: 'ATMIST', label: 'AT-MIST→ATMIST' },
+  { pattern: /\bjesip\b/gi, replacement: 'JESIP', label: 'jesip→JESIP' },
+  { pattern: /\bjessup\b/gi, replacement: 'JESIP', label: 'jessup→JESIP' },
+  { pattern: /\bjessip\b/gi, replacement: 'JESIP', label: 'jessip→JESIP' },
+  { pattern: /\bABCD\b(?!\s*E)/g, replacement: 'ABCDE', label: 'ABCD→ABCDE' },
 
   // 3. Location misreads
   { pattern: /\bWrighton\s+Street\b/gi, replacement: 'Ryton Street', label: 'Wrighton→Ryton' },
@@ -138,6 +145,77 @@ const RULES: Rule[] = [
 
   // 4. Incident type misreads
   { pattern: /\blandscape\b(?=\s*(?:is|—|:|\.|,|\s+road\s+traffic|\s+rtc|\s+rta|\s+multi))/gi, replacement: 'type', label: 'landscape→type' },
+
+  // 5. Callsign misreads — NATO phonetic truncations
+  { pattern: /\balf(?:a)?\s*(\d)\b/gi, replacement: 'Alpha $1', label: 'alf→Alpha' },
+  { pattern: /\btang(?:o)?\s*(\d)\b/gi, replacement: 'Tango $1', label: 'tang→Tango' },
+  { pattern: /\bdelt(?:a)?\s*(\d)\b/gi, replacement: 'Delta $1', label: 'delt→Delta' },
+  { pattern: /\bbrav(?:o)?\s*(\d)\b/gi, replacement: 'Bravo $1', label: 'brav→Bravo' },
+  { pattern: /\bchar(?:lie)?\s*(\d)\b/gi, replacement: 'Charlie $1', label: 'char→Charlie' },
+  { pattern: /\btroy\s*(\d)\b/gi, replacement: 'Trojan $1', label: 'troy→Trojan' },
+  { pattern: /\bDelta\s+far\b/gi, replacement: 'Delta 4', label: 'Delta-far→Delta-4' },
+  { pattern: /\bDelta\s+for\b/gi, replacement: 'Delta 4', label: 'Delta-for→Delta-4' },
+  { pattern: /\bDelta\s+fore\b/gi, replacement: 'Delta 4', label: 'Delta-fore→Delta-4' },
+
+  // 6. Clinical term misreads
+  { pattern: /\brespies\b/gi, replacement: 'resp rate', label: 'respies→resp-rate' },
+  { pattern: /\brisp(?:ies|ees)\b/gi, replacement: 'resp rate', label: 'rispies→resp-rate' },
+  { pattern: /\bsats?\s+(\d)/gi, replacement: 'SpO2 $1', label: 'sats→SpO2' },
+  { pattern: /\bGCS\s+of\s+a\s+(\d+)\b/gi, replacement: 'GCS $1', label: 'GCS-of-a→GCS' },
+  { pattern: /\bGlasgow\s+coma\s+scale\b/gi, replacement: 'GCS', label: 'glasgow-coma→GCS' },
+  { pattern: /\btourniquet\b/gi, replacement: 'tourniquet', label: 'tourniquet-normalise' },
+  { pattern: /\bturn[ai]kit\b/gi, replacement: 'tourniquet', label: 'turnakit→tourniquet' },
+  { pattern: /\btournake?\b/gi, replacement: 'tourniquet', label: 'tournake→tourniquet' },
+  { pattern: /\bnew\s*mo(?:nia|nea)\b/gi, replacement: 'pneumonia', label: 'neumonia→pneumonia' },
+  { pattern: /\bnew\s*mo\s*thorax\b/gi, replacement: 'pneumothorax', label: 'neumo-thorax→pneumothorax' },
+  { pattern: /\bhemo(?:rage|rhage|ridge)\b/gi, replacement: 'haemorrhage', label: 'hemorage→haemorrhage' },
+  { pattern: /\bhemorrhage\b/gi, replacement: 'haemorrhage', label: 'hemorrhage→haemorrhage' },
+  { pattern: /\bfemural\b/gi, replacement: 'femoral', label: 'femural→femoral' },
+  { pattern: /\bcervical\s+collar\b/gi, replacement: 'cervical collar', label: 'c-collar-normalise' },
+  { pattern: /\bsee\s+collar\b/gi, replacement: 'cervical collar', label: 'see-collar→c-collar' },
+  { pattern: /\bhigh\s+flow\s+(?:oh\s+two|o\s+two|02)\b/gi, replacement: 'high flow oxygen', label: 'o2→oxygen' },
+  { pattern: /\b(\d+)\s+lit(?:re|er)s?\s+(?:oh\s+two|o\s+two|02)\b/gi, replacement: '$1 litres oxygen', label: 'litres-o2→oxygen' },
+  { pattern: /\bBP\s*(\d+)\s+over\s+(\d+)\b/gi, replacement: 'BP $1/$2', label: 'BP-over→BP-slash' },
+  { pattern: /\bbp(\d+)\s+over\s+(\d+)\b/gi, replacement: 'BP $1/$2', label: 'bp-over→BP-slash' },
+
+  // 7. Common radio term misreads
+  { pattern: /\breceiving\s+hostel\b/gi, replacement: 'receiving hospital', label: 'hostel→hospital' },
+  { pattern: /\bcontrolled?\s*,?\s+this\s+is\b/gi, replacement: 'Control, this is', label: 'controlled→Control' },
+  { pattern: /\bto\s+controlled?\b/gi, replacement: 'to Control', label: 'controlled→Control' },
+  { pattern: /\bfired\b(?=\s+(not|service|crew|engine|on|are|is|have))/gi, replacement: 'fire', label: 'fired→fire' },
+  { pattern: /\becho\s+(\d)\b/gi, replacement: 'Echo $1', label: 'echo-normalise' },
+  { pattern: /\bzulu\s+(\d+)\b/gi, replacement: 'Zulu $1', label: 'zulu-normalise' },
+  { pattern: /\bsierra\s+(\d)\b/gi, replacement: 'Sierra $1', label: 'sierra-normalise' },
+  { pattern: /\bfoxtrot\s+(\d)\b/gi, replacement: 'Foxtrot $1', label: 'foxtrot-normalise' },
+  { pattern: /\bgolf\s+(\d)\b/gi, replacement: 'Golf $1', label: 'golf-normalise' },
+  { pattern: /\bhotel\s+(\d)\b/gi, replacement: 'Hotel $1', label: 'hotel-normalise' },
+  { pattern: /\bindia\s+(\d)\b/gi, replacement: 'India $1', label: 'india-normalise' },
+  { pattern: /\bjuliet\s+(\d)\b/gi, replacement: 'Juliet $1', label: 'juliet-normalise' },
+  { pattern: /\bkilo\s+(\d)\b/gi, replacement: 'Kilo $1', label: 'kilo-normalise' },
+  { pattern: /\blima\s+(\d)\b/gi, replacement: 'Lima $1', label: 'lima-normalise' },
+  { pattern: /\bmike\s+(\d)\b/gi, replacement: 'Mike $1', label: 'mike-normalise' },
+  { pattern: /\bnovember\s+(\d)\b/gi, replacement: 'November $1', label: 'november-normalise' },
+  { pattern: /\boscar\s+(\d)\b/gi, replacement: 'Oscar $1', label: 'oscar-normalise' },
+  { pattern: /\bpapa\s+(\d)\b/gi, replacement: 'Papa $1', label: 'papa-normalise' },
+  { pattern: /\bromeo\s+(\d)\b/gi, replacement: 'Romeo $1', label: 'romeo-normalise' },
+  { pattern: /\bvictor\s+(\d)\b/gi, replacement: 'Victor $1', label: 'victor-normalise' },
+  { pattern: /\bwhiskey\s+(\d)\b/gi, replacement: 'Whiskey $1', label: 'whiskey-normalise' },
+  { pattern: /\bx-?ray\s+(\d)\b/gi, replacement: 'X-ray $1', label: 'xray-normalise' },
+  { pattern: /\byankee\s+(\d)\b/gi, replacement: 'Yankee $1', label: 'yankee-normalise' },
+
+  // 8. HEMS misreads
+  { pattern: /\bhems\b/gi, replacement: 'HEMS', label: 'hems→HEMS' },
+  { pattern: /\bhemz\b/gi, replacement: 'HEMS', label: 'hemz→HEMS' },
+  { pattern: /\bhens\b(?=\s*(request|tasked|on\s*scene|en\s*route|confirmed|dispatched|landed|eta|not))/gi, replacement: 'HEMS', label: 'hens→HEMS' },
+  { pattern: /\bdsa\b/gi, replacement: 'DSA', label: 'dsa→DSA' },
+
+  // 9. Priority misreads
+  { pattern: /\bpriority\s+one\b/gi, replacement: 'P1', label: 'priority-one→P1' },
+  { pattern: /\bpriority\s+two\b/gi, replacement: 'P2', label: 'priority-two→P2' },
+  { pattern: /\bpriority\s+three\b/gi, replacement: 'P3', label: 'priority-three→P3' },
+  { pattern: /\bpriority\s+four\b/gi, replacement: 'P4', label: 'priority-four→P4' },
+  { pattern: /\bhe'?s\s+a\s+P(\d)\b/gi, replacement: "he's a priority $1, P$1", label: 'hes-a-P→priority' },
+  { pattern: /\bshe'?s\s+a\s+P(\d)\b/gi, replacement: "she's a priority $1, P$1", label: 'shes-a-P→priority' },
 ];
 
 // HGV false-positive: only remove if the transcript itself contains
