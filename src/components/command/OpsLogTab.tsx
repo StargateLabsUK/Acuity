@@ -11,7 +11,7 @@ function formatTime(iso: string | null) {
 
 function shiftDuration(s: Shift) {
   if (!s.ended_at) return 'Active';
-  const ms = new Date(s.ended_at).getTime() - new Date(s.started_at).getTime();
+  const ms = new Date(s.ended_at).getTime() - new Date(s.started_at ?? s.created_at).getTime();
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
   return `${h}h ${m}m`;
