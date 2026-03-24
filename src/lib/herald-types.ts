@@ -81,6 +81,33 @@ export interface ActionItem {
   resolved_at?: string; // ISO timestamp when resolved
 }
 
+export type DispositionType =
+  | 'conveyed'
+  | 'see_and_treat'
+  | 'see_and_refer'
+  | 'refused_transport'
+  | 'role';
+
+export interface CasualtyDisposition {
+  disposition: DispositionType;
+  closed_at: string; // ISO timestamp
+  refer_to?: string; // for see_and_refer
+  capacity_assessed?: boolean; // for refused_transport
+  casualty_key: string;
+  casualty_label: string;
+  priority: string;
+  incident_id: string;
+  incident_number: string | null;
+}
+
+export const DISPOSITION_LABELS: Record<DispositionType, string> = {
+  conveyed: 'Conveyed to hospital',
+  see_and_treat: 'See and Treat — discharged on scene',
+  see_and_refer: 'See and Refer',
+  refused_transport: 'Refused transport / DAA',
+  role: 'Recognition of Life Extinct (ROLE)',
+};
+
 export type LiveState = 'idle' | 'recording' | 'processing' | 'ready' | 'confirmed';
 
 export interface Mismatch {
