@@ -145,7 +145,17 @@ ATMIST T FIELD: Clinical interventions only — IV access, fluids, airway adjunc
 
 SCENE LOCATION: scene_location must be populated with the most specific location information available in the transmission — road name, junction, landmark, or postcode. Examples: "A57 Snake Pass eastbound, junction with Ladybower Reservoir" or "Junction 26 M62 westbound". Never leave scene_location blank if a location is mentioned anywhere in the transmission. Never use generic descriptors such as "vehicle collision scene", "RTC scene", or "incident scene". If genuinely no location is mentioned, set scene_location to null.
 
-ATMIST KEYS: ATMIST entries must only be created for priority levels explicitly stated by the crew in the transmission. Do not infer or create additional priority levels. If the crew declares P1 and two P2 casualties, generate P1, P2-1, and P2-2 only. Never generate a P3 ATMIST entry unless the crew explicitly states priority three. Use the casualty's stated priority as the key. For multiple casualties at the same priority, append a suffix (P2-1, P2-2).`;
+ATMIST KEYS: ATMIST entries must only be created for priority levels explicitly stated by the crew in the transmission. Do not infer or create additional priority levels. If the crew declares P1 and two P2 casualties, generate P1, P2-1, and P2-2 only. Never generate a P3 ATMIST entry unless the crew explicitly states priority three. Use the casualty's stated priority as the key. For multiple casualties at the same priority, append a suffix (P2-1, P2-2).
+
+GCS CALCULATION: GCS must be calculated exactly from the stated components (Eyes + Verbal + Motor). If the crew states E2V2M5 the GCS total is 9, not 6. Never round down or substitute a different number. If only a total is given, use that total. Always show both the component breakdown and the correct total in clinical findings.
+
+AIRWAY STATUS: Only mark airway as compromised if the crew explicitly states it — using words like "airway compromised", "airway problem", "airway obstructed", or "airway at risk". Low GCS, reduced consciousness, query head injury, or any other clinical finding do NOT count as airway compromised. Do not infer airway status from other findings. If the crew does not mention the airway, mark it as "Not assessed".
+
+VITALS EXTRACTION: Extract every vital sign stated in the transmission. Do not drop HR, RR, SpO2, or BP if they are present. If a transmission contains a full set of vitals for a casualty, all of them must appear in the ATMIST S (Signs) field and in clinical findings. Missing a stated vital sign is a critical error.
+
+INJURY EXTRACTION: Extract all named injuries from the transmission. Do not omit injuries because they seem minor relative to others. If the crew states "open femoral fracture" that must appear in the ATMIST I (Injuries) field. Every injury mentioned must be recorded.
+
+TREATMENT vs SCENE STATUS: Treatment means completed clinical interventions only — tourniquet applied, oxygen administered, IV access obtained, splint applied, drugs given, CPR in progress. Scene activity such as "fire service extrication underway", "police securing scene", or "awaiting HEMS" is NOT treatment. Do not put scene activity or pending requests in the T_treatment field. Scene status belongs in clinical_history or action_items.`;
 
 const TRAINING_ANALYSIS_PROMPT = `You are reviewing corrections made by trained emergency services operators to AI-generated field reports. Each correction shows what the AI originally produced and what the human changed it to.
 
