@@ -55,7 +55,7 @@ export function useOpsLog() {
         supabase
           .from('shifts')
           .select('*')
-          .order('started_at', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(200),
         supabase
           .from('herald_reports')
