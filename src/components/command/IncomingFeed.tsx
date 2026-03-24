@@ -70,9 +70,8 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
       {/* Cards */}
       <div className="px-3 pb-3" style={{ scrollbarWidth: 'thin' }}>
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-2">
-            <span className="animate-breathe text-[32px]">📻</span>
-            <span className="text-lg md:text-lg text-foreground tracking-[0.2em]">AWAITING TRANSMISSIONS</span>
+          <div className="py-4">
+            <span className="text-lg text-muted-foreground tracking-[0.2em]">AWAITING TRANSMISSIONS</span>
           </div>
         ) : (
           filtered.map((r) => {
