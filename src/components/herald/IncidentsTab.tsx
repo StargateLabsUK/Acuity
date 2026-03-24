@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, ChevronDown, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { getReports, updateReport } from '@/lib/herald-storage';
-import { PRIORITY_COLORS } from '@/lib/herald-types';
-import type { Assessment, IncidentTransmission, ActionItem } from '@/lib/herald-types';
+import { getReports, updateReport, saveCasualtyDisposition, isCasualtyClosed } from '@/lib/herald-storage';
+import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
+import type { Assessment, ActionItem, DispositionType, CasualtyDisposition } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 import { sanitizeAssessment, formatActionAge } from '@/lib/sanitize-assessment';
 
@@ -27,9 +27,9 @@ interface Incident {
 }
 
 interface CasualtyData {
-  key: string; // e.g. "P1", "P1-2", "P2"
-  priority: string; // base priority e.g. "P1"
-  label: string; // e.g. "P1 — Male, approximately 40"
+  key: string;
+  priority: string;
+  label: string;
   atmist: Record<string, string>;
   receivingHospital: string;
   actionItems: (string | ActionItem)[];
@@ -38,9 +38,15 @@ interface CasualtyData {
 
 interface Props {
   session: HeraldSession;
-  onCloseIncident: (id: string, incidentNumber: string | null) => void;
+  onCasualtyClosed: (d: CasualtyDisposition) => void;
   refreshKey?: number;
 }
+
+// ── Navigation state ──
+type NavState =
+  | { view: 'list' }
+  | { view: 'incident'; incident: Incident }
+  | { view: 'casualty'; incident: Incident; casualty: CasualtyData };
 
 // ── Helpers ──
 
@@ -66,20 +72,17 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
   );
 }
 
-/** Extract per-casualty data from the incident assessment */
 function extractCasualties(inc: Incident): CasualtyData[] {
   const a = inc.assessment;
   if (!a) return [];
 
   const atmist = a.atmist;
   if (!atmist || Object.keys(atmist).length === 0) {
-    // Single casualty with no ATMIST keying — build from top-level fields
     const hasClinic = a.clinical_findings || a.clinical_history || a.headline;
     if (!hasClinic) return [];
 
     const singleAtmist: Record<string, string> = {};
     if (a.clinical_findings) {
-      // Map ABCDE into pseudo-ATMIST
       singleAtmist.A = a.clinical_findings.A ?? '—';
       singleAtmist.S = [a.clinical_findings.B, a.clinical_findings.C, a.clinical_findings.D]
         .filter(Boolean).join('; ') || '—';
@@ -90,8 +93,6 @@ function extractCasualties(inc: Incident): CasualtyData[] {
     const assessHospital: string[] = a.receiving_hospital ?? [];
     const reportHospital = inc.receiving_hospital;
     const hospital = reportHospital || (assessHospital.length > 0 ? assessHospital[0] : '');
-
-    // Build label from headline
     const demo = a.headline ?? 'Casualty';
     const p = a.priority ?? inc.priority ?? 'P3';
 
@@ -106,14 +107,12 @@ function extractCasualties(inc: Incident): CasualtyData[] {
     }];
   }
 
-  // Multi-casualty or keyed single
   const assessHospitals: string[] = a.receiving_hospital ?? [];
   const reportHospital = inc.receiving_hospital;
   const keys = Object.keys(atmist).sort();
 
   return keys
     .filter(key => {
-      // Only include casualties with actual clinical data
       const val = (atmist as any)[key];
       if (!val) return false;
       const fields = ['A', 'T', 'M', 'I', 'S', 'T_treatment'];
@@ -122,36 +121,22 @@ function extractCasualties(inc: Incident): CasualtyData[] {
     .map((key, idx) => {
       const val = (atmist as any)[key];
       const baseP = key.replace(/-\d+$/, '');
-
-      // Build demographic label from Age field
       const ageField = val?.A ?? '';
       const label = ageField && ageField !== '—'
         ? `${baseP} — ${ageField}`
         : baseP;
 
-      // Per-casualty hospital: if multiple hospitals listed, try to match by index
       let hospital = '';
-      if (reportHospital) {
-        hospital = reportHospital;
-      } else if (assessHospitals.length === 1) {
-        hospital = assessHospitals[0];
-      } else if (assessHospitals.length > idx) {
-        hospital = assessHospitals[idx];
-      }
+      if (reportHospital) hospital = reportHospital;
+      else if (assessHospitals.length === 1) hospital = assessHospitals[0];
+      else if (assessHospitals.length > idx) hospital = assessHospitals[idx];
 
       const isSingle = keys.length === 1;
-
       return {
-        key,
-        priority: baseP,
-        label,
+        key, priority: baseP, label,
         atmist: {
-          A: val?.A ?? '—',
-          T: val?.T ?? '—',
-          M: val?.M ?? '—',
-          I: val?.I ?? '—',
-          S: val?.S ?? '—',
-          T_treatment: val?.T_treatment ?? '—',
+          A: val?.A ?? '—', T: val?.T ?? '—', M: val?.M ?? '—',
+          I: val?.I ?? '—', S: val?.S ?? '—', T_treatment: val?.T_treatment ?? '—',
         },
         receivingHospital: hospital,
         actionItems: filterActionItemsForCasualty(a, key, isSingle),
@@ -160,20 +145,13 @@ function extractCasualties(inc: Incident): CasualtyData[] {
     });
 }
 
-/** Filter active action items relevant to a specific casualty */
 function filterActionItemsForCasualty(a: Assessment, casualtyKey: string, isSingle: boolean): (string | ActionItem)[] {
   const items: (string | ActionItem)[] = a.action_items ?? [];
-  if (isSingle) {
-    return items.filter(item => {
-      if (typeof item === 'object' && (item as ActionItem).resolved_at) return false;
-      return true;
-    });
-  }
+  if (isSingle) return items.filter(item => !(typeof item === 'object' && (item as ActionItem).resolved_at));
   const baseP = casualtyKey.replace(/-\d+$/, '');
   return items.filter(item => {
     const text = typeof item === 'object' ? (item as ActionItem).text : item;
     if (typeof item === 'object' && (item as ActionItem).resolved_at) return false;
-    // Include if it mentions this priority, or is generic (no priority mentioned)
     const mentionsP = /P[1-4]/.test(text);
     return !mentionsP || text.includes(baseP);
   });
@@ -185,43 +163,30 @@ function filterResolvedForCasualty(a: Assessment, casualtyKey: string, isSingle:
   const baseP = casualtyKey.replace(/-\d+$/, '');
   for (const item of items) {
     if (typeof item === 'object' && (item as ActionItem).resolved_at) {
-      if (isSingle) {
+      if (isSingle || !(/P[1-4]/.test((item as ActionItem).text)) || (item as ActionItem).text.includes(baseP)) {
         resolved.push(item as ActionItem);
-      } else {
-        const text = (item as ActionItem).text;
-        const mentionsP = /P[1-4]/.test(text);
-        if (!mentionsP || text.includes(baseP)) {
-          resolved.push(item as ActionItem);
-        }
       }
     }
   }
-  // Also check resolved_action_items
   const resolvedItems: ActionItem[] = (a as any)?.resolved_action_items ?? [];
   for (const item of resolvedItems) {
-    if (isSingle) {
+    if (isSingle || !(/P[1-4]/.test(item.text)) || item.text.includes(baseP)) {
       resolved.push(item);
-    } else {
-      const mentionsP = /P[1-4]/.test(item.text);
-      if (!mentionsP || item.text.includes(baseP)) {
-        resolved.push(item);
-      }
     }
   }
   return resolved;
 }
 
-/** Build ePRF text for a single casualty */
-function buildCasualtyEprf(cas: CasualtyData, inc: Incident): string {
+function buildCasualtyEprf(cas: CasualtyData, inc: Incident, disposition?: DispositionType, referTo?: string): string {
   const ts = new Date(inc.timestamp);
   const dateStr = ts.toISOString().slice(0, 10);
   const timeStr = ts.getUTCHours().toString().padStart(2, '0') + ':' +
     ts.getUTCMinutes().toString().padStart(2, '0') + ':' +
     ts.getUTCSeconds().toString().padStart(2, '0') + 'Z';
-
   const a = inc.assessment;
   const incidentNum = inc.incident_number ?? (a?.structured as any)?.incident_number ?? '—';
   const activeItems = cas.actionItems.map(i => typeof i === 'object' ? (i as ActionItem).text : i);
+  const dispLabel = disposition ? DISPOSITION_LABELS[disposition] : DISPOSITION_LABELS.conveyed;
 
   return `ePRF — PATIENT HANDOVER
 ═══════════════════════════
@@ -242,19 +207,363 @@ ATMIST:
   Signs/Vitals: ${cas.atmist.S}
   Treatment: ${cas.atmist.T_treatment}
 
-RECEIVING HOSPITAL: ${cas.receivingHospital || 'Not confirmed'}
+DISPOSITION: ${dispLabel}${disposition === 'see_and_refer' && referTo ? ` — ${referTo}` : ''}
+${disposition === 'conveyed' || !disposition ? `RECEIVING HOSPITAL: ${cas.receivingHospital || 'Not confirmed'}` : ''}
 ${activeItems.length > 0 ? `\nACTION ITEMS:\n${activeItems.map((t, i) => `${i + 1}. ${t}`).join('\n')}` : ''}
 ═══════════════════════════
 Generated by Herald Radio Intelligence`;
 }
 
-// ── Sub-components ──
+// ── Level 1: Incident List ──
+
+function IncidentListItem({ inc, casualtyCount, onTap }: { inc: Incident; casualtyCount: number; onTap: () => void }) {
+  const p = inc.assessment?.priority ?? inc.priority ?? 'P3';
+  const col = PRIORITY_COLORS[p] ?? '#34C759';
+
+  return (
+    <button onClick={onTap} className="w-full text-left mb-2 rounded-lg border border-border bg-card shadow-sm overflow-hidden p-3">
+      <div className="flex items-center gap-3">
+        <span className="text-lg font-bold rounded-sm px-2 py-0.5 flex-shrink-0"
+          style={{ color: col, border: `1px solid ${col}66`, background: `${col}1A` }}>
+          {p}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-lg text-foreground font-medium truncate">
+            {inc.assessment?.headline ?? inc.headline ?? 'Incident'}
+          </p>
+          <p className="text-lg text-foreground opacity-60">
+            {casualtyCount} casualt{casualtyCount === 1 ? 'y' : 'ies'} · {getTime(inc.latest_transmission_at ?? inc.created_at)}
+            {inc.incident_number ? ` · #${inc.incident_number}` : ''}
+          </p>
+        </div>
+        <ChevronRight size={20} className="text-foreground opacity-40 flex-shrink-0" />
+      </div>
+    </button>
+  );
+}
+
+// ── Level 2: Incident Detail (header + casualty list) ──
+
+function IncidentDetailView({ inc, onBack, onSelectCasualty }: {
+  inc: Incident;
+  onBack: () => void;
+  onSelectCasualty: (cas: CasualtyData) => void;
+}) {
+  const a = inc.assessment;
+  const p = a?.priority ?? inc.priority ?? 'P3';
+  const col = PRIORITY_COLORS[p] ?? '#34C759';
+  const casualties = extractCasualties(inc).filter(cas => !isCasualtyClosed(inc.id, cas.key));
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Back bar */}
+      <button onClick={onBack} className="flex items-center gap-2 px-3 py-2 text-lg text-primary bg-transparent border-b border-border">
+        <ArrowLeft size={20} /> Back to incidents
+      </button>
+
+      <div className="flex-1 overflow-auto px-3 py-3">
+        {/* Incident header */}
+        <div className="rounded-lg border border-border bg-card shadow-sm p-3 mb-4">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl font-bold" style={{ color: col }}>{p}</span>
+            {inc.incident_number && (
+              <span className="text-lg font-semibold text-foreground border border-border rounded-sm px-1.5 py-0.5">
+                #{inc.incident_number}
+              </span>
+            )}
+            <span className="text-lg text-foreground ml-auto">{getTime(inc.latest_transmission_at ?? inc.created_at)}</span>
+          </div>
+          <p className="text-lg text-foreground font-medium mb-2">
+            {a?.headline ?? inc.headline ?? 'Incident'}
+          </p>
+          {a?.incident_type && a.incident_type !== 'Unknown' && (
+            <p className="text-lg" style={{ color: col }}>
+              {a.incident_type}{a.major_incident ? ' [MAJOR]' : ''}
+            </p>
+          )}
+          {a?.scene_location && (
+            <p className="text-lg text-foreground opacity-70 mt-1">📍 {a.scene_location}</p>
+          )}
+        </div>
+
+        {/* Casualty cards */}
+        <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>
+          CASUALTIES ({casualties.length})
+        </p>
+
+        {casualties.length === 0 ? (
+          <p className="text-lg text-foreground opacity-50">All casualties handed over</p>
+        ) : (
+          casualties.map(cas => {
+            const casCol = PRIORITY_COLORS[cas.priority] ?? '#34C759';
+            return (
+              <button key={cas.key} onClick={() => onSelectCasualty(cas)}
+                className="w-full text-left mb-2 rounded-lg border border-border bg-card shadow-sm overflow-hidden p-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-bold rounded-sm px-2 py-0.5 flex-shrink-0"
+                    style={{ color: casCol, border: `1px solid ${casCol}66`, background: `${casCol}1A` }}>
+                    {cas.priority}
+                  </span>
+                  <span className="text-lg text-foreground font-medium flex-1 min-w-0 truncate">
+                    {cas.label.replace(/^P\d\s*—\s*/, '')}
+                  </span>
+                  <ChevronRight size={20} className="text-foreground opacity-40 flex-shrink-0" />
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Level 3: Casualty Handover Report ──
+
+function CasualtyReportView({ cas, inc, onBack, onHandover }: {
+  cas: CasualtyData;
+  inc: Incident;
+  onBack: () => void;
+  onHandover: (d: CasualtyDisposition) => void;
+}) {
+  const col = PRIORITY_COLORS[cas.priority] ?? '#34C759';
+  const [showEprf, setShowEprf] = useState(false);
+  const [disposition, setDisposition] = useState<DispositionType>('conveyed');
+  const [referTo, setReferTo] = useState('');
+  const [capacityAssessed, setCapacityAssessed] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  const showHospital = disposition === 'conveyed';
+
+  const doHandover = useCallback(() => {
+    const d: CasualtyDisposition = {
+      disposition,
+      closed_at: new Date().toISOString(),
+      casualty_key: cas.key,
+      casualty_label: cas.label,
+      priority: cas.priority,
+      incident_id: inc.id,
+      incident_number: inc.incident_number,
+      ...(disposition === 'see_and_refer' ? { refer_to: referTo } : {}),
+      ...(disposition === 'refused_transport' ? { capacity_assessed: capacityAssessed } : {}),
+    };
+    saveCasualtyDisposition(d);
+    onHandover(d);
+  }, [disposition, referTo, capacityAssessed, cas, inc, onHandover]);
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Back bar */}
+      <button onClick={onBack} className="flex items-center gap-2 px-3 py-2 text-lg text-primary bg-transparent border-b border-border">
+        <ArrowLeft size={20} /> Back
+      </button>
+
+      <div className="flex-1 overflow-auto px-3 py-3 pb-32">
+        {/* 1. Priority + headline */}
+        <div className="rounded-lg p-3 mb-4" style={{ background: `${col}1A`, borderLeft: `4px solid ${col}` }}>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-2xl font-bold" style={{ color: col }}>{cas.priority}</span>
+            <span className="text-lg font-bold" style={{ color: col }}>
+              {inc.assessment?.priority_label ?? ''}
+            </span>
+          </div>
+          <p className="text-lg text-foreground font-medium">
+            {cas.label}
+          </p>
+        </div>
+
+        {/* 2. ATMIST */}
+        <div className="mb-4">
+          <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>ATMIST</p>
+          <div className="border border-border rounded-lg bg-card p-3">
+            {[
+              { k: 'A', label: 'Age / Sex' },
+              { k: 'T', label: 'Time of Injury' },
+              { k: 'M', label: 'Mechanism' },
+              { k: 'I', label: 'Injuries' },
+              { k: 'S', label: 'Signs / Vitals' },
+              { k: 'T_treatment', label: 'Treatment Given' },
+            ].map(({ k, label }) => (
+              <div key={k} className="mb-2 last:mb-0">
+                <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>{label}: </span>
+                <span className="text-lg text-foreground break-words">{cas.atmist[k] ?? '—'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Disposition selector */}
+        <div className="mb-4">
+          <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: col }}>DISPOSITION</p>
+          <div className="flex flex-col gap-1.5">
+            {(Object.entries(DISPOSITION_LABELS) as [DispositionType, string][]).map(([key, label]) => (
+              <button key={key}
+                onClick={() => setDisposition(key)}
+                className="text-left text-lg px-3 py-2.5 rounded-lg border transition-colors"
+                style={{
+                  borderColor: disposition === key ? col : 'hsl(var(--border))',
+                  background: disposition === key ? `${col}1A` : 'transparent',
+                  color: disposition === key ? col : 'hsl(var(--foreground))',
+                  fontWeight: disposition === key ? 700 : 400,
+                }}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Disposition-specific fields */}
+          {disposition === 'see_and_refer' && (
+            <div className="mt-3">
+              <p className="text-lg font-bold mb-1 text-foreground">Referred to:</p>
+              <input
+                type="text"
+                value={referTo}
+                onChange={e => setReferTo(e.target.value)}
+                placeholder="GP, mental health team, etc."
+                className="w-full text-lg px-3 py-2 rounded-lg border border-border bg-card text-foreground"
+              />
+            </div>
+          )}
+          {disposition === 'refused_transport' && (
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                onClick={() => setCapacityAssessed(!capacityAssessed)}
+                className="flex items-center gap-2 text-lg px-3 py-2 rounded-lg border transition-colors"
+                style={{
+                  borderColor: capacityAssessed ? '#34C759' : 'hsl(var(--border))',
+                  background: capacityAssessed ? 'rgba(52,199,89,0.1)' : 'transparent',
+                }}>
+                <span className="text-lg" style={{ color: capacityAssessed ? '#34C759' : 'hsl(var(--foreground))' }}>
+                  {capacityAssessed ? '✓' : '○'}
+                </span>
+                <span className="text-lg text-foreground">Capacity assessment completed</span>
+              </button>
+            </div>
+          )}
+          {disposition === 'role' && (
+            <div className="mt-3 rounded-lg p-3" style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.3)' }}>
+              <p className="text-lg" style={{ color: '#FF3B30' }}>
+                Recognition of Life Extinct — ensure all documentation is complete before handover.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* 3. Receiving Hospital — only for conveyed */}
+        {showHospital && (
+          <div className="mb-4">
+            <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: col }}>RECEIVING HOSPITAL</p>
+            {cas.receivingHospital ? (
+              <div className="border border-border rounded-lg p-3" style={{ background: `${col}0D` }}>
+                <p className="text-xl text-foreground font-bold break-words">{cas.receivingHospital}</p>
+              </div>
+            ) : (
+              <div className="rounded-lg p-3" style={{ color: '#FF9500', background: 'rgba(255,149,0,0.06)', border: '1px dashed rgba(255,149,0,0.3)' }}>
+                <p className="text-lg">No receiving hospital confirmed — contact Control</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 4. Active action items */}
+        {cas.actionItems.length > 0 && (
+          <div className="mb-4">
+            <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#FF9500' }}>⚠ ACTION ITEMS</p>
+            <div className="flex flex-col gap-1.5">
+              {cas.actionItems.map((item, i) => {
+                const text = typeof item === 'object' ? (item as ActionItem).text : item;
+                const openedAt = typeof item === 'object' ? (item as ActionItem).opened_at : inc.timestamp;
+                return (
+                  <div key={i} className="rounded-lg p-2.5 flex gap-2 items-start"
+                    style={{ background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.2)' }}>
+                    <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>⚠</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-lg text-foreground break-words">{text}</span>
+                      <span className="text-lg ml-1 opacity-50" style={{ color: '#FF9500' }}>
+                        — {formatActionAge(openedAt)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Resolved */}
+        {cas.resolvedItems.length > 0 && <ResolvedActions items={cas.resolvedItems} />}
+
+        {/* 5. ePRF button */}
+        <div className="mb-4">
+          <button
+            onClick={() => setShowEprf(!showEprf)}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-lg font-bold tracking-[0.15em] border cursor-pointer transition-colors"
+            style={{
+              color: showEprf ? '#1A1E24' : 'hsl(var(--primary))',
+              background: showEprf ? 'hsl(var(--primary))' : 'transparent',
+              borderColor: 'hsl(var(--primary))',
+            }}>
+            <FileText size={20} />
+            {showEprf ? 'HIDE ePRF' : 'VIEW ePRF'}
+          </button>
+          {showEprf && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-lg font-bold tracking-[0.2em]" style={{ color: 'hsl(var(--primary))' }}>
+                  ePRF — PATIENT HANDOVER
+                </p>
+                <CopyBtn text={buildCasualtyEprf(cas, inc, disposition, referTo)} label="COPY ePRF" />
+              </div>
+              <div className="border border-border rounded-lg bg-card p-3">
+                <div className="text-lg text-foreground leading-7 whitespace-pre-wrap break-words">
+                  {buildCasualtyEprf(cas, inc, disposition, referTo)}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Fixed bottom: Handover button */}
+      <div className="px-3 py-3 border-t border-border" style={{ background: '#1A1E24' }}>
+        {confirming ? (
+          <div className="p-3 rounded-lg" style={{ border: '2px solid #FF9500', background: 'rgba(255,149,0,0.08)' }}>
+            <p className="text-lg font-bold mb-2" style={{ color: '#FF9500' }}>
+              Hand over this patient?
+            </p>
+            <p className="text-lg text-foreground opacity-70 mb-3">
+              {DISPOSITION_LABELS[disposition]}
+              {disposition === 'see_and_refer' && referTo ? ` — ${referTo}` : ''}
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirming(false)}
+                className="flex-1 py-2.5 text-lg font-bold border border-border rounded-lg bg-transparent text-foreground">
+                CANCEL
+              </button>
+              <button onClick={doHandover}
+                className="flex-1 py-2.5 text-lg font-bold rounded-lg"
+                style={{ background: `${col}22`, border: `2px solid ${col}`, color: col }}>
+                CONFIRM HANDOVER
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setConfirming(true)}
+            className="w-full py-3 text-lg font-bold rounded-lg tracking-wide"
+            style={{ background: `${col}15`, border: `2px solid ${col}`, color: col }}>
+            HANDOVER PATIENT
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ResolvedActions({ items }: { items: ActionItem[] }) {
   const [open, setOpen] = useState(false);
   if (items.length === 0) return null;
   return (
-    <div className="mt-2">
+    <div className="mb-4">
       <button onClick={() => setOpen(!open)}
         className="flex items-center gap-2 text-lg font-bold tracking-[0.15em] bg-transparent border-none cursor-pointer"
         style={{ color: '#888' }}>
@@ -264,7 +573,7 @@ function ResolvedActions({ items }: { items: ActionItem[] }) {
       {open && (
         <div className="flex flex-col gap-1 mt-1">
           {items.map((item, i) => (
-            <div key={i} className="rounded p-2 flex gap-2 items-start"
+            <div key={i} className="rounded-lg p-2 flex gap-2 items-start"
               style={{ background: 'rgba(136,136,136,0.06)', border: '1px solid rgba(136,136,136,0.15)' }}>
               <span className="text-lg flex-shrink-0" style={{ color: '#34C759' }}>✓</span>
               <span className="text-lg text-foreground opacity-50 line-through">{item.text}</span>
@@ -276,209 +585,11 @@ function ResolvedActions({ items }: { items: ActionItem[] }) {
   );
 }
 
-function CasualtyCard({ cas, inc }: { cas: CasualtyData; inc: Incident }) {
-  const [expanded, setExpanded] = useState(false);
-  const [showEprf, setShowEprf] = useState(false);
-  const col = PRIORITY_COLORS[cas.priority] ?? '#34C759';
-
-  return (
-    <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden mb-2">
-      <button onClick={() => setExpanded(!expanded)}
-        className="w-full text-left p-3">
-        <div className="flex items-center gap-3">
-          {expanded
-            ? <ChevronDown size={20} style={{ color: col }} className="flex-shrink-0" />
-            : <ChevronRight size={20} style={{ color: col }} className="flex-shrink-0" />}
-          <span className="text-lg font-bold rounded-sm px-2 py-0.5 flex-shrink-0"
-            style={{ color: col, border: `1px solid ${col}66`, background: `${col}1A` }}>
-            {cas.priority}
-          </span>
-          <span className="text-lg text-foreground font-medium flex-1 min-w-0 truncate">
-            {cas.label.replace(/^P\d\s*—\s*/, '')}
-          </span>
-        </div>
-      </button>
-
-      {expanded && (
-        <div className="px-3 pb-4 border-t border-border">
-          {/* 1. Priority + headline */}
-          <div className="mt-3 rounded p-3" style={{ background: `${col}1A`, borderLeft: `4px solid ${col}` }}>
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-2xl font-bold" style={{ color: col }}>{cas.priority}</span>
-              <span className="text-lg font-bold" style={{ color: col }}>
-                {inc.assessment?.priority_label ?? ''}
-              </span>
-            </div>
-            <p className="text-lg text-foreground font-medium">
-              {inc.assessment?.headline ?? inc.headline ?? ''}
-            </p>
-          </div>
-
-          {/* 2. ATMIST — formatted for reading aloud */}
-          <div className="mt-4">
-            <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>
-              ATMIST
-            </p>
-            <div className="border border-border rounded bg-card p-3">
-              {[
-                { k: 'A', label: 'Age / Sex' },
-                { k: 'T', label: 'Time of Injury' },
-                { k: 'M', label: 'Mechanism' },
-                { k: 'I', label: 'Injuries' },
-                { k: 'S', label: 'Signs / Vitals' },
-                { k: 'T_treatment', label: 'Treatment Given' },
-              ].map(({ k, label }) => (
-                <div key={k} className="mb-2 last:mb-0">
-                  <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>{label}: </span>
-                  <span className="text-lg text-foreground break-words">{cas.atmist[k] ?? '—'}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 3. Receiving Hospital — prominent */}
-          <div className="mt-4">
-            <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: col }}>
-              RECEIVING HOSPITAL
-            </p>
-            {cas.receivingHospital ? (
-              <div className="border border-border rounded p-3" style={{ background: `${col}0D` }}>
-                <p className="text-xl text-foreground font-bold break-words">{cas.receivingHospital}</p>
-              </div>
-            ) : (
-              <div className="rounded p-3" style={{ color: '#FF9500', background: 'rgba(255,149,0,0.06)', border: '1px dashed rgba(255,149,0,0.3)' }}>
-                <p className="text-lg">No receiving hospital confirmed — contact Control</p>
-              </div>
-            )}
-          </div>
-
-          {/* 4. Active action items for this patient */}
-          {cas.actionItems.length > 0 && (
-            <div className="mt-4">
-              <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#FF9500' }}>
-                ⚠ ACTION ITEMS
-              </p>
-              <div className="flex flex-col gap-1.5">
-                {cas.actionItems.map((item, i) => {
-                  const text = typeof item === 'object' ? (item as ActionItem).text : item;
-                  const openedAt = typeof item === 'object' ? (item as ActionItem).opened_at : inc.timestamp;
-                  return (
-                    <div key={i} className="rounded p-2.5 flex gap-2 items-start"
-                      style={{ background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.2)' }}>
-                      <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>⚠</span>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-lg text-foreground break-words">{text}</span>
-                        <span className="text-lg ml-1 opacity-50" style={{ color: '#FF9500' }}>
-                          — {formatActionAge(openedAt)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Resolved */}
-          <ResolvedActions items={cas.resolvedItems} />
-
-          {/* 5. ePRF button */}
-          <div className="mt-4">
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowEprf(!showEprf); }}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded text-lg font-bold tracking-[0.15em] border cursor-pointer transition-colors"
-              style={{
-                color: showEprf ? '#1A1E24' : 'hsl(var(--primary))',
-                background: showEprf ? 'hsl(var(--primary))' : 'transparent',
-                borderColor: 'hsl(var(--primary))',
-              }}>
-              <FileText size={20} />
-              {showEprf ? 'HIDE ePRF' : 'VIEW ePRF'}
-            </button>
-            {showEprf && (
-              <div className="mt-3">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-lg font-bold tracking-[0.2em]" style={{ color: 'hsl(var(--primary))' }}>
-                    ePRF — PATIENT HANDOVER
-                  </p>
-                  <CopyBtn text={buildCasualtyEprf(cas, inc)} label="COPY ePRF" />
-                </div>
-                <div className="border border-border rounded bg-card p-3">
-                  <div className="text-lg text-foreground leading-7 whitespace-pre-wrap break-words">
-                    {buildCasualtyEprf(cas, inc)}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function IncidentHeader({ inc }: { inc: Incident }) {
-  const [expanded, setExpanded] = useState(false);
-  const a = inc.assessment;
-  const p = a?.priority ?? inc.priority ?? 'P3';
-  const col = PRIORITY_COLORS[p] ?? '#34C759';
-
-  return (
-    <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden mb-3">
-      <button onClick={() => setExpanded(!expanded)}
-        className="w-full text-left p-3">
-        <div className="flex items-center gap-3">
-          {expanded
-            ? <ChevronDown size={18} className="text-foreground opacity-50 flex-shrink-0" />
-            : <ChevronRight size={18} className="text-foreground opacity-50 flex-shrink-0" />}
-          <span className="text-lg font-bold tracking-[0.15em]" style={{ color: col }}>INCIDENT</span>
-          {inc.incident_number && (
-            <span className="text-lg font-semibold text-foreground border border-border rounded-sm px-1.5 py-0.5">
-              #{inc.incident_number}
-            </span>
-          )}
-          <span className="text-lg text-foreground ml-auto">
-            {getTime(inc.latest_transmission_at ?? inc.created_at)}
-          </span>
-        </div>
-      </button>
-      {expanded && (
-        <div className="px-3 pb-3 border-t border-border">
-          <div className="mt-2 flex flex-col gap-1.5">
-            {a?.incident_type && a.incident_type !== 'Unknown' && (
-              <div>
-                <span className="text-lg font-bold" style={{ color: col }}>Type: </span>
-                <span className="text-lg text-foreground">{a.incident_type}{a.major_incident ? ' [MAJOR]' : ''}</span>
-              </div>
-            )}
-            {a?.scene_location && (
-              <div>
-                <span className="text-lg font-bold" style={{ color: col }}>Location: </span>
-                <span className="text-lg text-foreground">{a.scene_location}</span>
-              </div>
-            )}
-            <div>
-              <span className="text-lg font-bold" style={{ color: col }}>Time: </span>
-              <span className="text-lg text-foreground">{getTime(inc.timestamp)}</span>
-            </div>
-            {(inc.transmission_count ?? 1) > 1 && (
-              <div>
-                <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>Transmissions: </span>
-                <span className="text-lg text-foreground">{inc.transmission_count}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Main component ──
 
-export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
+export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [closing, setClosing] = useState<string | null>(null);
+  const [nav, setNav] = useState<NavState>({ view: 'list' });
 
   const fetchIncidents = useCallback(async () => {
     const localIncidents: Incident[] = getReports()
@@ -513,6 +624,7 @@ export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
       .select('*')
       .eq('session_callsign', session.callsign)
       .gte('created_at', todayStart)
+      .eq('status', 'active')
       .order('latest_transmission_at', { ascending: false, nullsFirst: false });
 
     if (session.shift_id) {
@@ -520,6 +632,7 @@ export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
         .from('herald_reports')
         .select('*')
         .or(`shift_id.eq.${session.shift_id},and(session_callsign.eq.${session.callsign},created_at.gte.${todayStart})`)
+        .eq('status', 'active')
         .order('latest_transmission_at', { ascending: false, nullsFirst: false });
     }
 
@@ -542,7 +655,23 @@ export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
     });
 
     setIncidents(sorted);
-  }, [session.callsign, session.session_date, session.shift_id]);
+
+    // Update current nav state with fresh data
+    if (nav.view === 'incident' || nav.view === 'casualty') {
+      const fresh = sorted.find(i => i.id === (nav.view === 'incident' ? nav.incident.id : nav.incident.id));
+      if (fresh) {
+        if (nav.view === 'incident') {
+          setNav({ view: 'incident', incident: fresh });
+        } else {
+          // Re-extract casualty
+          const freshCas = extractCasualties(fresh).find(c => c.key === nav.casualty.key);
+          if (freshCas) {
+            setNav({ view: 'casualty', incident: fresh, casualty: freshCas });
+          }
+        }
+      }
+    }
+  }, [session.callsign, session.session_date, session.shift_id, nav]);
 
   useEffect(() => { fetchIncidents(); }, [fetchIncidents, refreshKey]);
 
@@ -551,118 +680,92 @@ export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
     return () => window.clearInterval(id);
   }, [fetchIncidents]);
 
-  const confirmClose = useCallback(async (inc: Incident) => {
-    const closedAt = inc.confirmed_at ?? new Date().toISOString();
-    await supabase.from('herald_reports')
-      .update({ status: 'closed', confirmed_at: closedAt })
-      .eq('id', inc.id);
-    updateReport(inc.id, { status: 'closed', confirmed_at: closedAt } as any);
-    setClosing(null);
-    onCloseIncident(inc.id, inc.incident_number);
+  const handleCasualtyClosed = useCallback((d: CasualtyDisposition) => {
+    onCasualtyClosed(d);
+    // Go back to incident detail or list
+    if (nav.view === 'casualty') {
+      const remaining = extractCasualties(nav.incident).filter(c => !isCasualtyClosed(nav.incident.id, c.key) && c.key !== d.casualty_key);
+      if (remaining.length === 0) {
+        // All casualties closed — close the incident too
+        supabase.from('herald_reports')
+          .update({ status: 'closed', confirmed_at: new Date().toISOString() })
+          .eq('id', nav.incident.id)
+          .then(() => {
+            updateReport(nav.incident.id, { status: 'closed', confirmed_at: new Date().toISOString() } as any);
+            fetchIncidents();
+          });
+        setNav({ view: 'list' });
+      } else {
+        setNav({ view: 'incident', incident: nav.incident });
+      }
+    }
     fetchIncidents();
-  }, [onCloseIncident, fetchIncidents]);
+  }, [nav, onCasualtyClosed, fetchIncidents]);
 
-  const active = incidents.filter((i) => i.status === 'active');
-  const closed = incidents.filter((i) => i.status === 'closed');
+  // Filter to only show incidents with open casualties
+  const activeWithCasualties = incidents.filter(inc => {
+    const cas = extractCasualties(inc);
+    return cas.some(c => !isCasualtyClosed(inc.id, c.key));
+  });
 
-  const renderIncident = (inc: Incident, muted: boolean) => {
-    const casualties = extractCasualties(inc);
-    const isMulti = casualties.length > 1;
-    const p = inc.assessment?.priority ?? inc.priority ?? 'P3';
-    const col = PRIORITY_COLORS[p] ?? '#34C759';
+  // ── Render based on nav state ──
 
+  if (nav.view === 'casualty') {
     return (
-      <div key={inc.id} className="mb-4" style={{ opacity: muted ? 0.6 : 1 }}>
-        {/* For multi-casualty: collapsible incident header */}
-        {isMulti && <IncidentHeader inc={inc} />}
-
-        {/* Single casualty: inline headline only */}
-        {!isMulti && (
-          <div className="flex items-center gap-3 mb-2 px-1">
-            <span className="text-lg font-bold" style={{ color: col }}>
-              {inc.assessment?.headline ?? inc.headline ?? 'Incident'}
-            </span>
-            {inc.incident_number && (
-              <span className="text-lg font-semibold text-foreground border border-border rounded-sm px-1.5 py-0.5">
-                #{inc.incident_number}
-              </span>
-            )}
-            <span className="text-lg text-foreground ml-auto">
-              {getTime(inc.latest_transmission_at ?? inc.created_at)}
-            </span>
-          </div>
-        )}
-
-        {/* Casualty cards */}
-        {casualties.length > 0 ? (
-          casualties.map(cas => <CasualtyCard key={cas.key} cas={cas} inc={inc} />)
-        ) : (
-          <div className="rounded-lg border border-border bg-card p-3 mb-2">
-            <p className="text-lg text-foreground opacity-50">Awaiting clinical assessment…</p>
-          </div>
-        )}
-
-        {/* Close button for active incidents */}
-        {inc.status === 'active' && (
-          <div className="mt-2 px-1">
-            {closing === inc.id ? (
-              <div className="p-3 border rounded" style={{ borderColor: '#FF9500', background: 'rgba(255,149,0,0.08)' }}>
-                <p className="text-lg font-bold mb-2" style={{ color: '#FF9500' }}>
-                  Close incident {inc.incident_number ? `#${inc.incident_number}` : ''}?
-                </p>
-                <p className="text-lg text-foreground mb-3 opacity-70">
-                  This marks the incident as handed over.
-                </p>
-                <div className="flex gap-3">
-                  <button onClick={() => setClosing(null)}
-                    className="flex-1 py-2 text-lg font-bold border border-border rounded-sm bg-transparent text-foreground">
-                    CANCEL
-                  </button>
-                  <button onClick={() => confirmClose(inc)}
-                    className="flex-1 py-2 text-lg font-bold rounded-sm"
-                    style={{ background: 'rgba(255,149,0,0.15)', border: '2px solid #FF9500', color: '#FF9500' }}>
-                    CLOSE INCIDENT
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button onClick={() => setClosing(inc.id)}
-                className="w-full py-2.5 text-lg font-bold rounded-sm tracking-wide"
-                style={{ background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.3)', color: '#FF9500' }}>
-                CLOSE INCIDENT
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Closed label */}
-        {muted && inc.confirmed_at && (
-          <p className="text-lg text-foreground opacity-50 mt-1 px-1">
-            Closed {getTime(inc.confirmed_at)}
-          </p>
-        )}
-      </div>
+      <CasualtyReportView
+        cas={nav.casualty}
+        inc={nav.incident}
+        onBack={() => {
+          const casualties = extractCasualties(nav.incident).filter(c => !isCasualtyClosed(nav.incident.id, c.key));
+          if (casualties.length <= 1) setNav({ view: 'list' });
+          else setNav({ view: 'incident', incident: nav.incident });
+        }}
+        onHandover={handleCasualtyClosed}
+      />
     );
-  };
+  }
 
+  if (nav.view === 'incident') {
+    return (
+      <IncidentDetailView
+        inc={nav.incident}
+        onBack={() => setNav({ view: 'list' })}
+        onSelectCasualty={(cas) => setNav({ view: 'casualty', incident: nav.incident, casualty: cas })}
+      />
+    );
+  }
+
+  // List view
   return (
     <div className="flex-1 overflow-auto px-3 py-3">
       <p className="text-lg font-bold tracking-[0.2em] mb-3" style={{ color: '#FF9500' }}>
-        ACTIVE ({active.length})
+        ACTIVE INCIDENTS ({activeWithCasualties.length})
       </p>
-      {active.length === 0 ? (
-        <p className="text-lg text-foreground opacity-50 mb-6">No active incidents</p>
+      {activeWithCasualties.length === 0 ? (
+        <p className="text-lg text-foreground opacity-50">No active incidents</p>
       ) : (
-        <div className="mb-6">{active.map((i) => renderIncident(i, false))}</div>
-      )}
-
-      <p className="text-lg font-bold tracking-[0.2em] mb-3 text-foreground opacity-50">
-        CLOSED ({closed.length})
-      </p>
-      {closed.length === 0 ? (
-        <p className="text-lg text-foreground opacity-30">No closed incidents</p>
-      ) : (
-        closed.map((i) => renderIncident(i, true))
+        activeWithCasualties.map(inc => {
+          const casualties = extractCasualties(inc).filter(c => !isCasualtyClosed(inc.id, c.key));
+          // Single casualty — go straight to casualty report
+          if (casualties.length === 1) {
+            return (
+              <IncidentListItem
+                key={inc.id}
+                inc={inc}
+                casualtyCount={1}
+                onTap={() => setNav({ view: 'casualty', incident: inc, casualty: casualties[0] })}
+              />
+            );
+          }
+          return (
+            <IncidentListItem
+              key={inc.id}
+              inc={inc}
+              casualtyCount={casualties.length}
+              onTap={() => setNav({ view: 'incident', incident: inc })}
+            />
+          );
+        })
       )}
     </div>
   );

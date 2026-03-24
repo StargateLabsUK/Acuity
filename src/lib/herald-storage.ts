@@ -1,6 +1,7 @@
-import type { HeraldReport } from './herald-types';
+import type { HeraldReport, CasualtyDisposition } from './herald-types';
 
 const STORAGE_KEY = 'herald_reports';
+const DISPOSITIONS_KEY = 'herald_casualty_dispositions';
 
 export function getReports(): HeraldReport[] {
   try {
@@ -39,5 +40,40 @@ export function getShiftReports(callsign: string, sessionDate: string): HeraldRe
     (r) =>
       r.session_callsign === callsign &&
       new Date(r.timestamp).toISOString().slice(0, 10) === sessionDate
+  );
+}
+
+// ── Casualty Dispositions ──
+
+export function getCasualtyDispositions(): CasualtyDisposition[] {
+  try {
+    const raw = localStorage.getItem(DISPOSITIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCasualtyDisposition(d: CasualtyDisposition): void {
+  const all = getCasualtyDispositions();
+  // Replace if same incident + casualty key
+  const idx = all.findIndex(x => x.incident_id === d.incident_id && x.casualty_key === d.casualty_key);
+  if (idx !== -1) all[idx] = d;
+  else all.unshift(d);
+  localStorage.setItem(DISPOSITIONS_KEY, JSON.stringify(all));
+}
+
+export function getDispositionsForShift(callsign: string, sessionDate: string): CasualtyDisposition[] {
+  return getCasualtyDispositions().filter(d => {
+    const report = getReports().find(r => r.id === d.incident_id);
+    return report &&
+      report.session_callsign === callsign &&
+      new Date(report.timestamp).toISOString().slice(0, 10) === sessionDate;
+  });
+}
+
+export function isCasualtyClosed(incidentId: string, casualtyKey: string): boolean {
+  return getCasualtyDispositions().some(
+    d => d.incident_id === incidentId && d.casualty_key === casualtyKey
   );
 }
