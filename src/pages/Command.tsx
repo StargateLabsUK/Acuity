@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useHeraldCommand } from '@/hooks/useHeraldCommand';
 import { CommandTopBar } from '@/components/command/CommandTopBar';
 import { IncomingFeed } from '@/components/command/IncomingFeed';
