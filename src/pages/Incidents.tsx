@@ -5,6 +5,7 @@ import { BottomNav } from '@/components/herald/BottomNav';
 import { ReportsTab } from '@/components/herald/ReportsTab';
 import { IncidentsTab } from '@/components/herald/IncidentsTab';
 import { ShiftLogin } from '@/components/herald/ShiftLogin';
+import { ShiftInfoBar } from '@/components/herald/ShiftInfoBar';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
 import { useCommandPull } from '@/lib/useCommandPull';
 import { getReports, getDispositionsForShift } from '@/lib/herald-storage';
