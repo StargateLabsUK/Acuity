@@ -313,7 +313,7 @@ export default function Command() {
                 serviceCounts={filteredServiceCounts}
                 uniqueDevices={uniqueDevices}
                 connected={connected}
-                activeShifts={activeShifts}
+                activeShifts={activeShifts} transfers={transfers}
               />
             ) : desktopUpperTab === 'map' ? (
               <div className="flex-1 overflow-hidden h-full min-h-0">
@@ -378,7 +378,7 @@ export default function Command() {
                 serviceCounts={filteredServiceCounts}
                 uniqueDevices={uniqueDevices}
                 connected={connected}
-                activeShifts={activeShifts}
+                activeShifts={activeShifts} transfers={transfers}
               />
             ) : tabletTab === 'map' ? (
               <div className="flex-1 overflow-hidden h-full min-h-0">
@@ -434,7 +434,7 @@ export default function Command() {
                 serviceCounts={filteredServiceCounts}
                 uniqueDevices={uniqueDevices}
                 connected={connected}
-                activeShifts={activeShifts}
+                activeShifts={activeShifts} transfers={transfers}
               />
             </div>
           </div>
