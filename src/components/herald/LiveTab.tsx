@@ -651,35 +651,38 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     return (
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Transcript display */}
-        <div className="flex-1 overflow-auto px-4 pt-6 pb-4">
+        <div className="flex-1 overflow-auto px-6 pt-8 pb-4">
           {isFollowUp && followUpIncidentNumber && (
-            <div className="mb-4 p-3 rounded border" style={{ background: 'rgba(30,144,255,0.08)', borderColor: '#1E90FF' }}>
-              <p className="text-lg font-bold" style={{ color: '#1E90FF', letterSpacing: '0.15em' }}>
+            <div className="mb-5 p-4 rounded-lg border" style={{ background: 'rgba(30,144,255,0.08)', borderColor: '#1E90FF' }}>
+              <p style={{ fontSize: 22, fontWeight: 700, color: '#1E90FF', letterSpacing: '0.15em' }}>
                 🔄 FOLLOW-UP — Incident #{followUpIncidentNumber}
               </p>
             </div>
           )}
 
-          <p className="text-lg font-bold tracking-[0.15em] mb-3" style={{ color: pc }}>TRANSCRIPT</p>
-          <div className="p-4 rounded-lg border border-border bg-card">
-            <p className="text-lg text-foreground leading-relaxed" style={{ fontStyle: 'italic' }}>
+          <p style={{ fontSize: 22, fontWeight: 700, letterSpacing: '0.15em', color: pc, marginBottom: 16 }}>TRANSCRIPT</p>
+          <div className="p-5 rounded-lg border border-border bg-card">
+            <p style={{ fontSize: 22, lineHeight: 1.6, fontStyle: 'italic', color: 'hsl(var(--foreground))' }}>
               "{transcript}"
             </p>
           </div>
 
           {capturedDuration > 0 && (
-            <p className="text-lg text-foreground opacity-50 mt-3 text-center">
+            <p style={{ fontSize: 20, color: 'hsl(var(--foreground))', opacity: 0.5, marginTop: 16, textAlign: 'center' }}>
               Duration: {formatDuration(capturedDuration)}
             </p>
           )}
         </div>
 
-        {/* Bottom buttons */}
-        <div className="px-4 pb-14 pt-2 flex flex-col gap-3" style={{ background: 'hsl(var(--background))' }}>
+        {/* Bottom buttons — large touch targets for 5" screen */}
+        <div className="px-6 pb-16 pt-3 flex flex-col gap-4" style={{ background: 'hsl(var(--background))' }}>
           <button
             onClick={handleConfirm}
-            className="w-full font-heading py-4 text-lg font-bold rounded-lg tracking-[0.15em]"
+            className="w-full font-heading font-bold rounded-lg"
             style={{
+              fontSize: 24,
+              letterSpacing: '0.15em',
+              padding: '20px 0',
               background: `${pc}1A`,
               border: `2px solid ${pc}`,
               color: pc,
@@ -688,7 +691,12 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           >✦ HERALD</button>
           <button
             onClick={handleDiscard}
-            className="w-full font-heading py-3 text-lg font-bold rounded-lg tracking-[0.15em] bg-transparent border border-border text-foreground opacity-70"
+            className="w-full font-heading font-bold rounded-lg bg-transparent border border-border text-foreground opacity-70"
+            style={{
+              fontSize: 22,
+              letterSpacing: '0.15em',
+              padding: '16px 0',
+            }}
           >DISMISS</button>
         </div>
       </div>
