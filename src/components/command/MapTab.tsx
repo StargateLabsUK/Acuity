@@ -176,6 +176,9 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
           <p className="text-lg text-foreground opacity-60 tracking-wider font-semibold">
             {!MAPBOX_TOKEN ? 'MAPBOX TOKEN NOT CONFIGURED' : 'MAP UNAVAILABLE — INCIDENT LIST VIEW'}
           </p>
+          <p className="text-lg text-foreground opacity-60 mt-2">
+            WEBGL IS DISABLED ON THIS DEVICE. SELECT AN INCIDENT TO OPEN DETAILS OR OPEN ITS LOCATION IN EXTERNAL MAPS.
+          </p>
         </div>
         {geoReports.length === 0 ? (
           <p className="text-lg text-foreground opacity-40 text-center mt-12 tracking-wider">NO GEO-LOCATED INCIDENTS</p>
@@ -190,29 +193,41 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
               const timeStr =
                 ts.getUTCHours().toString().padStart(2, '0') + ':' +
                 ts.getUTCMinutes().toString().padStart(2, '0') + 'Z';
+              const mapsHref = `https://www.google.com/maps?q=${r.lat},${r.lng}`;
+
               return (
-                <button
-                  key={r.id}
-                  onClick={() => onSelectReport(r.id)}
-                  className="flex items-start gap-3 rounded-lg p-3 text-left transition-colors hover:bg-muted/50 border border-muted/40"
-                >
-                  <span
-                    className="mt-1 flex-shrink-0 rounded px-2 py-0.5 text-lg font-bold text-white"
-                    style={{ backgroundColor: color }}
+                <div key={r.id} className="rounded-lg p-3 border border-muted/40 bg-background/40">
+                  <button
+                    onClick={() => onSelectReport(r.id)}
+                    className="w-full flex items-start gap-3 text-left transition-colors hover:bg-muted/30 rounded"
                   >
-                    {p}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-semibold text-foreground uppercase tracking-wider">{label}</span>
-                      <span className="text-lg text-foreground opacity-50">{timeStr}</span>
+                    <span
+                      className="mt-1 flex-shrink-0 rounded px-2 py-0.5 text-lg font-bold text-primary-foreground"
+                      style={{ backgroundColor: color }}
+                    >
+                      {p}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-semibold text-foreground uppercase tracking-wider">{label}</span>
+                        <span className="text-lg text-foreground opacity-50">{timeStr}</span>
+                      </div>
+                      <p className="text-lg text-foreground opacity-80 truncate">{headline}</p>
+                      <p className="text-lg text-foreground opacity-40 font-mono">
+                        {r.lat!.toFixed(4)}, {r.lng!.toFixed(4)}
+                      </p>
                     </div>
-                    <p className="text-lg text-foreground opacity-80 truncate">{headline}</p>
-                    <p className="text-lg text-foreground opacity-40 font-mono">
-                      {r.lat!.toFixed(4)}, {r.lng!.toFixed(4)}
-                    </p>
-                  </div>
-                </button>
+                  </button>
+
+                  <a
+                    href={mapsHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center justify-center rounded border border-border bg-card px-3 py-1 text-lg font-semibold tracking-wider text-foreground hover:bg-muted/40"
+                  >
+                    OPEN IN MAPS
+                  </a>
+                </div>
               );
             })}
           </div>
