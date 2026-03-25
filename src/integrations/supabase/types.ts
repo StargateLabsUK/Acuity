@@ -324,6 +324,98 @@ export type Database = {
           },
         ]
       }
+      patient_transfers: {
+        Row: {
+          accepted_at: string | null
+          casualty_key: string
+          casualty_label: string
+          clinical_snapshot: Json
+          created_at: string | null
+          declined_at: string | null
+          declined_reason: string | null
+          from_callsign: string
+          from_operator_id: string | null
+          from_shift_id: string | null
+          id: string
+          initiated_at: string
+          priority: string
+          report_id: string
+          status: string
+          to_callsign: string
+          to_shift_id: string | null
+          trust_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          casualty_key: string
+          casualty_label: string
+          clinical_snapshot?: Json
+          created_at?: string | null
+          declined_at?: string | null
+          declined_reason?: string | null
+          from_callsign: string
+          from_operator_id?: string | null
+          from_shift_id?: string | null
+          id?: string
+          initiated_at?: string
+          priority: string
+          report_id: string
+          status?: string
+          to_callsign: string
+          to_shift_id?: string | null
+          trust_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          casualty_key?: string
+          casualty_label?: string
+          clinical_snapshot?: Json
+          created_at?: string | null
+          declined_at?: string | null
+          declined_reason?: string | null
+          from_callsign?: string
+          from_operator_id?: string | null
+          from_shift_id?: string | null
+          id?: string
+          initiated_at?: string
+          priority?: string
+          report_id?: string
+          status?: string
+          to_callsign?: string
+          to_shift_id?: string | null
+          trust_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_transfers_from_shift_id_fkey"
+            columns: ["from_shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_transfers_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "herald_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_transfers_to_shift_id_fkey"
+            columns: ["to_shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_transfers_trust_id_fkey"
+            columns: ["trust_id"]
+            isOneToOne: false
+            referencedRelation: "trusts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
