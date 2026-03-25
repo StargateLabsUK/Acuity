@@ -141,9 +141,63 @@ function Expandable({ label, color, children }: { label: string; color?: string;
   );
 }
 
+// ── Transfer Event Entry ──
+
+function TransferEventEntry({ tx, index }: { tx: OpsTransmission; index: number }) {
+  const a = tx.assessment as any;
+  return (
+    <div className="border rounded-lg p-3 space-y-2" style={{ borderColor: '#3B82F644', background: '#3B82F608' }}>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-sm font-bold" style={{ color: 'hsl(var(--primary))' }}>#{index + 1}</span>
+        <span className="text-sm text-muted-foreground">{fmtTime(tx.timestamp)}</span>
+        <span className="text-xs font-bold px-2 py-0.5 rounded" style={badgeStyle('#3B82F6')}>SYSTEM</span>
+        <span className="text-xs font-bold px-2 py-0.5 rounded" style={badgeStyle('#8B5CF6')}>TRANSFER</span>
+      </div>
+      <p className="text-sm text-foreground font-semibold">{tx.headline ?? 'Patient Transfer'}</p>
+
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-1">
+        {a?.from_callsign && (
+          <>
+            <span className="text-muted-foreground">From</span>
+            <span className="text-foreground font-semibold">{a.from_callsign}</span>
+          </>
+        )}
+        {a?.to_callsign && (
+          <>
+            <span className="text-muted-foreground">To</span>
+            <span className="text-foreground font-semibold">{a.to_callsign}</span>
+          </>
+        )}
+        {a?.initiated_at && (
+          <>
+            <span className="text-muted-foreground">Initiated</span>
+            <span className="text-foreground">{fmtTime(a.initiated_at)}</span>
+          </>
+        )}
+        {a?.accepted_at && (
+          <>
+            <span className="text-muted-foreground">Accepted</span>
+            <span className="text-foreground">{fmtTime(a.accepted_at)}</span>
+          </>
+        )}
+      </div>
+
+      <Expandable label="FULL SYSTEM TRANSCRIPT" color="#3B82F6">
+        <pre className="text-sm text-foreground whitespace-pre-wrap break-words mt-2 font-mono leading-relaxed">
+          {tx.transcript ?? '—'}
+        </pre>
+      </Expandable>
+    </div>
+  );
+}
+
 // ── Transmission Entry ──
 
 function TransmissionEntry({ tx, index }: { tx: OpsTransmission; index: number }) {
+  // Detect system transfer event
+  const isSystemEvent = tx.transcript?.startsWith('[SYSTEM EVENT') || (tx.assessment as any)?.system_event;
+  if (isSystemEvent) return <TransferEventEntry tx={tx} index={index} />;
+
   const p = tx.priority ?? tx.assessment?.priority;
   const col = p ? PRIORITY_COLORS[p] ?? 'hsl(var(--muted-foreground))' : 'hsl(var(--muted-foreground))';
 
