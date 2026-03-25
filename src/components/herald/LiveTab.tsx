@@ -543,7 +543,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           }}
         >
           <span style={{ color: '#FFFFFF', fontSize: 28, letterSpacing: '0.25em', fontWeight: 700 }}>
-            {isRecording ? 'END' : 'START'}
+            {isRecording ? 'END' : 'RECORD'}
           </span>
         </button>
 
@@ -559,7 +559,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         ) : (
           <>
             <p style={{ color: '#FFFFFF', fontSize: 20, letterSpacing: '0.2em', marginTop: 28, textAlign: 'center', fontWeight: 700 }}>
-              TAP TO START RECORDING
+              TAP TO START
             </p>
             {error && (
               <p className="mt-3" style={{ color: '#FF9500', fontSize: 20, letterSpacing: '0.2em' }}>{error}</p>
