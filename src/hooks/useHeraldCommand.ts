@@ -122,6 +122,9 @@ export function useHeraldCommand() {
       if (dispositionsRes.data) {
         setDispositions(dispositionsRes.data as unknown as CommandDisposition[]);
       }
+      if (transfersRes.data) {
+        setTransfers(transfersRes.data as unknown as PatientTransfer[]);
+      }
     } catch {
       // silent
     } finally {
