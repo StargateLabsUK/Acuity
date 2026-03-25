@@ -500,12 +500,22 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     pendingReportRef.current = null;
   }, []);
 
-  // ─── STATE 1: IDLE & STATE 2: RECORDING (same layout) ───
-  // Optimized for 720×1280 portrait touchscreen (5" handheld radio/Android)
-  if (state === 'idle' || state === 'recording') {
+  // ─── STATES 1-3: IDLE, RECORDING, PROCESSING ───
+  // Button stays fixed in center; text changes above/below
+  if (state === 'idle' || state === 'recording' || state === 'processing') {
     const isRecording = state === 'recording';
+    const isProcessing = state === 'processing';
+
+    const handleButtonClick = () => {
+      if (isProcessing) return;
+      if (isRecording) stopRecordingAndProcess();
+      else startRecording();
+    };
+
+    const buttonLabel = isProcessing ? 'PROCESSING' : isRecording ? 'END' : 'RECORD';
+
     return (
-      <div className="flex flex-col items-center justify-center flex-1 px-6">
+      <div className="flex flex-col items-center flex-1 px-6" style={{ position: 'relative' }}>
         {isRecording && (
           <div
             className="fixed top-0 left-0 right-0 z-50 overflow-hidden"
@@ -513,102 +523,90 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           >
             <div
               className="h-full"
-              style={{
-                width: '40%',
-                background: '#FF3B30',
-                animation: 'shimmer 1.5s ease-in-out infinite',
-              }}
+              style={{ width: '40%', background: '#FF3B30', animation: 'shimmer 1.5s ease-in-out infinite' }}
             />
           </div>
         )}
 
-        {isRecording && maxReached && (
-          <p className="mb-4" style={{ color: '#FF9500', fontSize: 22, letterSpacing: '0.2em', fontWeight: 700 }}>
-            MAX DURATION REACHED
-          </p>
-        )}
-
-        <button
-          onClick={isRecording ? stopRecordingAndProcess : startRecording}
-          className="flex items-center justify-center rounded-full"
-          style={{
-            width: 280,
-            height: 280,
-            background: isRecording ? '#FF3B30' : '#CC0000',
-            boxShadow: isRecording
-              ? '0 0 60px rgba(255,59,48,0.5), 0 0 120px rgba(255,59,48,0.2)'
-              : '0 0 40px rgba(204,0,0,0.4), 0 0 80px rgba(204,0,0,0.15)',
-            border: 'none',
-            transition: 'box-shadow 0.3s ease',
-          }}
-        >
-          <span style={{ color: '#FFFFFF', fontSize: 28, letterSpacing: '0.25em', fontWeight: 700 }}>
-            {isRecording ? 'END' : 'RECORD'}
-          </span>
-        </button>
-
-        {isRecording ? (
-          <>
-            <p style={{ color: '#FF3B30', fontSize: 28, fontVariantNumeric: 'tabular-nums', marginTop: 20 }}>
+        {/* Top area — status text above button */}
+        <div className="flex flex-col items-center justify-end" style={{ height: 'calc(50% - 150px)', paddingBottom: 24 }}>
+          {isRecording && maxReached && (
+            <p style={{ color: '#FF9500', fontSize: 22, letterSpacing: '0.2em', fontWeight: 700 }}>
+              MAX DURATION REACHED
+            </p>
+          )}
+          {isRecording && (
+            <p style={{ color: '#FF3B30', fontSize: 32, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
               {formatDuration(recordingDuration)}
             </p>
-            <p style={{ color: '#FFFFFF', fontSize: 20, letterSpacing: '0.2em', marginTop: 12, fontWeight: 700 }}>
-              TAP TO STOP AND PROCESS
+          )}
+          {isProcessing && capturedDuration > 0 && (
+            <p style={{ color: '#C8D0CC', fontSize: 20, fontWeight: 700 }}>
+              CAPTURED: {formatDuration(capturedDuration)}
             </p>
-          </>
-        ) : (
-          <>
-            <p style={{ color: '#FFFFFF', fontSize: 20, letterSpacing: '0.2em', marginTop: 28, textAlign: 'center', fontWeight: 700 }}>
-              TAP TO START
-            </p>
-            {error && (
-              <p className="mt-3" style={{ color: '#FF9500', fontSize: 20, letterSpacing: '0.2em' }}>{error}</p>
-            )}
-          </>
-        )}
-      </div>
-    );
-  }
+          )}
+        </div>
 
-  // ─── STATE 3: PROCESSING ───
-  if (state === 'processing') {
-    return (
-      <div className="flex flex-col items-center justify-center flex-1 px-6">
-        <div
-          className="animate-spin-herald rounded-full"
-          style={{
-            width: 64,
-            height: 64,
-            border: '3px solid #0F1820',
-            borderTopColor: '#3DFF8C',
-          }}
-        />
-        <p style={{ color: '#1E3028', fontSize: 22, letterSpacing: '0.2em', marginTop: 24, textAlign: 'center' }}>
-          RUNNING INTELLIGENCE ASSESSMENT
-        </p>
-        {capturedDuration > 0 && (
-          <p style={{ color: '#1E3028', fontSize: 20, marginTop: 12 }}>
-            CAPTURED: {formatDuration(capturedDuration)}
-          </p>
-        )}
-        {transcript && (
-          <div
-            className="mt-6 mx-4"
+        {/* Button — always centered */}
+        <div style={{ position: 'relative', width: 280, height: 280, flexShrink: 0 }}>
+          {isProcessing && (
+            <div
+              className="absolute rounded-full"
+              style={{
+                inset: -6,
+                border: '4px solid transparent',
+                borderTopColor: '#FFFFFF',
+                borderRightColor: 'rgba(255,255,255,0.3)',
+                animation: 'spin 1.2s linear infinite',
+              }}
+            />
+          )}
+          <button
+            onClick={handleButtonClick}
+            disabled={isProcessing}
+            className="flex items-center justify-center rounded-full"
             style={{
-              border: '1px solid #0F1820',
-              padding: 16,
-              borderRadius: 8,
-              maxWidth: 600,
+              width: 280,
+              height: 280,
+              background: isProcessing ? '#8B0000' : isRecording ? '#FF3B30' : '#CC0000',
+              boxShadow: isProcessing
+                ? '0 0 60px rgba(139,0,0,0.5), 0 0 120px rgba(139,0,0,0.2)'
+                : isRecording
+                  ? '0 0 60px rgba(255,59,48,0.5), 0 0 120px rgba(255,59,48,0.2)'
+                  : '0 0 40px rgba(204,0,0,0.4), 0 0 80px rgba(204,0,0,0.15)',
+              border: 'none',
+              transition: 'background 0.3s ease, box-shadow 0.3s ease',
+              cursor: isProcessing ? 'default' : 'pointer',
+              opacity: isProcessing ? 0.9 : 1,
             }}
           >
-            <p className="line-clamp-4 text-center" style={{ color: '#2A4038', fontSize: 20, fontStyle: 'italic' }}>
-              "{transcript}"
+            <span style={{ color: '#FFFFFF', fontSize: isProcessing ? 22 : 28, letterSpacing: '0.25em', fontWeight: 700 }}>
+              {buttonLabel}
+            </span>
+          </button>
+        </div>
+
+        {/* Bottom area — helper text below button */}
+        <div className="flex flex-col items-center justify-start" style={{ height: 'calc(50% - 150px)', paddingTop: 24 }}>
+          {isProcessing ? (
+            <p style={{ color: '#C8D0CC', fontSize: 20, letterSpacing: '0.2em', fontWeight: 700, textAlign: 'center' }}>
+              RUNNING INTELLIGENCE ASSESSMENT
             </p>
-          </div>
-        )}
-        {error && (
-          <p className="mt-3" style={{ color: '#FF9500', fontSize: 20 }}>{error}</p>
-        )}
+          ) : isRecording ? (
+            <p style={{ color: '#FFFFFF', fontSize: 20, letterSpacing: '0.2em', fontWeight: 700 }}>
+              TAP TO STOP AND PROCESS
+            </p>
+          ) : (
+            <>
+              <p style={{ color: '#FFFFFF', fontSize: 20, letterSpacing: '0.2em', fontWeight: 700 }}>
+                TAP TO START
+              </p>
+              {error && (
+                <p className="mt-3" style={{ color: '#FF9500', fontSize: 20, letterSpacing: '0.2em' }}>{error}</p>
+              )}
+            </>
+          )}
+        </div>
       </div>
     );
   }
