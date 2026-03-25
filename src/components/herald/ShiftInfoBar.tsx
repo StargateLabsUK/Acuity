@@ -44,23 +44,25 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
             {session.station}
           </span>
         )}
-        <button
-          onClick={() => setConfirming(true)}
-          style={{
-            marginTop: 8,
-            padding: '8px 24px',
-            background: '#FF3B30',
-            color: '#FFFFFF',
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            border: 'none',
-            borderRadius: 3,
-            cursor: 'pointer',
-          }}
-        >
-          END SHIFT
-        </button>
+        {showEndShift && (
+          <button
+            onClick={() => setConfirming(true)}
+            style={{
+              marginTop: 8,
+              padding: '8px 24px',
+              background: '#FF3B30',
+              color: '#FFFFFF',
+              fontSize: 18,
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              border: 'none',
+              borderRadius: 3,
+              cursor: 'pointer',
+            }}
+          >
+            END SHIFT
+          </button>
+        )}
       </div>
 
       {confirming && (
