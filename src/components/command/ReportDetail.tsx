@@ -741,10 +741,31 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
           <SectionLabel color="#1E90FF">TRANSMISSION LOG ({transmissions.length})</SectionLabel>
           <div className="flex flex-col gap-2" style={{ maxHeight: transmissions.length > 10 ? '60rem' : undefined, overflowY: transmissions.length > 10 ? 'auto' : undefined, scrollbarWidth: 'thin' }}>
             {transmissions.map((tx, i) => {
+              const isSystemTransfer = tx.headline?.startsWith('PATIENT TRANSFER:') || tx.transcript?.startsWith('[SYSTEM EVENT');
               const txTime = new Date(tx.timestamp);
               const txTimeStr = txTime.getUTCHours().toString().padStart(2, '0') + ':' +
                 txTime.getUTCMinutes().toString().padStart(2, '0') + ':' +
                 txTime.getUTCSeconds().toString().padStart(2, '0') + 'Z';
+
+              if (isSystemTransfer) {
+                return (
+                  <div key={tx.id} className="rounded p-3" style={{ background: 'rgba(30,144,255,0.06)', border: '1px solid rgba(30,144,255,0.25)' }}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-lg font-bold rounded-sm px-2 py-0.5" style={{ color: '#1E90FF', background: 'rgba(30,144,255,0.12)', border: '1px solid rgba(30,144,255,0.3)' }}>
+                        SYSTEM
+                      </span>
+                      <span className="text-lg text-foreground">{txTimeStr}</span>
+                    </div>
+                    {tx.headline && <p className="text-lg font-bold mb-1 break-words" style={{ color: '#1E90FF' }}>{tx.headline}</p>}
+                    {tx.transcript && (
+                      <pre className="text-lg text-foreground opacity-80 break-words whitespace-pre-wrap" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                        {tx.transcript}
+                      </pre>
+                    )}
+                  </div>
+                );
+              }
+
               const txPriority = tx.priority ?? 'P3';
               const txCol = PRIORITY_COLORS[txPriority] ?? '#34C759';
               const txAssessment = tx.assessment as unknown as Record<string, any> | null;
