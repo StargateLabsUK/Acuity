@@ -106,6 +106,11 @@ const IncidentsPage = () => {
     refreshReports();
   }, [refreshReports]);
 
+  const handleEndShift = useCallback(() => {
+    setSession(null);
+    navigate('/');
+  }, [navigate]);
+
   const handleTabChange = useCallback((tab: 'live' | 'reports' | 'incidents') => {
     if (tab === 'live') {
       navigate('/');
