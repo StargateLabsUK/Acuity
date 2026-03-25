@@ -135,6 +135,7 @@ const IncidentsPage = () => {
         )}
       </div>
 
+      <ShiftInfoBar session={session} onEndShift={handleEndShift} position="bottom" showEndShift />
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} hideTabs={['live']} />
     </div>
   );
