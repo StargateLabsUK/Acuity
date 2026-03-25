@@ -44,11 +44,18 @@ export function TransferInitiate({ session, incident, casualty, onBack, onTransf
 
   const fetchShifts = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from('shifts')
       .select('id, callsign, service, vehicle_type, can_transport')
       .is('ended_at', null)
       .order('created_at', { ascending: false });
+
+    // Filter to same trust if session has one
+    if (session.trust_id) {
+      query = query.eq('trust_id', session.trust_id);
+    }
+
+    const { data } = await query;
 
     if (data) {
       // Filter out our own callsign
