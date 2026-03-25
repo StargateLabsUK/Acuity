@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, FileText, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, FileText, ArrowLeft, ArrowRightLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getReports, updateReport, saveCasualtyDisposition, isCasualtyClosed } from '@/lib/herald-storage';
 import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
 import type { Assessment, ActionItem, DispositionType, CasualtyDisposition, DispositionFields } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 import { sanitizeAssessment, formatActionAge } from '@/lib/sanitize-assessment';
+import { TransferInitiate } from './TransferInitiate';
+import { PendingTransfers } from './PendingTransfers';
 
 interface Incident {
   id: string;
@@ -46,7 +48,8 @@ interface Props {
 type NavState =
   | { view: 'list' }
   | { view: 'incident'; incident: Incident }
-  | { view: 'casualty'; incident: Incident; casualty: CasualtyData };
+  | { view: 'casualty'; incident: Incident; casualty: CasualtyData }
+  | { view: 'transfer'; incident: Incident; casualty: CasualtyData };
 
 // ── Helpers ──
 
@@ -469,11 +472,12 @@ const ROLE_CRITERIA = ['Obvious signs of death', 'JRCALC criteria met', 'Traumat
 
 // ── Level 3: Casualty Handover Report ──
 
-function CasualtyReportView({ cas, inc, onBack, onHandover }: {
+function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
   cas: CasualtyData;
   inc: Incident;
   onBack: () => void;
   onHandover: (d: CasualtyDisposition) => void;
+  onTransfer: () => void;
 }) {
   const col = PRIORITY_COLORS[cas.priority] ?? '#34C759';
   const [showEprf, setShowEprf] = useState(false);
@@ -864,11 +868,18 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
             </div>
           </div>
         ) : (
-          <button onClick={() => setConfirming(true)}
-            className="w-full py-3 text-lg font-bold rounded-lg tracking-wide"
-            style={{ background: `${col}15`, border: `2px solid ${col}`, color: col }}>
-            HANDOVER PATIENT
-          </button>
+          <div className="flex gap-2">
+            <button onClick={onTransfer}
+              className="flex-1 py-3 text-lg font-bold rounded-lg tracking-wide flex items-center justify-center gap-2"
+              style={{ background: 'rgba(30,144,255,0.12)', border: '2px solid #1E90FF', color: '#1E90FF' }}>
+              <ArrowRightLeft size={18} /> TRANSFER
+            </button>
+            <button onClick={() => setConfirming(true)}
+              className="flex-1 py-3 text-lg font-bold rounded-lg tracking-wide"
+              style={{ background: `${col}15`, border: `2px solid ${col}`, color: col }}>
+              HANDOVER
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -1023,6 +1034,21 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
 
   // ── Render based on nav state ──
 
+  if (nav.view === 'transfer') {
+    return (
+      <TransferInitiate
+        session={session}
+        incident={nav.incident}
+        casualty={nav.casualty}
+        onBack={() => setNav({ view: 'casualty', incident: nav.incident, casualty: nav.casualty })}
+        onTransferInitiated={() => {
+          fetchIncidents();
+          setNav({ view: 'list' });
+        }}
+      />
+    );
+  }
+
   if (nav.view === 'casualty') {
     return (
       <CasualtyReportView
@@ -1034,6 +1060,7 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
           else setNav({ view: 'incident', incident: nav.incident });
         }}
         onHandover={handleCasualtyClosed}
+        onTransfer={() => setNav({ view: 'transfer', incident: nav.incident, casualty: nav.casualty })}
       />
     );
   }
@@ -1051,6 +1078,8 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
   // List view
   return (
     <div className="flex-1 overflow-auto px-3 py-3">
+      <PendingTransfers session={session} onTransferAccepted={fetchIncidents} />
+
       <p className="text-lg font-bold tracking-[0.2em] mb-3" style={{ color: '#FF9500' }}>
         ACTIVE INCIDENTS ({activeWithCasualties.length})
       </p>
