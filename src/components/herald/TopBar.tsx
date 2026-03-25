@@ -35,11 +35,14 @@ export function TopBar({ micStatus, aiStatus, syncStatus }: TopBarProps) {
 
   return (
     <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b border-border" style={{ minHeight: 48 }}>
-      <div className="flex items-center gap-2">
+      <div className="flex-1" />
+      <div className="flex items-center gap-3">
         {dot('MIC', micStatus === 'granted')}
         {dot('AI', aiStatus === 'ok')}
         {dot('SYNC', syncStatus === 'ok', syncStatus === 'offline')}
-        <span className="text-lg md:text-lg text-foreground">{utc}</span>
+      </div>
+      <div className="flex-1 flex justify-end">
+        <span className="text-lg text-foreground font-bold">{utc}</span>
       </div>
     </div>
   );
