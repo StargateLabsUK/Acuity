@@ -8,10 +8,12 @@ import type { IncidentTransmission, ActionItem } from '@/lib/herald-types';
 import { renderStructuredValue } from '@/components/StructuredValue';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeAssessment, formatActionAge } from '@/lib/sanitize-assessment';
+import type { PatientTransfer } from '@/lib/transfer-types';
 
 interface Props {
   report: CommandReport | null;
   dispositions?: CommandDisposition[];
+  transfers?: PatientTransfer[];
 }
 
 /* ── Small UI helpers ── */
