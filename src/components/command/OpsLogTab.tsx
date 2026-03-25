@@ -650,6 +650,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
         report={selectedReport}
         transmissions={transmissions}
         dispositions={dispositions}
+        transfers={transfers}
         onBack={() => setSelectedIncident(null)}
       />
     );
