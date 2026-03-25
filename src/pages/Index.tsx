@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { TopBar } from '@/components/herald/TopBar';
-import { BottomNav } from '@/components/herald/BottomNav';
 import { LiveTab } from '@/components/herald/LiveTab';
 import { ShiftLogin } from '@/components/herald/ShiftLogin';
 import { ShiftInfoBar } from '@/components/herald/ShiftInfoBar';
