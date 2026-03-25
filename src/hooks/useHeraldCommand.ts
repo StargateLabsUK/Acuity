@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Assessment, DispositionType, DispositionFields } from '@/lib/herald-types';
+import type { PatientTransfer } from '@/lib/transfer-types';
 
 export interface CommandDisposition {
   id: string;
