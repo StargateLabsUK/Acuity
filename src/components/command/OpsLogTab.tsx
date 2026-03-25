@@ -552,15 +552,17 @@ function IncidentDetail({
 
 // ── Incident Card (list item) ──
 
-function IncidentCard({ report, dispositions, onClick }: {
+function IncidentCard({ report, dispositions, transfers, onClick }: {
   report: OpsReport;
   dispositions: OpsDisposition[];
+  transfers: PatientTransfer[];
   onClick: () => void;
 }) {
   const p = report.assessment?.priority ?? report.priority;
   const col = p ? PRIORITY_COLORS[p] ?? '#888' : '#888';
   const casCount = Math.max(getCasualtyCount(report), dispositions.filter(d => d.report_id === report.id).length);
   const isClosed = report.status === 'closed';
+  const hasTransfer = transfers.some(t => t.report_id === report.id);
 
   return (
     <button
@@ -582,6 +584,9 @@ function IncidentCard({ report, dispositions, onClick }: {
           <span className="text-sm" style={badgeStyle('#1E90FF')}>
             {report.transmission_count} TX
           </span>
+        )}
+        {hasTransfer && (
+          <span className="text-sm" style={badgeStyle('#8B5CF6')}>XFER</span>
         )}
       </div>
 
