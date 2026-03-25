@@ -220,7 +220,7 @@ export default function Command() {
           </button>
           <div className="flex h-full gap-3">
             <div className="flex-1 rounded-lg border border-border bg-card shadow-sm overflow-y-auto">
-              <ReportDetail report={opsReport} dispositions={dispositions} />
+              <ReportDetail report={opsReport} dispositions={dispositions} transfers={transfers} />
             </div>
             <div className="w-2/5 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
               <MapTab reports={singleReports} onSelectReport={() => {}} />
@@ -248,7 +248,7 @@ export default function Command() {
             </button>
             <div className="flex h-full gap-3">
               <div className="flex-1 rounded-lg border border-border bg-card shadow-sm overflow-y-auto">
-                <ReportDetail report={selectedReport} dispositions={dispositions} />
+                <ReportDetail report={selectedReport} dispositions={dispositions} transfers={transfers} />
               </div>
               <div className="w-2/5 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
                 <MapTab reports={singleReports} onSelectReport={() => {}} />
@@ -270,7 +270,7 @@ export default function Command() {
             )}
             {expandedPanel === 'detail' && !selectedReport && (
               <div className="h-full overflow-y-auto">
-                <ReportDetail report={null} dispositions={dispositions} />
+                <ReportDetail report={null} dispositions={dispositions} transfers={transfers} />
               </div>
             )}
             {expandedPanel === 'ops' && (
@@ -337,7 +337,7 @@ export default function Command() {
             </div>
             <div className="relative flex flex-col min-w-0 w-1/2">
               <ExpandButton expanded={false} onClick={() => toggleExpand('detail')} />
-              <ReportDetail report={selectedReport} dispositions={dispositions} />
+              <ReportDetail report={selectedReport} dispositions={dispositions} transfers={transfers} />
             </div>
           </div>
           )}
@@ -402,7 +402,7 @@ export default function Command() {
             </div>
             <div className="relative flex flex-col min-w-0 w-3/5">
               <ExpandButton expanded={false} onClick={() => toggleExpand('detail')} />
-              <ReportDetail report={selectedReport} dispositions={dispositions} />
+              <ReportDetail report={selectedReport} dispositions={dispositions} transfers={transfers} />
             </div>
           </div>
           )}
@@ -424,7 +424,7 @@ export default function Command() {
             </div>
           </div>
         )}
-        {mobileTab === 'detail' && <ReportDetail report={selectedReport} dispositions={dispositions} />}
+        {mobileTab === 'detail' && <ReportDetail report={selectedReport} dispositions={dispositions} transfers={transfers} />}
         {mobileTab === 'status' && (
           <div className="h-full overflow-y-auto p-2">
             <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
