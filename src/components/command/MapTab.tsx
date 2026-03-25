@@ -6,6 +6,16 @@ import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
+function isWebGLSupported(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    return !!gl;
+  } catch {
+    return false;
+  }
+}
+
 interface Props {
   reports: CommandReport[];
   onSelectReport: (id: string) => void;
@@ -39,10 +49,10 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     },
   }));
 
-  const [webglFailed, setWebglFailed] = useState(false);
+  const [webglFailed, setWebglFailed] = useState(() => !isWebGLSupported());
 
   useEffect(() => {
-    if (!containerRef.current || !MAPBOX_TOKEN) return;
+    if (!containerRef.current || !MAPBOX_TOKEN || webglFailed) return;
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
     try {
