@@ -145,6 +145,9 @@ export function useOpsLog() {
       if (dispRes.data) {
         setDispositions(dispRes.data as unknown as OpsDisposition[]);
       }
+      if (transfersRes.data) {
+        setTransfers(transfersRes.data as unknown as PatientTransfer[]);
+      }
     } catch {
       // silent
     } finally {
