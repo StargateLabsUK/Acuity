@@ -530,52 +530,21 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
         <button
           onClick={isRecording ? stopRecordingAndProcess : startRecording}
-          className="relative flex items-center justify-center bg-transparent"
-          style={{ width: 320, height: 320 }}
+          className="flex items-center justify-center rounded-full"
+          style={{
+            width: 280,
+            height: 280,
+            background: isRecording ? '#FF3B30' : '#CC0000',
+            boxShadow: isRecording
+              ? '0 0 60px rgba(255,59,48,0.5), 0 0 120px rgba(255,59,48,0.2)'
+              : '0 0 40px rgba(204,0,0,0.4), 0 0 80px rgba(204,0,0,0.15)',
+            border: 'none',
+            transition: 'box-shadow 0.3s ease',
+          }}
         >
-          <svg width="320" height="320" viewBox="0 0 320 320" className="absolute inset-0">
-            {isRecording ? (
-              <>
-                <circle cx="160" cy="160" r="148" fill="none" stroke="#FF3B30" strokeWidth="0.5"
-                  strokeDasharray="3 8" style={{ animation: 'wave-circle 1.2s ease-in-out infinite' } as React.CSSProperties} />
-                <circle cx="160" cy="160" r="130" fill="none" stroke="#FF3B30" strokeWidth="1.5"
-                  strokeDasharray="3 8" style={{ animation: 'wave-circle-2 1.4s ease-in-out infinite 0.2s' } as React.CSSProperties} />
-                <circle cx="160" cy="160" r="110" fill="none" stroke="#FF3B30" strokeWidth="1"
-                  strokeDasharray="2 12" style={{ animation: 'wave-circle-3 1.6s ease-in-out infinite 0.4s' } as React.CSSProperties} />
-                <circle cx="160" cy="160" r="90" fill="none" stroke="#FF3B30" strokeWidth="0.5"
-                  strokeDasharray="1 10" style={{ animation: 'wave-circle 1.8s ease-in-out infinite 0.3s' } as React.CSSProperties} />
-                <circle cx="160" cy="160" r="60" fill="url(#centerGlowRec)" />
-                <defs>
-                  <radialGradient id="centerGlowRec">
-                    <stop offset="0%" stopColor="#FF3B30" stopOpacity="0.12" />
-                    <stop offset="100%" stopColor="#FF3B30" stopOpacity="0" />
-                  </radialGradient>
-                </defs>
-              </>
-            ) : (
-              <>
-                <circle cx="160" cy="160" r="148" fill="none" stroke="#1E90FF" strokeWidth="0.5" opacity="0.2" />
-                <circle cx="160" cy="160" r="130" fill="none" stroke="#1E90FF" strokeWidth="1.5"
-                  strokeDasharray="3 8" opacity="0.6" />
-                <circle cx="160" cy="160" r="110" fill="none" stroke="#1E90FF" strokeWidth="1"
-                  strokeDasharray="2 12" opacity="0.35" />
-                <circle cx="160" cy="160" r="90" fill="none" stroke="#1E90FF" strokeWidth="0.5"
-                  strokeDasharray="1 10" opacity="0.2" />
-                <circle cx="160" cy="160" r="60" fill="url(#centerGlow)" />
-                <defs>
-                  <radialGradient id="centerGlow">
-                    <stop offset="0%" stopColor="#1E90FF" stopOpacity="0.08" />
-                    <stop offset="100%" stopColor="#1E90FF" stopOpacity="0" />
-                  </radialGradient>
-                </defs>
-              </>
-            )}
-          </svg>
-          <div className="flex flex-col items-center justify-center z-10">
-            <span style={{ color: isRecording ? '#FF3B30' : '#FFFFFF', fontSize: 24, letterSpacing: '0.25em', fontWeight: 700 }}>
-              {isRecording ? 'END' : 'START'}
-            </span>
-          </div>
+          <span style={{ color: '#FFFFFF', fontSize: 28, letterSpacing: '0.25em', fontWeight: 700 }}>
+            {isRecording ? 'END' : 'START'}
+          </span>
         </button>
 
         {isRecording ? (
