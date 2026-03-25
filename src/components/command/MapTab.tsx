@@ -163,11 +163,60 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
   }, [reports, addMarker]);
 
   if (!MAPBOX_TOKEN || webglFailed) {
+    const geoReports = reports
+      .filter((r) => r.lat != null && r.lng != null)
+      .sort((a, b) => {
+        const pOrder: Record<string, number> = { P1: 0, P2: 1, P3: 2 };
+        return (pOrder[getReportPriority(a)] ?? 3) - (pOrder[getReportPriority(b)] ?? 3);
+      });
+
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-foreground opacity-50 text-lg tracking-widest">
-          {!MAPBOX_TOKEN ? 'MAPBOX TOKEN NOT CONFIGURED' : 'MAP UNAVAILABLE — WEBGL NOT SUPPORTED'}
-        </p>
+      <div className="h-full overflow-y-auto p-4">
+        <div className="mb-4 rounded-lg px-3 py-2 border border-muted bg-muted/30">
+          <p className="text-lg text-foreground opacity-60 tracking-wider font-semibold">
+            {!MAPBOX_TOKEN ? 'MAPBOX TOKEN NOT CONFIGURED' : 'MAP UNAVAILABLE — INCIDENT LIST VIEW'}
+          </p>
+        </div>
+        {geoReports.length === 0 ? (
+          <p className="text-lg text-foreground opacity-40 text-center mt-12 tracking-wider">NO GEO-LOCATED INCIDENTS</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {geoReports.map((r) => {
+              const p = getReportPriority(r);
+              const color = PRIORITY_COLORS[p] ?? '#34C759';
+              const headline = r.assessment?.headline ?? r.headline ?? 'No headline';
+              const label = SERVICE_LABELS[r.assessment?.service ?? r.service ?? 'unknown'] ?? 'UNK';
+              const ts = new Date(r.created_at ?? r.timestamp);
+              const timeStr =
+                ts.getUTCHours().toString().padStart(2, '0') + ':' +
+                ts.getUTCMinutes().toString().padStart(2, '0') + 'Z';
+              return (
+                <button
+                  key={r.id}
+                  onClick={() => onSelectReport(r.id)}
+                  className="flex items-start gap-3 rounded-lg p-3 text-left transition-colors hover:bg-muted/50 border border-muted/40"
+                >
+                  <span
+                    className="mt-1 flex-shrink-0 rounded px-2 py-0.5 text-lg font-bold text-white"
+                    style={{ backgroundColor: color }}
+                  >
+                    {p}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-foreground uppercase tracking-wider">{label}</span>
+                      <span className="text-lg text-foreground opacity-50">{timeStr}</span>
+                    </div>
+                    <p className="text-lg text-foreground opacity-80 truncate">{headline}</p>
+                    <p className="text-lg text-foreground opacity-40 font-mono">
+                      {r.lat!.toFixed(4)}, {r.lng!.toFixed(4)}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }
