@@ -2,6 +2,7 @@ import type { CommandReport } from '@/hooks/useHeraldCommand';
 import type { CommandShift } from '@/hooks/useHeraldCommand';
 import { SERVICE_LABELS } from '@/lib/herald-types';
 import { getVehicleLabel } from '@/lib/vehicle-types';
+import type { PatientTransfer } from '@/lib/transfer-types';
 
 interface Props {
   todayReports: CommandReport[];
@@ -10,9 +11,10 @@ interface Props {
   uniqueDevices: number;
   connected: boolean;
   activeShifts?: CommandShift[];
+  transfers?: PatientTransfer[];
 }
 
-export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, connected, activeShifts = [] }: Props) {
+export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, connected, activeShifts = [], transfers = [] }: Props) {
   const lastReport = todayReports[0];
   const lastTime = lastReport
     ? new Date(lastReport.created_at ?? lastReport.timestamp).getUTCHours().toString().padStart(2, '0') + ':' +

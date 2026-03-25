@@ -642,12 +642,16 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
       {/* 4. Resource Status */}
       {(() => {
         const reportDisps = dispositions.filter(d => d.report_id === report.id);
+        const reportTransfers = transfers.filter(t => t.report_id === report.id);
         const casualtyKeys = atmist ? Object.keys(atmist) : [];
+        // A casualty is "gone" if it's been disposed or transferred out (accepted)
         const allClosed = casualtyKeys.length > 0 && casualtyKeys.every(k =>
-          reportDisps.some(d => d.casualty_key === k)
+          reportDisps.some(d => d.casualty_key === k) ||
+          reportTransfers.some(t => t.casualty_key === k && t.status === 'accepted' && t.from_callsign === report.session_callsign)
         );
-        const crewStatus = allClosed ? 'AVAILABLE' : 'ON SCENE';
-        const crewColor = allClosed ? '#1E90FF' : '#3DFF8C';
+        const hasPendingTransfer = reportTransfers.some(t => t.status === 'pending');
+        const crewStatus = allClosed ? 'AVAILABLE' : hasPendingTransfer ? 'TRANSFERRING' : 'ON SCENE';
+        const crewColor = allClosed ? '#1E90FF' : hasPendingTransfer ? '#FF9500' : '#3DFF8C';
 
         // Find latest disposition time for "available since"
         const latestDisp = allClosed && reportDisps.length > 0
