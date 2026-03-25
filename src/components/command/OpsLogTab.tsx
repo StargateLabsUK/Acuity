@@ -740,6 +740,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
               key={r.id}
               report={r}
               dispositions={dispositions}
+              transfers={transfers}
               onClick={() => setSelectedIncident(r.id)}
             />
           ))
