@@ -80,6 +80,7 @@ export function useOpsLog() {
   const [reports, setReports] = useState<OpsReport[]>([]);
   const [transmissions, setTransmissions] = useState<OpsTransmission[]>([]);
   const [dispositions, setDispositions] = useState<OpsDisposition[]>([]);
+  const [transfers, setTransfers] = useState<PatientTransfer[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
