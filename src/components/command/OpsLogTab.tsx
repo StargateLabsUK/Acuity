@@ -230,7 +230,7 @@ function TransmissionEntry({ tx, index }: { tx: OpsTransmission; index: number }
           <Expandable label="HERALD ASSESSMENT" color="#34C759">
             <div className="mt-2 flex flex-col gap-3">
               {(() => {
-                const a = tx.assessment as Record<string, unknown>;
+                const a = tx.assessment as unknown as Record<string, unknown>;
                 return Object.entries(a).map(([key, val]) => {
                   if (val == null || val === '') return null;
                   const label = key.replace(/_/g, ' ').toUpperCase();
