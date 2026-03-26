@@ -120,6 +120,28 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (action === "leave") {
+      if (!shift_id || !operator_id) {
+        return new Response(
+          JSON.stringify({ error: "shift_id and operator_id required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      await supabase
+        .from("shift_link_codes")
+        .update({ left_at: new Date().toISOString() })
+        .eq("shift_id", shift_id)
+        .eq("operator_id", operator_id)
+        .not("used_at", "is", null)
+        .is("left_at", null);
+
+      return new Response(
+        JSON.stringify({ ok: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: "Unknown action" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

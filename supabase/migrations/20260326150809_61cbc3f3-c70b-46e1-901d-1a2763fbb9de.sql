@@ -1,0 +1,1 @@
+ALTER TABLE public.shift_link_codes ADD COLUMN left_at timestamptz;
