@@ -96,6 +96,13 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
           </div>
         </div>
       </div>
+      {trustName && (
+        <div className="px-3 md:px-5 pb-2">
+          <span className="text-lg font-bold tracking-widest" style={{ color: '#1E90FF' }}>
+            {trustName.toUpperCase()}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
