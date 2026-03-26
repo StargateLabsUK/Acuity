@@ -799,7 +799,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
             style={{ ...inputStyle, width: 'auto' }} title="To date" />
           {hasFilters && (
             <button
-              onClick={() => setFilters({ search: '', service: '', station: '', dateFrom: '', dateTo: '', outcome: '', incidentType: '' })}
+              onClick={() => setFilters({ search: '', service: '', station: '', dateFrom: '', dateTo: '', outcome: '', incidentType: '', callsign: '', operatorId: '' })}
               className="px-3 py-1.5 text-sm rounded border cursor-pointer"
               style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
               Reset
