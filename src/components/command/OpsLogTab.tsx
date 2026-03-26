@@ -728,7 +728,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
     setFilters(prev => ({ ...prev, [key]: val }));
   };
 
-  const hasFilters = filters.search || filters.dateFrom || filters.dateTo || filters.outcome || filters.incidentType;
+  const hasFilters = filters.search || filters.dateFrom || filters.dateTo || filters.outcome || filters.incidentType || filters.callsign || filters.operatorId;
 
   // If an incident is selected, show the detail view
   const selectedReport = selectedIncident ? reports.find(r => r.id === selectedIncident) : null;
