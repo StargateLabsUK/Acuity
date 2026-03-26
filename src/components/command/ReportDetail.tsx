@@ -516,7 +516,9 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
 
   const saveIncidentNumber = async (val: string) => {
     setLocalIncidentNum(val);
-    await supabase.from('herald_reports').update({ incident_number: val || null }).eq('id', report.id);
+    const updates: Record<string, unknown> = { incident_number: val || null };
+    if (val) updates.headline = val;
+    await supabase.from('herald_reports').update(updates).eq('id', report.id);
   };
 
   const saveHospital = async (val: string) => {
