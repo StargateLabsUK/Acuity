@@ -1,0 +1,1 @@
+UPDATE herald_reports SET status = 'closed' WHERE status = 'active' AND id IN (SELECT DISTINCT report_id FROM casualty_dispositions)
