@@ -101,6 +101,12 @@ function applyFilters(reports: OpsReport[], dispositions: OpsDisposition[], filt
     });
   }
 
+  if (filters.safeguarding === 'yes') {
+    filtered = filtered.filter(r => (r.assessment as any)?.safeguarding?.concern_identified === true);
+  } else if (filters.safeguarding === 'no') {
+    filtered = filtered.filter(r => !(r.assessment as any)?.safeguarding?.concern_identified);
+  }
+
   return filtered;
 }
 
