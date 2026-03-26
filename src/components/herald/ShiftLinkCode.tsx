@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { generateLinkCode } from '@/lib/herald-session';
+import { supabase } from '@/integrations/supabase/client';
 import type { HeraldSession } from '@/lib/herald-session';
 
 interface Props {
@@ -11,6 +12,7 @@ export function ShiftLinkCode({ session }: Props) {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [linkedCount, setLinkedCount] = useState(0);
 
   const generate = async () => {
     if (!session.shift_id) return;
@@ -28,6 +30,27 @@ export function ShiftLinkCode({ session }: Props) {
 
   useEffect(() => {
     if (session.shift_id && !code) generate();
+  }, [session.shift_id]);
+
+  // Check if any device has linked
+  useEffect(() => {
+    if (!session.shift_id) return;
+    const fetchCount = async () => {
+      try {
+        const { count } = await supabase
+          .from('shift_link_codes')
+          .select('*', { count: 'exact', head: true })
+          .eq('shift_id', session.shift_id!)
+          .not('used_at', 'is', null);
+        setLinkedCount(count ?? 0);
+      } catch {
+        // silent
+      }
+    };
+    fetchCount();
+    const id = setInterval(fetchCount, 15_000);
+    window.addEventListener('focus', fetchCount);
+    return () => { clearInterval(id); window.removeEventListener('focus', fetchCount); };
   }, [session.shift_id]);
 
   // Countdown
@@ -96,6 +119,27 @@ export function ShiftLinkCode({ session }: Props) {
       ) : loading ? (
         <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Generating…</span>
       ) : null}
+
+      {linkedCount > 0 && (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 12,
+            color: 'hsl(147, 100%, 62%)',
+            background: 'rgba(61, 255, 140, 0.08)',
+            border: '1px solid rgba(61, 255, 140, 0.2)',
+            borderRadius: 3,
+            padding: '2px 8px',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span style={{ fontSize: 10 }}>📱</span>
+          {linkedCount} LINKED
+        </span>
+      )}
 
       <button
         onClick={generate}
