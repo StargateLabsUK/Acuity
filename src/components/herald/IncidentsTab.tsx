@@ -1077,26 +1077,27 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
 
   // List view
   return (
-    <div className="flex-1 overflow-auto px-3 py-3">
-      <PendingTransfers session={session} onTransferAccepted={fetchIncidents} />
+    <div className="flex-1 overflow-auto px-3 md:px-6 py-3 md:py-5">
+      <div className="max-w-3xl mx-auto">
+        <PendingTransfers session={session} onTransferAccepted={fetchIncidents} />
 
-      <p className="text-lg font-bold tracking-[0.2em] mb-3" style={{ color: '#FF9500' }}>
-        ACTIVE INCIDENTS ({activeWithCasualties.length})
-      </p>
-      {activeWithCasualties.length === 0 ? (
-        <p className="text-lg text-foreground opacity-50">No active incidents</p>
-      ) : (
-        activeWithCasualties.map(inc => {
-          const casualties = extractCasualties(inc).filter(c => !isCasualtyClosed(inc.id, c.key));
-          return (
-            <IncidentCard
-              key={inc.id}
-              inc={inc}
-              onSelectCasualty={(cas) => setNav({ view: 'casualty', incident: inc, casualty: cas })}
-            />
-          );
-        })
-      )}
+        <p className="text-lg font-bold tracking-[0.2em] mb-3" style={{ color: '#FF9500' }}>
+          ACTIVE INCIDENTS ({activeWithCasualties.length})
+        </p>
+        {activeWithCasualties.length === 0 ? (
+          <p className="text-lg text-foreground opacity-50">No active incidents</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+            {activeWithCasualties.map(inc => (
+              <IncidentCard
+                key={inc.id}
+                inc={inc}
+                onSelectCasualty={(cas) => setNav({ view: 'casualty', incident: inc, casualty: cas })}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
