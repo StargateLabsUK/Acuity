@@ -384,7 +384,7 @@ function IncidentDetail({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 select-text">
         {/* Header */}
         <div className="rounded-lg p-4" style={{ background: `${col}12`, borderLeft: `4px solid ${col}` }}>
           <div className="flex items-center gap-3 flex-wrap mb-2">
