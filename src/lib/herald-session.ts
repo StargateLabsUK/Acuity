@@ -120,12 +120,13 @@ export async function generateLinkCode(
 /** Redeem a 6-digit link code, returns the session data */
 export async function redeemLinkCode(
   code: string,
+  operator_id?: string,
 ): Promise<{ session_data: HeraldSession } | { error: string }> {
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/link-shift`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ action: 'redeem', code }),
+      body: JSON.stringify({ action: 'redeem', code, operator_id: operator_id ?? null }),
     });
     const data = await res.json();
     if (!res.ok) return { error: data.error ?? 'Invalid code' };

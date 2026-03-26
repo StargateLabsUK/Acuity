@@ -7,12 +7,17 @@ interface Props {
   session: HeraldSession;
 }
 
+interface LinkedCrew {
+  operator_id: string | null;
+  used_at: string;
+}
+
 export function ShiftLinkCode({ session }: Props) {
   const [code, setCode] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [linkedCount, setLinkedCount] = useState(0);
+  const [linkedCrew, setLinkedCrew] = useState<LinkedCrew[]>([]);
 
   const generate = async () => {
     if (!session.shift_id) return;
@@ -32,25 +37,25 @@ export function ShiftLinkCode({ session }: Props) {
     if (session.shift_id && !code) generate();
   }, [session.shift_id]);
 
-  // Check if any device has linked
+  // Fetch linked crew members
   useEffect(() => {
     if (!session.shift_id) return;
-    const fetchCount = async () => {
+    const fetchCrew = async () => {
       try {
-        const { count } = await supabase
+        const { data } = await supabase
           .from('shift_link_codes')
-          .select('*', { count: 'exact', head: true })
+          .select('operator_id, used_at')
           .eq('shift_id', session.shift_id!)
           .not('used_at', 'is', null);
-        setLinkedCount(count ?? 0);
+        setLinkedCrew((data as LinkedCrew[]) ?? []);
       } catch {
         // silent
       }
     };
-    fetchCount();
-    const id = setInterval(fetchCount, 15_000);
-    window.addEventListener('focus', fetchCount);
-    return () => { clearInterval(id); window.removeEventListener('focus', fetchCount); };
+    fetchCrew();
+    const id = setInterval(fetchCrew, 15_000);
+    window.addEventListener('focus', fetchCrew);
+    return () => { clearInterval(id); window.removeEventListener('focus', fetchCrew); };
   }, [session.shift_id]);
 
   // Countdown
@@ -75,93 +80,115 @@ export function ShiftLinkCode({ session }: Props) {
 
   return (
     <div
-      className="flex items-center gap-4 px-4 py-3"
       style={{
         background: 'rgba(61, 255, 140, 0.04)',
         borderBottom: '1px solid rgba(61, 255, 140, 0.1)',
       }}
     >
-      <span
-        style={{
-          color: 'hsl(var(--muted-foreground))',
-          fontSize: 13,
-          letterSpacing: '0.12em',
-          fontFamily: "'IBM Plex Mono', monospace",
-          whiteSpace: 'nowrap',
-        }}
-      >
-        LINK CODE
-      </span>
-
-      {code ? (
-        <>
-          <span
-            style={{
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: 22,
-              fontWeight: 700,
-              letterSpacing: '0.35em',
-              color: 'hsl(147, 100%, 62%)',
-            }}
-          >
-            {code}
-          </span>
-          <span
-            style={{
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: 12,
-              color: 'hsl(var(--muted-foreground))',
-            }}
-          >
-            {timeLeft}
-          </span>
-        </>
-      ) : loading ? (
-        <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Generating…</span>
-      ) : null}
-
-      {linkedCount > 0 && (
+      {/* Top row: link code + generate button */}
+      <div className="flex items-center gap-4 px-4 py-3">
         <span
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
+            color: 'hsl(var(--muted-foreground))',
+            fontSize: 13,
+            letterSpacing: '0.12em',
             fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: 12,
-            color: 'hsl(147, 100%, 62%)',
-            background: 'rgba(61, 255, 140, 0.08)',
-            border: '1px solid rgba(61, 255, 140, 0.2)',
-            borderRadius: 3,
-            padding: '2px 8px',
             whiteSpace: 'nowrap',
           }}
         >
-          <span style={{ fontSize: 10 }}>📱</span>
-          {linkedCount} LINKED
+          LINK CODE
         </span>
-      )}
 
-      <button
-        onClick={generate}
-        disabled={loading}
-        style={{
-          marginLeft: 'auto',
-          fontSize: 12,
-          fontFamily: "'IBM Plex Mono', monospace",
-          letterSpacing: '0.1em',
-          color: 'hsl(var(--muted-foreground))',
-          background: 'transparent',
-          border: '1px solid rgba(255,255,255,0.15)',
-          padding: '4px 10px',
-          borderRadius: 3,
-          cursor: 'pointer',
-        }}
-      >
-        {code ? 'REFRESH' : 'GENERATE'}
-      </button>
+        {code ? (
+          <>
+            <span
+              style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: 22,
+                fontWeight: 700,
+                letterSpacing: '0.35em',
+                color: 'hsl(147, 100%, 62%)',
+              }}
+            >
+              {code}
+            </span>
+            <span
+              style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: 12,
+                color: 'hsl(var(--muted-foreground))',
+              }}
+            >
+              {timeLeft}
+            </span>
+          </>
+        ) : loading ? (
+          <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Generating…</span>
+        ) : null}
 
-      {error && (
-        <span style={{ color: '#FF3B30', fontSize: 12 }}>{error}</span>
+        <button
+          onClick={generate}
+          disabled={loading}
+          style={{
+            marginLeft: 'auto',
+            fontSize: 12,
+            fontFamily: "'IBM Plex Mono', monospace",
+            letterSpacing: '0.1em',
+            color: 'hsl(var(--muted-foreground))',
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.15)',
+            padding: '4px 10px',
+            borderRadius: 3,
+            cursor: 'pointer',
+          }}
+        >
+          {code ? 'REFRESH' : 'GENERATE'}
+        </button>
+
+        {error && (
+          <span style={{ color: '#FF3B30', fontSize: 12 }}>{error}</span>
+        )}
+      </div>
+
+      {/* Linked crew row */}
+      {linkedCrew.length > 0 && (
+        <div
+          className="flex items-center gap-3 px-4 pb-3"
+          style={{ flexWrap: 'wrap' }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              letterSpacing: '0.12em',
+              color: 'hsl(var(--muted-foreground))',
+              fontFamily: "'IBM Plex Mono', monospace",
+            }}
+          >
+            CREW
+          </span>
+          {linkedCrew.map((crew, i) => (
+            <span
+              key={i}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'hsl(147, 100%, 62%)',
+                background: 'rgba(61, 255, 140, 0.08)',
+                border: '1px solid rgba(61, 255, 140, 0.2)',
+                borderRadius: 3,
+                padding: '3px 10px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ fontSize: 11 }}>📱</span>
+              {crew.operator_id || 'Unknown'}
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );

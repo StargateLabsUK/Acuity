@@ -50,7 +50,8 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
   const handleSubmit = async (code: string) => {
     if (submitting) return;
     setSubmitting(true);
-    const result = await redeemLinkCode(code);
+    const trimmedCollar = collarNumber.trim();
+    const result = await redeemLinkCode(code, trimmedCollar || undefined);
     if ('error' in result) {
       setError(result.error);
       setDigits(['', '', '', '', '', '']);

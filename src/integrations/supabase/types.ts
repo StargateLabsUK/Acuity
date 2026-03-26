@@ -466,6 +466,7 @@ export type Database = {
           created_at: string
           expires_at: string
           id: string
+          operator_id: string | null
           session_data: Json
           shift_id: string
           trust_id: string | null
@@ -476,6 +477,7 @@ export type Database = {
           created_at?: string
           expires_at: string
           id?: string
+          operator_id?: string | null
           session_data?: Json
           shift_id: string
           trust_id?: string | null
@@ -486,6 +488,7 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          operator_id?: string | null
           session_data?: Json
           shift_id?: string
           trust_id?: string | null
