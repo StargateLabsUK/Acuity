@@ -725,6 +725,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
     incidentType: '',
     callsign: '',
     operatorId: '',
+    safeguarding: '',
   });
 
   const filtered = useMemo(
