@@ -244,6 +244,22 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
         </div>
       )}
 
+      {/* Safeguarding alert */}
+      {(report.assessment as any)?.safeguarding?.concern_identified && (
+        <div className="mt-2 rounded px-2 py-1.5" style={{ background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.4)' }}>
+          <span className="text-lg font-bold" style={{ color: '#FF3B30' }}>⚠ SAFEGUARDING</span>
+          {(report.assessment as any).safeguarding.details && (
+            <span className="text-lg ml-2 text-foreground">{(report.assessment as any).safeguarding.details}</span>
+          )}
+          {(report.assessment as any).safeguarding.police_requested && (
+            <span className="text-lg ml-2 font-bold" style={{ color: '#FF9500' }}>· Police requested</span>
+          )}
+          {(report.assessment as any).safeguarding.referral_required && (
+            <span className="text-lg ml-2 font-bold" style={{ color: '#FF3B30' }}>· Referral required</span>
+          )}
+        </div>
+      )}
+
       {/* Clinical summary only — no PII */}
       <div className="text-lg text-foreground opacity-80 mt-1">
         {val?.I ? `Injuries: ${val.I}` : 'Injuries: —'}
