@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   );
 
   try {
-    const { action, shift_id, session_data, trust_id, code } = await req.json();
+    const { action, shift_id, session_data, trust_id, code, operator_id } = await req.json();
 
     if (action === "generate") {
       if (!shift_id || !session_data) {
