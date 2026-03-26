@@ -106,10 +106,14 @@ const IncidentsPage = () => {
     refreshReports();
   }, [refreshReports]);
 
-  const handleEndShift = useCallback(() => {
+  const handleEndShift = useCallback(async () => {
+    if (session?.shift_id) {
+      await endShiftRemote(session.shift_id);
+    }
+    clearSession();
     setSession(null);
     navigate('/');
-  }, [navigate]);
+  }, [navigate, session]);
 
   const handleTabChange = useCallback((tab: 'live' | 'reports' | 'incidents') => {
     if (tab === 'live') {
