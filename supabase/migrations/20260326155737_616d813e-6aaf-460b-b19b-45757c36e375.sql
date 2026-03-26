@@ -1,0 +1,1 @@
+UPDATE profiles SET trust_id = '2b9912a3-9534-4b85-9a9c-591bca2b41df' WHERE id = '9f8b2601-9efb-425f-aacd-0b62a997af03'
