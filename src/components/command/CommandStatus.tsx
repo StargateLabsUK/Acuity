@@ -1,8 +1,18 @@
 import type { CommandReport } from '@/hooks/useHeraldCommand';
 import type { CommandShift } from '@/hooks/useHeraldCommand';
-import { SERVICE_LABELS } from '@/lib/herald-types';
+import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
 import { getVehicleLabel } from '@/lib/vehicle-types';
 import type { PatientTransfer } from '@/lib/transfer-types';
+
+function topPriority(transfers: PatientTransfer[]): string | null {
+  const order = ['P1', 'P2', 'P3', 'P4'];
+  let best = -1;
+  for (const t of transfers) {
+    const idx = order.indexOf(t.priority);
+    if (idx !== -1 && (best === -1 || idx < best)) best = idx;
+  }
+  return best >= 0 ? order[best] : (transfers[0]?.priority ?? null);
+}
 
 interface Props {
   todayReports: CommandReport[];
@@ -106,18 +116,26 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
                     <span className="text-lg text-muted-foreground">
                       {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
                     </span>
-                    {crewPendingOut.length > 0 && (
-                      <span className="text-lg font-bold rounded-sm px-1 py-0.5"
-                        style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}>
-                        ↗ XFER
-                      </span>
-                    )}
-                    {crewPendingIn.length > 0 && (
-                      <span className="text-lg font-bold rounded-sm px-1 py-0.5"
-                        style={{ color: '#1E90FF', border: '1px solid rgba(30,144,255,0.3)', background: 'rgba(30,144,255,0.08)' }}>
-                        ↙ INCOMING
-                      </span>
-                    )}
+                    {crewPendingOut.length > 0 && (() => {
+                      const p = topPriority(crewPendingOut);
+                      const pCol = p ? (PRIORITY_COLORS[p] ?? '#FF9500') : '#FF9500';
+                      return (
+                        <span className="text-lg font-bold rounded-sm px-1 py-0.5"
+                          style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}>
+                          ↗ XFER {p && <span style={{ color: pCol }}>{p}</span>}
+                        </span>
+                      );
+                    })()}
+                    {crewPendingIn.length > 0 && (() => {
+                      const p = topPriority(crewPendingIn);
+                      const pCol = p ? (PRIORITY_COLORS[p] ?? '#1E90FF') : '#1E90FF';
+                      return (
+                        <span className="text-lg font-bold rounded-sm px-1 py-0.5"
+                          style={{ color: '#1E90FF', border: '1px solid rgba(30,144,255,0.3)', background: 'rgba(30,144,255,0.08)' }}>
+                          ↙ INCOMING {p && <span style={{ color: pCol }}>{p}</span>}
+                        </span>
+                      );
+                    })()}
                   </div>
                 );
               })}
@@ -180,12 +198,16 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
                     <span className="text-lg text-muted-foreground">
                       {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
                     </span>
-                    {crewPendingOut.length > 0 && (
-                      <span className="text-lg font-bold rounded-sm px-1 py-0.5"
-                        style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}>
-                        ↗ XFER
-                      </span>
-                    )}
+                    {crewPendingOut.length > 0 && (() => {
+                      const p = topPriority(crewPendingOut);
+                      const pCol = p ? (PRIORITY_COLORS[p] ?? '#FF9500') : '#FF9500';
+                      return (
+                        <span className="text-lg font-bold rounded-sm px-1 py-0.5"
+                          style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}>
+                          ↗ XFER {p && <span style={{ color: pCol }}>{p}</span>}
+                        </span>
+                      );
+                    })()}
                   </div>
                 );
               })}
