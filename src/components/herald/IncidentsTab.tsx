@@ -415,6 +415,7 @@ function IncidentDetailView({ inc, onBack, onSelectCasualty }: {
             );
           })
         )}
+        </div>
       </div>
     </div>
   );
