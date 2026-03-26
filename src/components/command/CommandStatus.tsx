@@ -1,8 +1,18 @@
 import type { CommandReport } from '@/hooks/useHeraldCommand';
 import type { CommandShift } from '@/hooks/useHeraldCommand';
-import { SERVICE_LABELS } from '@/lib/herald-types';
+import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
 import { getVehicleLabel } from '@/lib/vehicle-types';
 import type { PatientTransfer } from '@/lib/transfer-types';
+
+function topPriority(transfers: PatientTransfer[]): string | null {
+  const order = ['P1', 'P2', 'P3', 'P4'];
+  let best = -1;
+  for (const t of transfers) {
+    const idx = order.indexOf(t.priority);
+    if (idx !== -1 && (best === -1 || idx < best)) best = idx;
+  }
+  return best >= 0 ? order[best] : (transfers[0]?.priority ?? null);
+}
 
 interface Props {
   todayReports: CommandReport[];
