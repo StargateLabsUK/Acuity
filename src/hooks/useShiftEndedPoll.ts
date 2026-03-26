@@ -2,26 +2,28 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getSession, clearSession } from '@/lib/herald-session';
 
-const POLL_MS = 15_000;
-
 /**
- * Polls the shifts table to detect when the shift has been ended
- * (e.g. from another device). Calls onShiftEnded when detected.
+ * Subscribes to realtime changes on the shifts table to detect when
+ * the shift has been ended (e.g. from another device).
+ * Falls back to a single check on mount + focus.
  */
 export function useShiftEndedPoll(onShiftEnded: () => void) {
   const cbRef = useRef(onShiftEnded);
   cbRef.current = onShiftEnded;
 
   useEffect(() => {
-    const poll = async () => {
-      const session = getSession();
-      if (!session?.shift_id) return;
+    const session = getSession();
+    if (!session?.shift_id) return;
 
+    const shiftId = session.shift_id;
+
+    // One-time check on mount
+    const checkOnce = async () => {
       try {
         const { data } = await supabase
           .from('shifts')
           .select('ended_at')
-          .eq('id', session.shift_id)
+          .eq('id', shiftId)
           .single();
 
         if (data?.ended_at) {
@@ -33,12 +35,32 @@ export function useShiftEndedPoll(onShiftEnded: () => void) {
       }
     };
 
-    const id = setInterval(poll, POLL_MS);
-    window.addEventListener('focus', poll);
+    checkOnce();
+    window.addEventListener('focus', checkOnce);
+
+    // Realtime subscription for instant detection
+    const channel = supabase
+      .channel(`shift-ended-${shiftId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'shifts',
+          filter: `id=eq.${shiftId}`,
+        },
+        (payload) => {
+          if (payload.new && (payload.new as any).ended_at) {
+            clearSession();
+            cbRef.current();
+          }
+        }
+      )
+      .subscribe();
 
     return () => {
-      clearInterval(id);
-      window.removeEventListener('focus', poll);
+      window.removeEventListener('focus', checkOnce);
+      supabase.removeChannel(channel);
     };
   }, []);
 }

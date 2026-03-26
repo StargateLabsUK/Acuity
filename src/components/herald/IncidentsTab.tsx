@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, FileText, ArrowLeft, ArrowRight
 import { SERVICE_LABELS } from '@/lib/herald-types';
 import { getVehicleLabel } from '@/lib/vehicle-types';
 import { fetchIncidentsRemote } from '@/lib/herald-api';
+import { supabase } from '@/integrations/supabase/client';
 import { getReports, updateReport, saveCasualtyDisposition, isCasualtyClosed } from '@/lib/herald-storage';
 import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
 import type { Assessment, ActionItem, DispositionType, CasualtyDisposition, DispositionFields } from '@/lib/herald-types';
@@ -1009,10 +1010,33 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
 
   useEffect(() => { fetchIncidents(); }, [fetchIncidents, refreshKey]);
 
+  // Realtime subscription for instant incident updates
   useEffect(() => {
-    const id = window.setInterval(fetchIncidents, 5000);
-    return () => window.clearInterval(id);
-  }, [fetchIncidents]);
+    const filters: any[] = [
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'herald_reports',
+      },
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'herald_reports',
+      },
+    ];
+
+    let channel = supabase.channel(`incidents-${session.shift_id ?? session.callsign}`);
+    for (const f of filters) {
+      channel = channel.on('postgres_changes', f, () => {
+        fetchIncidents();
+      });
+    }
+    channel.subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchIncidents, session.shift_id, session.callsign]);
 
   const handleCasualtyClosed = useCallback((d: CasualtyDisposition) => {
     onCasualtyClosed(d);
