@@ -10,6 +10,45 @@ function randomCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+async function handleCrewLink(supabase: any, codeRow: any, operator_id: string | null, corsHeaders: Record<string, string>) {
+  const opId = operator_id ?? null;
+
+  if (opId) {
+    // Check if this operator already has a row for this shift
+    const { data: existing } = await supabase
+      .from("shift_link_codes")
+      .select("id")
+      .eq("shift_id", codeRow.shift_id)
+      .eq("operator_id", opId)
+      .limit(1)
+      .single();
+
+    if (existing) {
+      // Rejoin: clear left_at
+      await supabase
+        .from("shift_link_codes")
+        .update({ left_at: null, used_at: new Date().toISOString() })
+        .eq("id", existing.id);
+    } else {
+      // New crew member: insert a tracking row
+      await supabase.from("shift_link_codes").insert({
+        shift_id: codeRow.shift_id,
+        code: codeRow.code,
+        trust_id: codeRow.trust_id,
+        session_data: codeRow.session_data,
+        expires_at: codeRow.expires_at,
+        used_at: new Date().toISOString(),
+        operator_id: opId,
+      });
+    }
+  }
+
+  return new Response(
+    JSON.stringify({ session_data: codeRow.session_data }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
