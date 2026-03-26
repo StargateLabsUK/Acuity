@@ -596,6 +596,24 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
           <p className="text-lg text-foreground font-medium">{cas.label}</p>
         </div>
 
+        {/* Safeguarding alert */}
+        {inc.assessment?.safeguarding?.concern_identified && (
+          <div className="rounded-lg p-3 mb-4" style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.3)' }}>
+            <p className="text-lg font-bold" style={{ color: '#FF3B30' }}>⚠ SAFEGUARDING CONCERN</p>
+            {inc.assessment.safeguarding.details && (
+              <p className="text-lg text-foreground mt-1">{inc.assessment.safeguarding.details}</p>
+            )}
+            <div className="flex gap-3 mt-1 flex-wrap">
+              {inc.assessment.safeguarding.police_requested && (
+                <span className="text-lg font-bold" style={{ color: '#FF9500' }}>Police requested</span>
+              )}
+              {inc.assessment.safeguarding.referral_required && (
+                <span className="text-lg font-bold" style={{ color: '#FF3B30' }}>Referral required</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 2. ATMIST */}
         <div className="mb-4">
           <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>ATMIST</p>

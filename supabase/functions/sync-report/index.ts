@@ -853,6 +853,23 @@ function mergeShallow(
       if (!isPlaceholder(result[key]) && isPlaceholder(value)) continue;
     }
 
+    // safeguarding: once concern_identified is true, never revert; merge details additively
+    if (key === 'safeguarding') {
+      const existing = result[key] as any;
+      const incoming = value as any;
+      if (existing?.concern_identified === true) {
+        if (!incoming || incoming.concern_identified !== true) continue;
+        // Merge: keep existing details if incoming is empty, combine flags
+        result[key] = {
+          concern_identified: true,
+          details: incoming.details || existing.details,
+          police_requested: existing.police_requested || incoming.police_requested || false,
+          referral_required: existing.referral_required || incoming.referral_required || false,
+        };
+        continue;
+      }
+    }
+
     // incident_type can only broaden/escalate, never downgrade/specialize
     if (key === INCIDENT_TYPE_KEY && shouldKeepExistingIncidentType(result[key], value)) continue;
 

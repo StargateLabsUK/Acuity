@@ -65,7 +65,9 @@ function applyFilters(reports: OpsReport[], dispositions: OpsDisposition[], filt
       matchesSearch(r.session_operator_id, q) ||
       matchesSearch(getLocation(r), q) ||
       matchesSearch(getIncidentType(r), q) ||
-      matchesSearch(r.transcript, q)
+      matchesSearch(r.transcript, q) ||
+      (q === 'safeguarding' && (r.assessment as any)?.safeguarding?.concern_identified === true) ||
+      matchesSearch((r.assessment as any)?.safeguarding?.details, q)
     );
   }
 
@@ -99,6 +101,12 @@ function applyFilters(reports: OpsReport[], dispositions: OpsDisposition[], filt
       const type = getIncidentType(r).toLowerCase();
       return type.includes(typeQ);
     });
+  }
+
+  if (filters.safeguarding === 'yes') {
+    filtered = filtered.filter(r => (r.assessment as any)?.safeguarding?.concern_identified === true);
+  } else if (filters.safeguarding === 'no') {
+    filtered = filtered.filter(r => !(r.assessment as any)?.safeguarding?.concern_identified);
   }
 
   return filtered;
@@ -412,6 +420,24 @@ function IncidentDetail({
           </div>
         </div>
 
+        {/* Safeguarding alert */}
+        {a?.safeguarding?.concern_identified && (
+          <div className="rounded-lg p-3 border" style={{ background: 'rgba(255,59,48,0.08)', borderColor: '#FF3B30' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-bold tracking-widest" style={{ color: '#FF3B30' }}>⚠ SAFEGUARDING CONCERN</span>
+              {a.safeguarding.police_requested && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded" style={badgeStyle('#FF9500')}>POLICE REQUESTED</span>
+              )}
+              {a.safeguarding.referral_required && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded" style={badgeStyle('#FF3B30')}>REFERRAL REQUIRED</span>
+              )}
+            </div>
+            {a.safeguarding.details && (
+              <p className="text-sm text-foreground">{a.safeguarding.details}</p>
+            )}
+          </div>
+        )}
+
         {/* 1. Incident Summary */}
         <div>
           <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">INCIDENT SUMMARY</h3>
@@ -670,6 +696,9 @@ function IncidentCard({ report, dispositions, transfers, onClick }: {
         {hasTransfer && (
           <span className="text-sm" style={badgeStyle('#8B5CF6')}>XFER</span>
         )}
+        {(report.assessment as any)?.safeguarding?.concern_identified && (
+          <span className="text-sm" style={badgeStyle('#FF3B30')}>⚠ SAFEGUARDING</span>
+        )}
       </div>
 
       <p className="text-sm text-foreground font-semibold truncate mb-1">{getIncidentType(report)}</p>
@@ -717,6 +746,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
     incidentType: '',
     callsign: '',
     operatorId: '',
+    safeguarding: '',
   });
 
   const filtered = useMemo(
@@ -728,7 +758,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
     setFilters(prev => ({ ...prev, [key]: val }));
   };
 
-  const hasFilters = filters.search || filters.dateFrom || filters.dateTo || filters.outcome || filters.incidentType || filters.callsign || filters.operatorId;
+  const hasFilters = filters.search || filters.dateFrom || filters.dateTo || filters.outcome || filters.incidentType || filters.callsign || filters.operatorId || filters.safeguarding;
 
   // If an incident is selected, show the detail view
   const selectedReport = selectedIncident ? reports.find(r => r.id === selectedIncident) : null;
@@ -813,13 +843,22 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
               <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
             ))}
           </select>
+          <select
+            value={filters.safeguarding}
+            onChange={e => updateFilter('safeguarding', e.target.value)}
+            style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
+          >
+            <option value="">Safeguarding</option>
+            <option value="yes">⚠ Concern flagged</option>
+            <option value="no">No concern</option>
+          </select>
           <input type="date" value={filters.dateFrom} onChange={e => updateFilter('dateFrom', e.target.value)}
             style={{ ...inputStyle, width: 'auto' }} title="From date" />
           <input type="date" value={filters.dateTo} onChange={e => updateFilter('dateTo', e.target.value)}
             style={{ ...inputStyle, width: 'auto' }} title="To date" />
           {hasFilters && (
             <button
-              onClick={() => setFilters({ search: '', service: '', station: '', dateFrom: '', dateTo: '', outcome: '', incidentType: '', callsign: '', operatorId: '' })}
+              onClick={() => setFilters({ search: '', service: '', station: '', dateFrom: '', dateTo: '', outcome: '', incidentType: '', callsign: '', operatorId: '', safeguarding: '' })}
               className="px-3 py-1.5 text-sm rounded border cursor-pointer"
               style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
               Reset
