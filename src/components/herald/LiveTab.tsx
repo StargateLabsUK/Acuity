@@ -460,7 +460,8 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       let result: any = null;
       let aiOk = true;
       try {
-        result = await assessTranscript(text, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
+        const existingAtmist = await fetchExistingAtmist(sessionCtx?.callsign, sessionCtx?.shift_id);
+        result = await assessTranscript(text, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport, existing_atmist: existingAtmist });
         if (result && result.structured) {
           result.structured.callsign = sessionCtx?.callsign || null;
           result.structured.operator_id = sessionCtx?.operator_id || null;
