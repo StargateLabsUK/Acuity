@@ -62,10 +62,19 @@ function applyFilters(reports: OpsReport[], dispositions: OpsDisposition[], filt
       matchesSearch(r.headline, q) ||
       matchesSearch(r.assessment?.headline, q) ||
       matchesSearch(r.incident_number, q) ||
+      matchesSearch(r.session_operator_id, q) ||
       matchesSearch(getLocation(r), q) ||
       matchesSearch(getIncidentType(r), q) ||
       matchesSearch(r.transcript, q)
     );
+  }
+
+  if (filters.callsign) {
+    filtered = filtered.filter(r => r.session_callsign === filters.callsign);
+  }
+
+  if (filters.operatorId) {
+    filtered = filtered.filter(r => r.session_operator_id === filters.operatorId);
   }
 
   if (filters.dateFrom) {
@@ -696,7 +705,7 @@ const INCIDENT_TYPE_OPTIONS = [
 // ── Main Component ──
 
 export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) => void } = {}) {
-  const { reports, transmissions, dispositions, transfers, loading } = useOpsLog();
+  const { reports, transmissions, dispositions, transfers, loading, uniqueCallsigns, uniqueOperatorIds } = useOpsLog();
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
   const [filters, setFilters] = useState<OpsFilters>({
     search: '',
@@ -706,6 +715,8 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
     dateTo: '',
     outcome: '',
     incidentType: '',
+    callsign: '',
+    operatorId: '',
   });
 
   const filtered = useMemo(
@@ -717,7 +728,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
     setFilters(prev => ({ ...prev, [key]: val }));
   };
 
-  const hasFilters = filters.search || filters.dateFrom || filters.dateTo || filters.outcome || filters.incidentType;
+  const hasFilters = filters.search || filters.dateFrom || filters.dateTo || filters.outcome || filters.incidentType || filters.callsign || filters.operatorId;
 
   // If an incident is selected, show the detail view
   const selectedReport = selectedIncident ? reports.find(r => r.id === selectedIncident) : null;
@@ -755,11 +766,31 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
             type="text"
             value={filters.search}
             onChange={e => updateFilter('search', e.target.value)}
-            placeholder="Search location, callsign, incident type..."
+            placeholder="Search callsign, collar number, incident number, location..."
             style={{ ...inputStyle, paddingLeft: 36 }}
           />
         </div>
         <div className="flex gap-2 flex-wrap">
+          <select
+            value={filters.callsign}
+            onChange={e => updateFilter('callsign', e.target.value)}
+            style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
+          >
+            <option value="">All callsigns</option>
+            {uniqueCallsigns.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <select
+            value={filters.operatorId}
+            onChange={e => updateFilter('operatorId', e.target.value)}
+            style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
+          >
+            <option value="">All collar numbers</option>
+            {uniqueOperatorIds.map(o => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
           <select
             value={filters.outcome}
             onChange={e => updateFilter('outcome', e.target.value)}
@@ -788,7 +819,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
             style={{ ...inputStyle, width: 'auto' }} title="To date" />
           {hasFilters && (
             <button
-              onClick={() => setFilters({ search: '', service: '', station: '', dateFrom: '', dateTo: '', outcome: '', incidentType: '' })}
+              onClick={() => setFilters({ search: '', service: '', station: '', dateFrom: '', dateTo: '', outcome: '', incidentType: '', callsign: '', operatorId: '' })}
               className="px-3 py-1.5 text-sm rounded border cursor-pointer"
               style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
               Reset
