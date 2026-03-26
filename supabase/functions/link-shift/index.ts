@@ -36,7 +36,6 @@ Deno.serve(async (req) => {
         .from("shift_link_codes")
         .select("code, expires_at")
         .eq("shift_id", shift_id)
-        .is("used_at", null)
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false })
         .limit(1)
