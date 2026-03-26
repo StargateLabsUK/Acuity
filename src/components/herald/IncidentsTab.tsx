@@ -854,6 +854,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
             </div>
           )}
         </div>
+        </div>
       </div>
 
       {/* Fixed bottom: Handover button */}
