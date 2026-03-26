@@ -678,6 +678,9 @@ function IncidentCard({ report, dispositions, transfers, onClick }: {
         {hasTransfer && (
           <span className="text-sm" style={badgeStyle('#8B5CF6')}>XFER</span>
         )}
+        {(report.assessment as any)?.safeguarding?.concern_identified && (
+          <span className="text-sm" style={badgeStyle('#FF3B30')}>⚠ SAFEGUARDING</span>
+        )}
       </div>
 
       <p className="text-sm text-foreground font-semibold truncate mb-1">{getIncidentType(report)}</p>
