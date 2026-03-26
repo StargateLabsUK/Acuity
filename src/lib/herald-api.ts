@@ -44,6 +44,25 @@ export async function syncReport(report: Record<string, unknown>): Promise<boole
   return res.status === 201;
 }
 
+export async function fetchIncidentsRemote(params: {
+  shift_id?: string;
+  trust_id?: string;
+  callsign: string;
+  session_date: string;
+}): Promise<{ reports: Record<string, unknown>[]; dispositions: Record<string, unknown>[] }> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/fetch-incidents`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) return { reports: [], dispositions: [] };
+    return res.json();
+  } catch {
+    return { reports: [], dispositions: [] };
+  }
+}
+
 export async function syncDisposition(disposition: Record<string, unknown>): Promise<boolean> {
   try {
     const payload = {

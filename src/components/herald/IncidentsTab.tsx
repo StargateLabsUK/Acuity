@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, FileText, ArrowLeft, ArrowRightLeft } from 'lucide-react';
 import { SERVICE_LABELS } from '@/lib/herald-types';
 import { getVehicleLabel } from '@/lib/vehicle-types';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchIncidentsRemote } from '@/lib/herald-api';
 import { getReports, updateReport, saveCasualtyDisposition, isCasualtyClosed } from '@/lib/herald-storage';
 import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
 import type { Assessment, ActionItem, DispositionType, CasualtyDisposition, DispositionFields } from '@/lib/herald-types';
@@ -958,31 +958,23 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
       }));
 
     let remoteIncidents: Incident[] = [];
-    const todayStart = session.session_date + 'T00:00:00.000Z';
 
-    let query = supabase
-      .from('herald_reports')
-      .select('*')
-      .eq('session_callsign', session.callsign)
-      .gte('created_at', todayStart)
-      .eq('status', 'active')
-      .order('latest_transmission_at', { ascending: false, nullsFirst: false });
+    try {
+      const { reports } = await fetchIncidentsRemote({
+        shift_id: session.shift_id,
+        trust_id: session.trust_id,
+        callsign: session.callsign,
+        session_date: session.session_date,
+      });
 
-    if (session.shift_id) {
-      query = supabase
-        .from('herald_reports')
-        .select('*')
-        .or(`shift_id.eq.${session.shift_id},and(session_callsign.eq.${session.callsign},created_at.gte.${todayStart})`)
-        .eq('status', 'active')
-        .order('latest_transmission_at', { ascending: false, nullsFirst: false });
-    }
-
-    const { data } = await query;
-    if (data) {
-      remoteIncidents = data.map((r: any) => ({
-        ...r,
-        assessment: r.assessment ? sanitizeAssessment(r.assessment as unknown as Assessment) : null,
-      }));
+      if (reports) {
+        remoteIncidents = (reports as any[]).map((r: any) => ({
+          ...r,
+          assessment: r.assessment ? sanitizeAssessment(r.assessment as unknown as Assessment) : null,
+        }));
+      }
+    } catch {
+      // fall through with empty remote
     }
 
     const merged = new Map<string, Incident>();
