@@ -75,6 +75,7 @@ export interface OpsFilters {
   incidentType: string;
   callsign: string;
   operatorId: string;
+  safeguarding: string;
 }
 
 export function useOpsLog() {

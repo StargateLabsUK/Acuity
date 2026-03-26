@@ -123,6 +123,12 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
     }
   },
   "patient_name": "Patient's name if explicitly stated (e.g. 'patient is Margaret', 'his name is John'). null if not mentioned. NEVER put the name in the ATMIST A field.",
+  "safeguarding": {
+    "concern_identified": "true if crew mentions unexplained injuries, safeguarding concern, domestic abuse/violence, vulnerable adult, child protection, neglect, or requests police for non-trauma/non-RTC reasons. false otherwise",
+    "details": "brief description of the safeguarding concern, or null if none",
+    "police_requested": "true if police requested in connection with safeguarding, false otherwise",
+    "referral_required": "true if safeguarding referral is needed, false otherwise"
+  },
   "treatment_given": [],
   "action_items": ["open loop action item — what crew must do next"],
   "actions": ["immediate operational action 1", "action 2"],

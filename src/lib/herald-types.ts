@@ -77,6 +77,12 @@ export interface Assessment {
   action_items?: string[];
   clinical_history?: string;
   patient_name?: string;
+  safeguarding?: {
+    concern_identified?: boolean;
+    details?: string;
+    police_requested?: boolean;
+    referral_required?: boolean;
+  };
 }
 
 export interface ActionItem {
