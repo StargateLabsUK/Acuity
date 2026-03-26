@@ -584,7 +584,7 @@ function normalizeAssessmentForMerge(raw: Record<string, unknown>): any {
 }
 
 // Fields that, once set to true, must never be downgraded by a follow-up
-const STICKY_TRUE_FIELDS = new Set(['major_incident']);
+const STICKY_TRUE_FIELDS = new Set(['major_incident', 'safeguarding']);
 
 // METHANE fields that must not be overwritten by placeholder/silent follow-up values.
 const METHANE_PRESERVE_FIELDS = new Set([
