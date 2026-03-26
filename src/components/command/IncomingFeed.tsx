@@ -28,7 +28,11 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
   const getService = (r: CommandReport) => r.assessment?.service ?? r.service ?? 'unknown';
   const getCallsign = (r: CommandReport) => r.assessment?.structured?.callsign ?? null;
   const getIncident = (r: CommandReport) => r.assessment?.structured?.incident_number ?? null;
-  const getHeadline = (r: CommandReport) => r.assessment?.headline ?? r.headline ?? 'No headline';
+  const getHeadline = (r: CommandReport) => {
+    const incNum = r.incident_number || r.assessment?.structured?.incident_number;
+    if (incNum && incNum !== 'null') return incNum;
+    return r.assessment?.headline ?? r.headline ?? 'No headline';
+  };
   const getMismatches = (r: CommandReport): Mismatch[] => {
     const diff = r as any;
     if (diff.diff && Array.isArray(diff.diff.mismatches)) return diff.diff.mismatches;
