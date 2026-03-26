@@ -94,3 +94,43 @@ export async function endShiftRemote(shiftId: string): Promise<void> {
     // silent
   }
 }
+
+/** Generate a 6-digit link code for a shift */
+export async function generateLinkCode(
+  session: HeraldSession,
+): Promise<{ code: string; expires_at: string } | null> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/link-shift`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        action: 'generate',
+        shift_id: session.shift_id,
+        trust_id: session.trust_id ?? null,
+        session_data: session,
+      }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/** Redeem a 6-digit link code, returns the session data */
+export async function redeemLinkCode(
+  code: string,
+): Promise<{ session_data: HeraldSession } | { error: string }> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/link-shift`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ action: 'redeem', code }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: data.error ?? 'Invalid code' };
+    return data;
+  } catch {
+    return { error: 'Network error' };
+  }
+}

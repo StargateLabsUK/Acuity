@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { saveSession, startShiftRemote } from '@/lib/herald-session';
+import { useState, useRef, useEffect } from 'react';
+import { saveSession, startShiftRemote, redeemLinkCode } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
 import { VEHICLE_TYPES } from '@/lib/vehicle-types';
 import { getCachedTrust } from '@/lib/trust-cache';
