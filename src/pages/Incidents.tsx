@@ -40,33 +40,27 @@ const IncidentsPage = () => {
     const localDisps = getDispositionsForShift(session.callsign, session.session_date);
 
     try {
-      const [dispRes, reportRes] = await Promise.all([
-        supabase
-          .from('casualty_dispositions')
-          .select('*')
-          .eq('session_callsign', session.callsign)
-          .gte('created_at', todayStart),
-        supabase
-          .from('herald_reports')
-          .select('*')
-          .or(`shift_id.eq.${session.shift_id},and(session_callsign.eq.${session.callsign},created_at.gte.${todayStart})`)
-          .order('latest_transmission_at', { ascending: false, nullsFirst: false }),
-      ]);
+      const { reports: remoteReports, dispositions: remoteDisps } = await fetchIncidentsRemote({
+        shift_id: session.shift_id,
+        trust_id: session.trust_id,
+        callsign: session.callsign,
+        session_date: session.session_date,
+      });
 
       // Merge local + remote reports for ReportsTab rendering
       const mergedReports = new Map<string, HeraldReport>();
       for (const r of localReports) mergedReports.set(r.id, r);
-      for (const r of (reportRes.data ?? [])) {
-        mergedReports.set(r.id, {
+      for (const r of remoteReports) {
+        mergedReports.set(r.id as string, {
           ...(r as unknown as HeraldReport),
           assessment: (r.assessment as unknown as HeraldReport['assessment']) ?? null,
         });
       }
       setReports(Array.from(mergedReports.values()));
 
-      if (dispRes.data && dispRes.data.length > 0) {
+      if (remoteDisps.length > 0) {
         const mergedDisps = new Map<string, CasualtyDisposition>();
-        for (const row of dispRes.data) {
+        for (const row of remoteDisps as any[]) {
           const key = `${row.report_id}-${row.casualty_key}`;
           mergedDisps.set(key, {
             disposition: row.disposition as CasualtyDisposition['disposition'],
