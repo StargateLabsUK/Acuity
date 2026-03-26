@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Hospital, X } from 'lucide-react';
 import { TopBar } from '@/components/herald/TopBar';
 import { ShiftLinkCode } from '@/components/herald/ShiftLinkCode';
 import { BottomNav } from '@/components/herald/BottomNav';
@@ -15,6 +16,13 @@ import { fetchIncidentsRemote } from '@/lib/herald-api';
 import { supabase } from '@/integrations/supabase/client';
 import type { HeraldReport, CasualtyDisposition } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
+
+interface HospitalAlert {
+  reportId: string;
+  callsign: string | null;
+  hospital: string;
+  incidentNumber: string | null;
+}
 
 const IncidentsPage = () => {
   const location = useLocation();
