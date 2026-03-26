@@ -21,6 +21,8 @@ const Index = () => {
     setSession(null);
   }, []);
 
+  useShiftEndedPoll(handleEndShift);
+
   if (!session) {
     return <LinkCodeEntry onShiftLinked={handleShiftLinked} />;
   }
