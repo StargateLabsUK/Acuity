@@ -12,6 +12,7 @@ import { useCommandPull } from '@/lib/useCommandPull';
 import { getReports, getDispositionsForShift } from '@/lib/herald-storage';
 import { getSession } from '@/lib/herald-session';
 import { fetchIncidentsRemote } from '@/lib/herald-api';
+import { supabase } from '@/integrations/supabase/client';
 import type { HeraldReport, CasualtyDisposition } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 
@@ -92,6 +93,22 @@ const IncidentsPage = () => {
   useEffect(() => {
     refreshReports();
   }, [activeTab, session, refreshReports]);
+
+  // Realtime subscription for disposition changes
+  useEffect(() => {
+    if (!session) return;
+
+    const channel = supabase
+      .channel(`dispositions-${session.shift_id ?? session.callsign}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'casualty_dispositions' },
+        () => { refreshReports(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [session, refreshReports]);
 
   const handleShiftStarted = useCallback((s: HeraldSession) => {
     setSession(s);
