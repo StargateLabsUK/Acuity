@@ -381,8 +381,28 @@ export default function Admin() {
                     <td style={cellStyle}>{new Date(a.created_at).toLocaleString()}</td>
                     <td style={cellStyle}>{a.user_email || '—'}</td>
                     <td style={cellStyle}>{a.action}</td>
-                    <td style={{ ...cellStyle, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {a.details ? JSON.stringify(a.details) : '—'}
+                    <td style={{ ...cellStyle, maxWidth: 400, fontSize: 12, lineHeight: 1.5 }}>
+                      {a.details ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {Object.entries(a.details).map(([key, val]) => (
+                            <span
+                              key={key}
+                              style={{
+                                display: 'inline-block',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                borderRadius: 3,
+                                padding: '2px 6px',
+                                fontFamily: "'IBM Plex Mono', monospace",
+                                fontSize: 11,
+                              }}
+                            >
+                              <span style={{ color: '#4A6058' }}>{key}:</span>{' '}
+                              <span style={{ color: '#C8D0CC' }}>{typeof val === 'object' ? JSON.stringify(val) : String(val ?? '—')}</span>
+                            </span>
+                          ))}
+                        </div>
+                      ) : '—'}
                     </td>
                   </tr>
                 ))}
