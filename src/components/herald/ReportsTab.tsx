@@ -268,6 +268,7 @@ export function ReportsTab({ closedCasualties, reports, session }: ReportsTabPro
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
