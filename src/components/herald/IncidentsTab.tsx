@@ -358,11 +358,12 @@ function IncidentDetailView({ inc, onBack, onSelectCasualty }: {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Back bar */}
-      <button onClick={onBack} className="flex items-center gap-2 px-3 py-2 text-lg text-primary bg-transparent border-b border-border">
+      <button onClick={onBack} className="flex items-center gap-2 px-3 md:px-6 py-2 text-lg text-primary bg-transparent border-b border-border">
         <ArrowLeft size={20} /> Back to incidents
       </button>
 
-      <div className="flex-1 overflow-auto px-3 py-3">
+      <div className="flex-1 overflow-auto px-3 md:px-6 py-3 md:py-5">
+        <div className="max-w-3xl mx-auto">
         {/* Incident header */}
         <div className="rounded-lg border border-border bg-card shadow-sm p-3 mb-4">
           <div className="flex items-center gap-3 mb-2">
@@ -414,6 +415,7 @@ function IncidentDetailView({ inc, onBack, onSelectCasualty }: {
             );
           })
         )}
+        </div>
       </div>
     </div>
   );
@@ -573,11 +575,12 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <button onClick={onBack} className="flex items-center gap-2 px-3 py-2 text-lg text-primary bg-transparent border-b border-border">
+      <button onClick={onBack} className="flex items-center gap-2 px-3 md:px-6 py-2 text-lg text-primary bg-transparent border-b border-border">
         <ArrowLeft size={20} /> Back
       </button>
 
-      <div className="flex-1 overflow-auto px-3 py-3 pb-32">
+      <div className="flex-1 overflow-auto px-3 md:px-6 py-3 md:py-5 pb-32">
+        <div className="max-w-3xl mx-auto">
         {/* 1. Priority + headline */}
         <div className="rounded-lg p-3 mb-4" style={{ background: `${col}1A`, borderLeft: `4px solid ${col}` }}>
           <div className="flex items-baseline gap-2 mb-1">
@@ -851,10 +854,12 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
             </div>
           )}
         </div>
+        </div>
       </div>
 
       {/* Fixed bottom: Handover button */}
-      <div className="px-3 py-3 border-t border-border" style={{ background: '#1A1E24' }}>
+      <div className="px-3 md:px-6 py-3 border-t border-border" style={{ background: '#1A1E24' }}>
+        <div className="max-w-3xl mx-auto">
         {confirming ? (
           <div className="p-3 rounded-lg" style={{ border: '2px solid #FF9500', background: 'rgba(255,149,0,0.08)' }}>
             <p className="text-lg font-bold mb-2" style={{ color: '#FF9500' }}>Hand over this patient?</p>
@@ -881,6 +886,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
             </button>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
@@ -1077,26 +1083,27 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
 
   // List view
   return (
-    <div className="flex-1 overflow-auto px-3 py-3">
-      <PendingTransfers session={session} onTransferAccepted={fetchIncidents} />
+    <div className="flex-1 overflow-auto px-3 md:px-6 py-3 md:py-5">
+      <div className="max-w-3xl mx-auto">
+        <PendingTransfers session={session} onTransferAccepted={fetchIncidents} />
 
-      <p className="text-lg font-bold tracking-[0.2em] mb-3" style={{ color: '#FF9500' }}>
-        ACTIVE INCIDENTS ({activeWithCasualties.length})
-      </p>
-      {activeWithCasualties.length === 0 ? (
-        <p className="text-lg text-foreground opacity-50">No active incidents</p>
-      ) : (
-        activeWithCasualties.map(inc => {
-          const casualties = extractCasualties(inc).filter(c => !isCasualtyClosed(inc.id, c.key));
-          return (
-            <IncidentCard
-              key={inc.id}
-              inc={inc}
-              onSelectCasualty={(cas) => setNav({ view: 'casualty', incident: inc, casualty: cas })}
-            />
-          );
-        })
-      )}
+        <p className="text-lg font-bold tracking-[0.2em] mb-3" style={{ color: '#FF9500' }}>
+          ACTIVE INCIDENTS ({activeWithCasualties.length})
+        </p>
+        {activeWithCasualties.length === 0 ? (
+          <p className="text-lg text-foreground opacity-50">No active incidents</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+            {activeWithCasualties.map(inc => (
+              <IncidentCard
+                key={inc.id}
+                inc={inc}
+                onSelectCasualty={(cas) => setNav({ view: 'casualty', incident: inc, casualty: cas })}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
