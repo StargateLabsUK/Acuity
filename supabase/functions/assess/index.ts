@@ -51,7 +51,9 @@ clinical_findings — always use ABCDE structure. If a category is not mentioned
 
 treatment_given — completed clinical actions only. IV access, fluids, airway adjuncts, drugs, CPR, packaging, immobilisation. Do not include pending requests, instructions to crew, or actions not yet confirmed as done. "Confirm receiving hospital" is NOT treatment — put it in action_items.
 
-atmist — generate per casualty for MCIs, keyed by priority (P1, P2, P3 etc.). Populate T_treatment from any interventions mentioned even if Age or Mechanism are unknown. Never leave T_treatment blank if treatment is mentioned. If only one casualty, use their priority as the key.
+atmist — generate per casualty for MCIs, keyed by priority (P1, P2, P3 etc.). The A field must ONLY contain age and sex (e.g. "35, Male", "Elderly female", "Approximately 60, Male"). NEVER put a patient's name in the A field — names go in the separate patient_name field. Populate T_treatment from any interventions mentioned even if Age or Mechanism are unknown. Never leave T_treatment blank if treatment is mentioned. If only one casualty, use their priority as the key.
+
+patient_name — if the crew states a patient's name (e.g. "patient name is Margaret", "she's called Margaret", "patient Margaret Smith"), extract it into patient_name. This is separate from ATMIST and must never appear in the A field.
 
 action_items — generate as open loops the crew must close. Frame each item as an unresolved task requiring crew action. Use these patterns:
 
