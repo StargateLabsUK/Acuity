@@ -369,6 +369,32 @@ export function sanitizeAssessment(assessment: Assessment): Assessment {
       const c = casualty as any;
       if (!c) continue;
 
+      // ATMIST A field: strip patient names, keep only age/sex
+      if (c.A && typeof c.A === 'string') {
+        // If A contains a name but no age/number, it's likely a name-only value
+        const hasAge = /\b\d{1,3}\b/.test(c.A) || /\b(elderly|middle[- ]aged|young|infant|child|adolescent|teenage|adult|neonate|baby|toddler)\b/i.test(c.A);
+        const hasSex = /\b(male|female|man|woman|boy|girl)\b/i.test(c.A);
+        // Name patterns: starts with capital letter word that's not an age/sex descriptor
+        const namePattern = /\b(patient\s*[:=]?\s*)?([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})*)\b/;
+        const nameMatch = c.A.match(namePattern);
+        if (nameMatch && !hasAge && !hasSex) {
+          // Entire A field is a name — extract to patient_name and clear A
+          if (!sanitized.patient_name) {
+            sanitized.patient_name = nameMatch[2] || nameMatch[0];
+          }
+          c.A = '—';
+        } else if (nameMatch && (hasAge || hasSex)) {
+          // Mixed: strip the name portion, keep age/sex
+          const namePart = nameMatch[0];
+          if (!sanitized.patient_name) {
+            sanitized.patient_name = nameMatch[2] || nameMatch[0];
+          }
+          c.A = c.A.replace(namePart, '').replace(/^[\s,;:—-]+|[\s,;:—-]+$/g, '').trim() || '—';
+        }
+        // Clean up "Patient:" prefix
+        c.A = c.A.replace(/^patient\s*[:=]?\s*/i, '').trim();
+      }
+
       // Airway compressed → compromised in I field
       if (c.I) {
         c.I = c.I.replace(/airway\s+compressed/gi, 'Airway compromised');

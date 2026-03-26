@@ -848,6 +848,11 @@ function mergeShallow(
     // Sticky boolean fields: once true, never revert to false/null/placeholder in follow-ups
     if (STICKY_TRUE_FIELDS.has(key) && result[key] === true && !isTrueLike(value)) continue;
 
+    // patient_name: preserve once set, never overwrite with placeholder
+    if (key === 'patient_name') {
+      if (!isPlaceholder(result[key]) && isPlaceholder(value)) continue;
+    }
+
     // incident_type can only broaden/escalate, never downgrade/specialize
     if (key === INCIDENT_TYPE_KEY && shouldKeepExistingIncidentType(result[key], value)) continue;
 
