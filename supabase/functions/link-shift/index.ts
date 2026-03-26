@@ -92,32 +92,47 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Find unused, non-expired code
+      // Find the master code row (non-expired, any used_at state)
       const { data, error } = await supabase
         .from("shift_link_codes")
         .select("*")
         .eq("code", code)
+        .is("operator_id", null)
         .gt("expires_at", new Date().toISOString())
         .limit(1)
         .single();
 
       if (error || !data) {
-        return new Response(
-          JSON.stringify({ error: "Invalid or expired code" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        // Also try finding any row with this code (already redeemed master)
+        const { data: anyRow, error: anyErr } = await supabase
+          .from("shift_link_codes")
+          .select("*")
+          .eq("code", code)
+          .gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+
+        if (anyErr || !anyRow) {
+          return new Response(
+            JSON.stringify({ error: "Invalid or expired code" }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Use this row's session_data for the response, then handle crew tracking below
+        return await handleCrewLink(supabase, anyRow, operator_id, corsHeaders);
       }
 
-      // Mark as used and store operator_id
-      await supabase
-        .from("shift_link_codes")
-        .update({ used_at: new Date().toISOString(), operator_id: operator_id ?? null, left_at: null })
-        .eq("id", data.id);
+      // Mark master as used
+      if (!data.used_at) {
+        await supabase
+          .from("shift_link_codes")
+          .update({ used_at: new Date().toISOString() })
+          .eq("id", data.id);
+      }
 
-      return new Response(
-        JSON.stringify({ session_data: data.session_data }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return await handleCrewLink(supabase, data, operator_id, corsHeaders);
     }
 
     if (action === "leave") {
