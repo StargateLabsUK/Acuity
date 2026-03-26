@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -98,6 +98,7 @@ export default function Admin() {
   // Audit state
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
   const [auditFilter, setAuditFilter] = useState('');
+  const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
 
   // Devices state
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
@@ -372,40 +373,71 @@ export default function Admin() {
                   <th style={headerCellStyle}>TIMESTAMP</th>
                   <th style={headerCellStyle}>USER</th>
                   <th style={headerCellStyle}>ACTION</th>
-                  <th style={headerCellStyle}>DETAILS</th>
+                  <th style={{ ...headerCellStyle, width: 40 }}></th>
                 </tr>
               </thead>
               <tbody>
-                {filteredAudit.map((a) => (
-                  <tr key={a.id}>
-                    <td style={cellStyle}>{new Date(a.created_at).toLocaleString()}</td>
-                    <td style={cellStyle}>{a.user_email || '—'}</td>
-                    <td style={cellStyle}>{a.action}</td>
-                    <td style={{ ...cellStyle, maxWidth: 400, fontSize: 12, lineHeight: 1.5 }}>
-                      {a.details ? (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                          {Object.entries(a.details).map(([key, val]) => (
-                            <span
-                              key={key}
-                              style={{
-                                display: 'inline-block',
-                                background: 'rgba(255,255,255,0.05)',
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                borderRadius: 3,
-                                padding: '2px 6px',
-                                fontFamily: "'IBM Plex Mono', monospace",
-                                fontSize: 11,
-                              }}
-                            >
-                              <span style={{ color: '#4A6058' }}>{key}:</span>{' '}
-                              <span style={{ color: '#C8D0CC' }}>{typeof val === 'object' ? JSON.stringify(val) : String(val ?? '—')}</span>
-                            </span>
-                          ))}
-                        </div>
-                      ) : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {filteredAudit.map((a) => {
+                  const isExpanded = expandedAuditId === a.id;
+                  return (
+                    <React.Fragment key={a.id}>
+                      <tr
+                        onClick={() => setExpandedAuditId(isExpanded ? null : a.id)}
+                        style={{ cursor: 'pointer', background: isExpanded ? 'rgba(61, 255, 140, 0.04)' : 'transparent' }}
+                      >
+                        <td style={cellStyle}>{new Date(a.created_at).toLocaleString()}</td>
+                        <td style={cellStyle}>{a.user_email || '—'}</td>
+                        <td style={cellStyle}>{a.action}</td>
+                        <td style={{ ...cellStyle, textAlign: 'center', fontSize: 12, color: '#4A6058' }}>
+                          {isExpanded ? '▲' : '▼'}
+                        </td>
+                      </tr>
+                      {isExpanded && a.details && (
+                        <tr>
+                          <td colSpan={4} style={{ padding: 0, borderBottom: '1px solid #0F1820' }}>
+                            <div style={{
+                              padding: '16px 20px',
+                              background: 'rgba(13, 17, 23, 0.6)',
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                              gap: 12,
+                            }}>
+                              {Object.entries(a.details).map(([key, val]) => (
+                                <div key={key} style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                                  <div style={{ fontSize: 11, color: '#4A6058', letterSpacing: '0.1em', marginBottom: 2, textTransform: 'uppercase' }}>
+                                    {key.replace(/_/g, ' ')}
+                                  </div>
+                                  <div style={{
+                                    fontSize: 13,
+                                    color: '#C8D0CC',
+                                    wordBreak: 'break-all',
+                                    background: 'rgba(255,255,255,0.03)',
+                                    border: '1px solid rgba(255,255,255,0.06)',
+                                    borderRadius: 3,
+                                    padding: '6px 8px',
+                                  }}>
+                                    {typeof val === 'object' && val !== null
+                                      ? Array.isArray(val)
+                                        ? val.join(', ')
+                                        : JSON.stringify(val, null, 2)
+                                      : String(val ?? '—')}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      {isExpanded && !a.details && (
+                        <tr>
+                          <td colSpan={4} style={{ ...cellStyle, color: '#4A6058', fontStyle: 'italic' }}>
+                            No details available
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
                 {filteredAudit.length === 0 && (
                   <tr>
                     <td colSpan={4} style={{ ...cellStyle, textAlign: 'center', color: '#4A6058' }}>
