@@ -10,6 +10,7 @@ interface Props {
 interface LinkedCrew {
   operator_id: string | null;
   used_at: string;
+  left_at: string | null;
 }
 
 export function ShiftLinkCode({ session }: Props) {
