@@ -61,6 +61,7 @@ function getSessionFields() {
     vehicle_type: session.vehicle_type ?? undefined,
     can_transport: session.can_transport ?? true,
     critical_care: session.critical_care ?? false,
+    shift_id: session.shift_id ?? undefined,
   };
 }
 

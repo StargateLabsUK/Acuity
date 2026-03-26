@@ -4,6 +4,7 @@ import { LiveTab } from '@/components/herald/LiveTab';
 import { ShiftInfoBar } from '@/components/herald/ShiftInfoBar';
 import { LinkCodeEntry } from '@/components/herald/LinkCodeEntry';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
+import { useShiftEndedPoll } from '@/hooks/useShiftEndedPoll';
 import { getSession } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
 
@@ -19,6 +20,8 @@ const Index = () => {
   const handleEndShift = useCallback(() => {
     setSession(null);
   }, []);
+
+  useShiftEndedPoll(handleEndShift);
 
   if (!session) {
     return <LinkCodeEntry onShiftLinked={handleShiftLinked} />;
