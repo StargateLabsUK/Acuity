@@ -45,7 +45,7 @@ export function ShiftLinkCode({ session }: Props) {
       try {
         const { data } = await supabase
           .from('shift_link_codes')
-          .select('operator_id, used_at')
+          .select('operator_id, used_at, left_at')
           .eq('shift_id', session.shift_id!)
           .not('used_at', 'is', null);
         setLinkedCrew((data as LinkedCrew[]) ?? []);
@@ -54,9 +54,29 @@ export function ShiftLinkCode({ session }: Props) {
       }
     };
     fetchCrew();
-    const id = setInterval(fetchCrew, 15_000);
+
+    // Realtime subscription for instant updates
+    const channel = supabase
+      .channel(`crew-${session.shift_id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shift_link_codes',
+          filter: `shift_id=eq.${session.shift_id}`,
+        },
+        () => { fetchCrew(); }
+      )
+      .subscribe();
+
+    const id = setInterval(fetchCrew, 30_000);
     window.addEventListener('focus', fetchCrew);
-    return () => { clearInterval(id); window.removeEventListener('focus', fetchCrew); };
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', fetchCrew);
+      supabase.removeChannel(channel);
+    };
   }, [session.shift_id]);
 
   // Countdown
