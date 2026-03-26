@@ -128,7 +128,7 @@ const IncidentsPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#1A1E24' }}>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#f1f0ea' }}>
       <TopBar micStatus="granted" aiStatus="ok" syncStatus={syncStatus} onEndShift={handleEndShift} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
