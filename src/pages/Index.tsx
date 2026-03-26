@@ -29,7 +29,7 @@ const Index = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#1A1E24' }}>
-      <TopBar micStatus="granted" aiStatus={aiStatus} syncStatus={syncStatus} />
+      <TopBar micStatus="granted" aiStatus={aiStatus} syncStatus={syncStatus} onRefresh={() => window.location.reload()} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <LiveTab onAiStatus={setAiStatus} onReportSaved={() => {}} />
