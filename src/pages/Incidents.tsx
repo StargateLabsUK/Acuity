@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { TopBar } from '@/components/herald/TopBar';
+import { ShiftLinkCode } from '@/components/herald/ShiftLinkCode';
 import { BottomNav } from '@/components/herald/BottomNav';
 import { ReportsTab } from '@/components/herald/ReportsTab';
 import { IncidentsTab } from '@/components/herald/IncidentsTab';
