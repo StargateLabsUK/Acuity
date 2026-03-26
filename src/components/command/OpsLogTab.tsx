@@ -420,6 +420,24 @@ function IncidentDetail({
           </div>
         </div>
 
+        {/* Safeguarding alert */}
+        {a?.safeguarding?.concern_identified && (
+          <div className="rounded-lg p-3 border" style={{ background: 'rgba(255,59,48,0.08)', borderColor: '#FF3B30' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-bold tracking-widest" style={{ color: '#FF3B30' }}>⚠ SAFEGUARDING CONCERN</span>
+              {a.safeguarding.police_requested && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded" style={badgeStyle('#FF9500')}>POLICE REQUESTED</span>
+              )}
+              {a.safeguarding.referral_required && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded" style={badgeStyle('#FF3B30')}>REFERRAL REQUIRED</span>
+              )}
+            </div>
+            {a.safeguarding.details && (
+              <p className="text-sm text-foreground">{a.safeguarding.details}</p>
+            )}
+          </div>
+        )}
+
         {/* 1. Incident Summary */}
         <div>
           <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">INCIDENT SUMMARY</h3>
