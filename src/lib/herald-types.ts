@@ -76,6 +76,7 @@ export interface Assessment {
   treatment_given?: string[];
   action_items?: string[];
   clinical_history?: string;
+  patient_name?: string;
 }
 
 export interface ActionItem {
