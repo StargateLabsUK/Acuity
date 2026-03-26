@@ -37,6 +37,11 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const [collarNumber, setCollarNumber] = useState('');
   const [trust, setTrust] = useState<CachedTrust | null>(getCachedTrust());
   const [submitting, setSubmitting] = useState(false);
+  const [linkMode, setLinkMode] = useState(false);
+  const [linkDigits, setLinkDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [linkError, setLinkError] = useState('');
+  const [linkSubmitting, setLinkSubmitting] = useState(false);
+  const linkInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const canSubmit = callsign.trim() !== '' && vehicleType !== '';
 
@@ -67,6 +72,133 @@ export function ShiftLogin({ onShiftStarted }: Props) {
     onShiftStarted(session);
     setSubmitting(false);
   };
+
+  // Link code handlers
+  const handleLinkChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    const next = [...linkDigits];
+    next[index] = value.slice(-1);
+    setLinkDigits(next);
+    setLinkError('');
+    if (value && index < 5) {
+      linkInputRefs.current[index + 1]?.focus();
+    }
+    if (next.every((d) => d !== '')) {
+      handleLinkSubmit(next.join(''));
+    }
+  };
+
+  const handleLinkKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !linkDigits[index] && index > 0) {
+      linkInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleLinkSubmit = async (code: string) => {
+    if (linkSubmitting) return;
+    setLinkSubmitting(true);
+    const result = await redeemLinkCode(code);
+    if ('error' in result) {
+      setLinkError(result.error);
+      setLinkDigits(['', '', '', '', '', '']);
+      setTimeout(() => linkInputRefs.current[0]?.focus(), 100);
+      setLinkSubmitting(false);
+      return;
+    }
+    const session = result.session_data;
+    saveSession(session);
+    onShiftStarted(session);
+    setLinkSubmitting(false);
+  };
+
+  // Link code entry screen
+  if (linkMode) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center min-h-screen px-4"
+        style={{ background: '#080B10' }}
+      >
+        <div className="w-full" style={{ maxWidth: 400 }}>
+          <h1
+            className="text-2xl font-bold tracking-[0.08em] text-center mb-1"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, color: '#FFFFFF' }}
+          >
+            HERALD
+          </h1>
+          <p
+            style={{
+              color: '#4A6058',
+              fontSize: 14,
+              letterSpacing: '0.25em',
+              textAlign: 'center',
+              marginBottom: 48,
+            }}
+          >
+            ENTER SHIFT LINK CODE
+          </p>
+
+          <div className="flex justify-center gap-3 mb-8">
+            {linkDigits.map((d, i) => (
+              <input
+                key={i}
+                ref={(el) => { linkInputRefs.current[i] = el; }}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={d}
+                onChange={(e) => handleLinkChange(i, e.target.value)}
+                onKeyDown={(e) => handleLinkKeyDown(i, e)}
+                disabled={linkSubmitting}
+                className="text-center"
+                style={{
+                  width: 52,
+                  height: 64,
+                  background: '#0D1117',
+                  border: linkError ? '1px solid #FF3B30' : '1px solid #0F1820',
+                  color: '#FFFFFF',
+                  fontSize: 28,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontWeight: 700,
+                  borderRadius: 4,
+                  outline: 'none',
+                  caretColor: 'hsl(147, 100%, 62%)',
+                }}
+              />
+            ))}
+          </div>
+
+          {linkError && (
+            <p style={{ color: '#FF3B30', fontSize: 14, textAlign: 'center', marginBottom: 16 }}>
+              {linkError}
+            </p>
+          )}
+
+          {linkSubmitting && (
+            <p style={{ color: '#4A6058', fontSize: 14, textAlign: 'center', letterSpacing: '0.15em' }}>
+              LINKING...
+            </p>
+          )}
+
+          <button
+            onClick={() => { setLinkMode(false); setLinkError(''); setLinkDigits(['', '', '', '', '', '']); }}
+            style={{
+              display: 'block',
+              margin: '24px auto 0',
+              fontSize: 14,
+              color: '#4A6058',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              letterSpacing: '0.1em',
+              fontFamily: "'IBM Plex Mono', monospace",
+            }}
+          >
+            ← BACK TO SHIFT SETUP
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -170,6 +302,30 @@ export function ShiftLogin({ onShiftStarted }: Props) {
           }}
         >
           BEGIN SHIFT
+        </button>
+
+        {/* LINK TO EXISTING SHIFT */}
+        <button
+          onClick={() => {
+            setLinkMode(true);
+            setTimeout(() => linkInputRefs.current[0]?.focus(), 100);
+          }}
+          style={{
+            width: '100%',
+            padding: 12,
+            marginTop: 12,
+            background: 'transparent',
+            border: '1px solid rgba(61, 255, 140, 0.2)',
+            color: 'hsl(147, 100%, 62%)',
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 13,
+            fontWeight: 500,
+            letterSpacing: '0.15em',
+            cursor: 'pointer',
+            borderRadius: 3,
+          }}
+        >
+          LINK TO EXISTING SHIFT
         </button>
       </div>
     </div>
