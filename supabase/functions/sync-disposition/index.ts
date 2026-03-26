@@ -131,10 +131,39 @@ serve(async (req) => {
         ? fields.receiving_hospital.trim()
         : "";
 
+    // Build report update payload
+    const reportUpdate: Record<string, unknown> = {};
     if (conveyedHospital) {
+      reportUpdate.receiving_hospital = conveyedHospital;
+    }
+
+    // Check if all casualties for this report now have dispositions
+    // by comparing disposed count against the report's casualty count from assessment
+    const { data: reportRow } = await supabase
+      .from("herald_reports")
+      .select("assessment, status")
+      .eq("id", reportId)
+      .maybeSingle();
+
+    if (reportRow) {
+      const assessment = reportRow.assessment as Record<string, unknown> | null;
+      const atmist = (assessment?.atmist ?? {}) as Record<string, unknown>;
+      const casualtyCount = Math.max(1, Object.keys(atmist).length);
+
+      const { count: disposedCount } = await supabase
+        .from("casualty_dispositions")
+        .select("id", { count: "exact", head: true })
+        .eq("report_id", reportId);
+
+      if (disposedCount != null && disposedCount >= casualtyCount && reportRow.status !== "closed") {
+        reportUpdate.status = "closed";
+      }
+    }
+
+    if (Object.keys(reportUpdate).length > 0) {
       const { error: reportUpdateError } = await supabase
         .from("herald_reports")
-        .update({ receiving_hospital: conveyedHospital })
+        .update(reportUpdate)
         .eq("id", reportId);
 
       if (reportUpdateError) {
