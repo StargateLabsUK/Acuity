@@ -5,7 +5,7 @@ import { BottomNav } from '@/components/herald/BottomNav';
 import { ReportsTab } from '@/components/herald/ReportsTab';
 import { IncidentsTab } from '@/components/herald/IncidentsTab';
 import { ShiftLogin } from '@/components/herald/ShiftLogin';
-import { ShiftInfoBar } from '@/components/herald/ShiftInfoBar';
+import { clearSession, endShiftRemote } from '@/lib/herald-session';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
 import { useCommandPull } from '@/lib/useCommandPull';
 import { getReports, getDispositionsForShift } from '@/lib/herald-storage';
@@ -106,10 +106,14 @@ const IncidentsPage = () => {
     refreshReports();
   }, [refreshReports]);
 
-  const handleEndShift = useCallback(() => {
+  const handleEndShift = useCallback(async () => {
+    if (session?.shift_id) {
+      await endShiftRemote(session.shift_id);
+    }
+    clearSession();
     setSession(null);
     navigate('/');
-  }, [navigate]);
+  }, [navigate, session]);
 
   const handleTabChange = useCallback((tab: 'live' | 'reports' | 'incidents') => {
     if (tab === 'live') {
