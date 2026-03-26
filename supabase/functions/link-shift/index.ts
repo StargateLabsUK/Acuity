@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       let linkCode = "";
       for (let i = 0; i < 5; i++) {
         linkCode = randomCode();
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
         const { error } = await supabase.from("shift_link_codes").insert({
           shift_id,
