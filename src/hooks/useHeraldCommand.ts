@@ -216,6 +216,30 @@ export function useHeraldCommand() {
           setTransfers((prev) => prev.map((p) => (p.id === t.id ? t : p)));
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'shifts' },
+        (payload) => {
+          const s = payload.new as any;
+          if (s.ended_at) {
+            // Shift ended — remove from active list
+            setShifts((prev) => prev.filter((p) => p.id !== s.id));
+          } else {
+            // Shift updated (e.g. callsign change) — update in place
+            setShifts((prev) => prev.map((p) => (p.id === s.id ? { ...p, ...s } : p)));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'shifts' },
+        (payload) => {
+          const s = payload.new as unknown as CommandShift;
+          if (!s.ended_at) {
+            setShifts((prev) => [s, ...prev]);
+          }
+        }
+      )
       .subscribe((status) => {
         setConnected(status === 'SUBSCRIBED');
       });
