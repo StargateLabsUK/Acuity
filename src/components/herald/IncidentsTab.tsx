@@ -858,7 +858,8 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
       </div>
 
       {/* Fixed bottom: Handover button */}
-      <div className="px-3 py-3 border-t border-border" style={{ background: '#1A1E24' }}>
+      <div className="px-3 md:px-6 py-3 border-t border-border" style={{ background: '#1A1E24' }}>
+        <div className="max-w-3xl mx-auto">
         {confirming ? (
           <div className="p-3 rounded-lg" style={{ border: '2px solid #FF9500', background: 'rgba(255,149,0,0.08)' }}>
             <p className="text-lg font-bold mb-2" style={{ color: '#FF9500' }}>Hand over this patient?</p>
