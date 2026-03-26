@@ -108,7 +108,8 @@ export function ReportsTab({ closedCasualties, reports, session }: ReportsTabPro
   }
 
   return (
-    <div className="flex-1 overflow-auto px-3 py-3">
+    <div className="flex-1 overflow-auto px-3 md:px-6 py-3 md:py-5">
+      <div className="max-w-3xl mx-auto">
       <p className="text-lg text-foreground tracking-[0.1em] mb-3 font-bold">
         HANDED OVER ({closedCasualties.length})
       </p>
