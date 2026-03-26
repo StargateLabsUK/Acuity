@@ -34,7 +34,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const service = 'ambulance';
   const [callsign, setCallsign] = useState('');
   const [vehicleType, setVehicleType] = useState('');
-  const [collarNumber, setCollarNumber] = useState('');
+  
   const [trust, setTrust] = useState<CachedTrust | null>(getCachedTrust());
   const [submitting, setSubmitting] = useState(false);
   const [linkMode, setLinkMode] = useState(false);
