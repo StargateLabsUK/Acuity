@@ -111,6 +111,7 @@ function extractCasualties(inc: Incident): CasualtyData[] {
       receivingHospital: hospital,
       actionItems: filterActionItemsForCasualty(a, p, true),
       resolvedItems: filterResolvedForCasualty(a, p, true),
+      patientName: a.patient_name ?? undefined,
     }];
   }
 
