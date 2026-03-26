@@ -97,7 +97,6 @@ Deno.serve(async (req) => {
         .from("shift_link_codes")
         .select("*")
         .eq("code", code)
-        .is("used_at", null)
         .gt("expires_at", new Date().toISOString())
         .limit(1)
         .single();
