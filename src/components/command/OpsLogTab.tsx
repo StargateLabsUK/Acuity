@@ -705,7 +705,7 @@ const INCIDENT_TYPE_OPTIONS = [
 // ── Main Component ──
 
 export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) => void } = {}) {
-  const { reports, transmissions, dispositions, transfers, loading } = useOpsLog();
+  const { reports, transmissions, dispositions, transfers, loading, uniqueCallsigns, uniqueOperatorIds } = useOpsLog();
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
   const [filters, setFilters] = useState<OpsFilters>({
     search: '',
@@ -715,6 +715,8 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
     dateTo: '',
     outcome: '',
     incidentType: '',
+    callsign: '',
+    operatorId: '',
   });
 
   const filtered = useMemo(
