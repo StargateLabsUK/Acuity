@@ -930,11 +930,14 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
 
   const fetchIncidents = useCallback(async () => {
     const localIncidents: Incident[] = getReports()
-      .filter((r) =>
-        r.session_callsign === session.callsign &&
-        new Date(r.timestamp).toISOString().slice(0, 10) === session.session_date &&
-        (r.status ?? 'active') === 'active'
-      )
+      .filter((r) => {
+        const sameShift = !!session.shift_id && r.shift_id === session.shift_id;
+        const sameCallsignToday =
+          r.session_callsign === session.callsign &&
+          new Date(r.timestamp).toISOString().slice(0, 10) === session.session_date;
+
+        return (sameShift || sameCallsignToday) && (r.status ?? 'active') === 'active';
+      })
       .map((r) => ({
         id: r.id,
         incident_number: r.incident_number ?? null,
@@ -968,8 +971,7 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
       query = supabase
         .from('herald_reports')
         .select('*')
-        .or(`shift_id.eq.${session.shift_id},session_callsign.eq.${session.callsign}`)
-        .gte('created_at', todayStart)
+        .or(`shift_id.eq.${session.shift_id},and(session_callsign.eq.${session.callsign},created_at.gte.${todayStart})`)
         .eq('status', 'active')
         .order('latest_transmission_at', { ascending: false, nullsFirst: false });
     }
