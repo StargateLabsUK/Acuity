@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MINUTES = 15;
 
-type LoginStep = 'credentials' | 'mfa' | 'mfa-setup';
+type LoginStep = 'credentials' | 'mfa';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -40,8 +40,6 @@ export default function Login() {
   // MFA state
   const [mfaFactorId, setMfaFactorId] = useState('');
   const [mfaChallengeId, setMfaChallengeId] = useState('');
-  const [qrCode, setQrCode] = useState('');
-  const [mfaSecret, setMfaSecret] = useState('');
 
   // Check for existing session on mount
   useEffect(() => {
@@ -136,31 +134,8 @@ export default function Login() {
       return;
     }
 
-    // No MFA — offer to set it up or proceed
-    // For compliance, prompt MFA setup on first login
-    const unverifiedFactor = totpFactors.find(f => f.status === 'unverified');
-    if (unverifiedFactor) {
-      // Clean up unverified factors
-      await supabase.auth.mfa.unenroll({ factorId: unverifiedFactor.id });
-    }
-
-    // Enroll MFA for new users
-    const { data: enrollData, error: enrollError } = await supabase.auth.mfa.enroll({
-      factorType: 'totp',
-      friendlyName: 'Herald Authenticator',
-    });
-
-    if (enrollError || !enrollData) {
-      // MFA enrollment failed — proceed without it
-      await checkRoleAndRedirect(data.session.user.id);
-      setSubmitting(false);
-      return;
-    }
-
-    setMfaFactorId(enrollData.id);
-    setQrCode(enrollData.totp.qr_code);
-    setMfaSecret(enrollData.totp.secret);
-    setStep('mfa-setup');
+    // No MFA — proceed directly. MFA can be enabled from admin settings.
+    await checkRoleAndRedirect(data.session.user.id);
     setSubmitting(false);
   };
 
@@ -189,54 +164,7 @@ export default function Login() {
     setSubmitting(false);
   };
 
-  const handleMfaSetup = async () => {
-    if (submitting || mfaCode.length !== 6) return;
-    setSubmitting(true);
-    setError('');
-
-    try {
-      // Challenge then verify to complete enrollment
-      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
-        factorId: mfaFactorId,
-      });
-
-      if (challengeError || !challenge) {
-        setError('Challenge failed: ' + (challengeError?.message || 'unknown error'));
-        setSubmitting(false);
-        return;
-      }
-
-      const { error: verifyError } = await supabase.auth.mfa.verify({
-        factorId: mfaFactorId,
-        challengeId: challenge.id,
-        code: mfaCode,
-      });
-
-      if (verifyError) {
-        setError('Verify failed: ' + verifyError.message);
-        setMfaCode('');
-        setSubmitting(false);
-        return;
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await checkRoleAndRedirect(session.user.id);
-      } else {
-        setError('MFA verified but no session found');
-      }
-      setSubmitting(false);
-    } catch (e: any) {
-      setError('Error: ' + (e?.message || String(e)));
-      setSubmitting(false);
-    }
-  };
-
   const handleSkipMfa = async () => {
-    // Unenroll the pending factor and proceed
-    if (mfaFactorId) {
-      await supabase.auth.mfa.unenroll({ factorId: mfaFactorId });
-    }
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       await checkRoleAndRedirect(session.user.id);
@@ -266,7 +194,6 @@ export default function Login() {
         >
           {step === 'credentials' && 'COMMAND LOGIN'}
           {step === 'mfa' && 'ENTER MFA CODE'}
-          {step === 'mfa-setup' && 'SET UP MFA'}
         </p>
 
         {/* STEP 1: Email + Password */}
@@ -417,107 +344,6 @@ export default function Login() {
           </>
         )}
 
-        {/* STEP 3: MFA Setup (first time) */}
-        {step === 'mfa-setup' && (
-          <>
-            <p style={{ color: '#C8D0CC', fontSize: 14, textAlign: 'center', marginBottom: 16 }}>
-              Scan this QR code with your authenticator app
-            </p>
-            <p style={{ color: '#4A6058', fontSize: 12, textAlign: 'center', marginBottom: 20 }}>
-              Google Authenticator, Authy, or Microsoft Authenticator
-            </p>
-
-            {qrCode && (
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                <img
-                  src={qrCode}
-                  alt="MFA QR Code"
-                  style={{ width: 200, height: 200, borderRadius: 8, background: '#FFF', padding: 8 }}
-                />
-              </div>
-            )}
-
-            {mfaSecret && (
-              <div style={{ marginBottom: 20 }}>
-                <p style={{ color: '#4A6058', fontSize: 11, letterSpacing: '0.15em', textAlign: 'center', marginBottom: 4 }}>
-                  OR ENTER THIS CODE MANUALLY
-                </p>
-                <p style={{
-                  color: '#C8D0CC',
-                  fontSize: 13,
-                  textAlign: 'center',
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  background: '#0D1117',
-                  border: '1px solid #0F1820',
-                  padding: '8px 12px',
-                  borderRadius: 3,
-                  wordBreak: 'break-all',
-                  userSelect: 'all',
-                }}>
-                  {mfaSecret}
-                </p>
-              </div>
-            )}
-
-            <div className="mb-6">
-              <label style={labelStyle}>ENTER CODE FROM APP</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={mfaCode}
-                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
-                placeholder="000000"
-                autoFocus
-                style={{ ...inputStyle, textAlign: 'center', letterSpacing: '0.5em', fontSize: 24 }}
-                onKeyDown={(e) => e.key === 'Enter' && handleMfaSetup()}
-              />
-            </div>
-
-            {error && (
-              <p style={{ color: '#FF3B30', fontSize: 14, textAlign: 'center', marginBottom: 16 }}>
-                {error}
-              </p>
-            )}
-
-            <button
-              onClick={handleMfaSetup}
-              disabled={submitting || mfaCode.length !== 6}
-              style={{
-                width: '100%',
-                padding: 12,
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.3)',
-                color: '#FFFFFF',
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: 14,
-                fontWeight: 500,
-                letterSpacing: '0.15em',
-                cursor: submitting ? 'not-allowed' : 'pointer',
-                borderRadius: 3,
-                marginBottom: 12,
-              }}
-            >
-              {submitting ? 'VERIFYING...' : 'ACTIVATE MFA'}
-            </button>
-
-            <button
-              onClick={handleSkipMfa}
-              style={{
-                width: '100%',
-                padding: 8,
-                background: 'transparent',
-                border: 'none',
-                color: '#4A6058',
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: 12,
-                cursor: 'pointer',
-              }}
-            >
-              SKIP FOR NOW
-            </button>
-          </>
-        )}
       </div>
     </div>
   );
