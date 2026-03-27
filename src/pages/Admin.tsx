@@ -94,6 +94,12 @@ export default function Admin() {
 
   // Users state
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserTrust, setNewUserTrust] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'command' | 'admin'>('command');
+  const [inviteStatus, setInviteStatus] = useState('');
 
   // Audit state
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
@@ -172,7 +178,7 @@ export default function Admin() {
   useEffect(() => {
     if (!isAdmin) return;
     if (tab === 'trusts') loadTrusts();
-    else if (tab === 'users') loadUsers();
+    else if (tab === 'users') { loadUsers(); loadTrusts(); }
     else if (tab === 'audit') loadAudit();
     else if (tab === 'devices') loadShifts();
   }, [isAdmin, tab, loadTrusts, loadUsers, loadAudit, loadShifts]);
@@ -201,6 +207,46 @@ export default function Admin() {
   const handleToggleTrust = async (trustId: string, active: boolean) => {
     await supabase.from('trusts').update({ active: !active }).eq('id', trustId);
     loadTrusts();
+  };
+
+  const handleInviteUser = async () => {
+    if (!newUserEmail || !newUserPassword || !newUserTrust) {
+      setInviteStatus('Email, password, and trust are required');
+      return;
+    }
+    setInviteStatus('Creating account...');
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-trust`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'invite_user',
+          email: newUserEmail,
+          password: newUserPassword,
+          full_name: newUserName,
+          trust_id: newUserTrust,
+          role: newUserRole,
+        }),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        setInviteStatus(`Account created for ${newUserEmail}`);
+        setNewUserEmail('');
+        setNewUserPassword('');
+        setNewUserName('');
+        setNewUserTrust('');
+        setNewUserRole('command');
+        loadUsers();
+      } else {
+        setInviteStatus(result.error || 'Failed to create account');
+      }
+    } catch {
+      setInviteStatus('Network error');
+    }
   };
 
   const handleToggleLock = async (profileId: string, locked: boolean) => {
@@ -328,34 +374,112 @@ export default function Admin() {
 
         {/* USERS TAB */}
         {tab === 'users' && (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={headerCellStyle}>EMAIL</th>
-                <th style={headerCellStyle}>ROLES</th>
-                <th style={headerCellStyle}>STATUS</th>
-                <th style={headerCellStyle}>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td style={cellStyle}>{u.email || '—'}</td>
-                  <td style={cellStyle}>{u.roles.join(', ') || 'none'}</td>
-                  <td style={cellStyle}>
-                    <span style={{ color: u.locked ? '#FF3B30' : 'hsl(147, 100%, 62%)' }}>
-                      {u.locked ? 'LOCKED' : 'ACTIVE'}
-                    </span>
-                  </td>
-                  <td style={cellStyle}>
-                    <button onClick={() => handleToggleLock(u.id, u.locked)} style={btnSmall}>
-                      {u.locked ? 'UNLOCK' : 'LOCK'}
-                    </button>
-                  </td>
+          <div>
+            <div className="mb-6 p-4 rounded" style={{ background: '#0D1117', border: '1px solid #0F1820' }}>
+              <p style={{ color: '#4A6058', fontSize: 12, letterSpacing: '0.15em', marginBottom: 12 }}>ADD NEW USER</p>
+              <div className="flex gap-3 items-end flex-wrap">
+                <div>
+                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>EMAIL</label>
+                  <input
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    placeholder="user@trust.nhs.uk"
+                    type="email"
+                    style={{ ...inputSmall, width: 220 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>PASSWORD</label>
+                  <input
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    placeholder="Temporary password"
+                    type="text"
+                    style={{ ...inputSmall, width: 180 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>FULL NAME</label>
+                  <input
+                    value={newUserName}
+                    onChange={(e) => setNewUserName(e.target.value)}
+                    placeholder="Optional"
+                    style={{ ...inputSmall, width: 160 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>TRUST</label>
+                  <select
+                    value={newUserTrust}
+                    onChange={(e) => setNewUserTrust(e.target.value)}
+                    style={{ ...inputSmall, width: 200 }}
+                  >
+                    <option value="">Select trust...</option>
+                    {trusts.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>ROLE</label>
+                  <select
+                    value={newUserRole}
+                    onChange={(e) => setNewUserRole(e.target.value as 'command' | 'admin')}
+                    style={{ ...inputSmall, width: 130 }}
+                  >
+                    <option value="command">Command</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <button onClick={handleInviteUser} style={btnSmall}>CREATE ACCOUNT</button>
+              </div>
+              {inviteStatus && (
+                <p style={{
+                  color: inviteStatus.startsWith('Account created') ? 'hsl(147, 100%, 62%)' : '#FF9500',
+                  fontSize: 13,
+                  marginTop: 10,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                }}>
+                  {inviteStatus}
+                </p>
+              )}
+            </div>
+
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={headerCellStyle}>EMAIL</th>
+                  <th style={headerCellStyle}>NAME</th>
+                  <th style={headerCellStyle}>TRUST</th>
+                  <th style={headerCellStyle}>ROLES</th>
+                  <th style={headerCellStyle}>STATUS</th>
+                  <th style={headerCellStyle}>ACTIONS</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id}>
+                    <td style={cellStyle}>{u.email || '—'}</td>
+                    <td style={cellStyle}>{u.full_name || '—'}</td>
+                    <td style={cellStyle}>
+                      {u.trust_id ? trusts.find(t => t.id === u.trust_id)?.name || u.trust_id.slice(0, 8) : '—'}
+                    </td>
+                    <td style={cellStyle}>{u.roles.join(', ') || 'none'}</td>
+                    <td style={cellStyle}>
+                      <span style={{ color: u.locked ? '#FF3B30' : 'hsl(147, 100%, 62%)' }}>
+                        {u.locked ? 'LOCKED' : 'ACTIVE'}
+                      </span>
+                    </td>
+                    <td style={cellStyle}>
+                      <button onClick={() => handleToggleLock(u.id, u.locked)} style={btnSmall}>
+                        {u.locked ? 'UNLOCK' : 'LOCK'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {/* AUDIT TAB */}

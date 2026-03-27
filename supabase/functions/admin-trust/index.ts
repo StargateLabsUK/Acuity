@@ -86,6 +86,63 @@ serve(async (req) => {
       });
     }
 
+    if (body.action === "invite_user") {
+      const { email, password, role, trust_id, full_name } = body;
+      if (!email || !password || !role || !trust_id) {
+        return new Response(JSON.stringify({ error: "Missing fields" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!["admin", "command"].includes(role)) {
+        return new Response(JSON.stringify({ error: "Role must be admin or command" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create user via admin API
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: full_name || "" },
+      });
+
+      if (createError || !newUser.user) {
+        return new Response(JSON.stringify({ error: createError?.message || "Failed to create user" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Set trust_id and full_name on profile
+      await supabase
+        .from("profiles")
+        .update({ trust_id, full_name: full_name || null })
+        .eq("id", newUser.user.id);
+
+      // Assign role
+      await supabase
+        .from("user_roles")
+        .insert({ user_id: newUser.user.id, role });
+
+      // Audit log
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        user_email: user.email,
+        action: "user_invited",
+        trust_id,
+        details: { invited_email: email, role, trust_id },
+      });
+
+      return new Response(JSON.stringify({ ok: true, user_id: newUser.user.id }), {
+        status: 201,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
