@@ -82,7 +82,7 @@ export default function Login() {
     });
 
     if (authError || !data.session) {
-      setError('Email or password incorrect');
+      setError(authError?.message || 'Login failed — no session returned');
       setSubmitting(false);
       return;
     }
