@@ -7,6 +7,9 @@
 
 const ALLOWED_ORIGINS = [
   "https://herald.network",
+  "https://www.herald.network",
+  "https://heraldcomms.vercel.app",
+  "https://heraldcomms-etnm7t0sj-ayra1.vercel.app",
   "https://heraldcomms.lovable.app",
 ];
 
