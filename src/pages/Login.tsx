@@ -154,18 +154,7 @@ export default function Login() {
           />
         </div>
 
-        <div className="mb-8">
-          <label style={labelStyle}>MFA CODE</label>
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            value={mfaCode}
-            onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
-            placeholder="6-digit code"
-            style={inputStyle}
-          />
-        </div>
+        <div className="mb-8" />
 
         {error && (
           <p style={{ color: '#FF3B30', fontSize: 14, textAlign: 'center', marginBottom: 16 }}>
