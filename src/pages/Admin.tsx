@@ -180,6 +180,8 @@ export default function Admin() {
         trust_id: p.trust_id,
         roles: (roles || []).filter((r: any) => r.user_id === p.id).map((r: any) => r.role),
       }));
+      // Hide owner accounts from the list
+      userList = userList.filter(u => !u.roles.includes('owner'));
       // Trust admins only see users in their trust
       if (role === 'admin' && userTrustId) {
         userList = userList.filter(u => u.trust_id === userTrustId);
