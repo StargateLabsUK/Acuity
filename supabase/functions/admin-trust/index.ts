@@ -86,6 +86,49 @@ serve(async (req) => {
       });
     }
 
+    if (body.action === "reset_pin") {
+      const { trust_id, pin } = body;
+      if (!trust_id || !pin) {
+        return new Response(JSON.stringify({ error: "Missing trust_id or pin" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (typeof pin !== 'string' || pin.length < 4 || pin.length > 20) {
+        return new Response(JSON.stringify({ error: "PIN must be 4-20 characters" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const hash = await bcrypt.hash(pin);
+      const { error: updateError } = await supabase
+        .from("trusts")
+        .update({ trust_pin_hash: hash })
+        .eq("id", trust_id);
+
+      if (updateError) {
+        return new Response(JSON.stringify({ error: updateError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        user_email: user.email,
+        action: "trust_pin_reset",
+        trust_id,
+        details: { trust_id },
+      });
+
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (body.action === "invite_user") {
       const { email, password, role, trust_id, full_name } = body;
       if (!email || !password || !role || !trust_id) {

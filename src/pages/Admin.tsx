@@ -91,6 +91,8 @@ export default function Admin() {
   const [newTrustName, setNewTrustName] = useState('');
   const [newTrustSlug, setNewTrustSlug] = useState('');
   const [generatedPin, setGeneratedPin] = useState('');
+  const [resetPinTrustId, setResetPinTrustId] = useState<string | null>(null);
+  const [resetPinValue, setResetPinValue] = useState('');
 
   // Users state
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -201,6 +203,23 @@ export default function Admin() {
       setNewTrustName('');
       setNewTrustSlug('');
       loadTrusts();
+    }
+  };
+
+  const handleResetPin = async (trustId: string) => {
+    const pin = String(Math.floor(100000 + Math.random() * 900000));
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-trust`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+      },
+      body: JSON.stringify({ action: 'reset_pin', trust_id: trustId, pin }),
+    });
+    if (res.ok) {
+      setResetPinTrustId(trustId);
+      setResetPinValue(pin);
     }
   };
 
@@ -358,12 +377,22 @@ export default function Admin() {
                     </td>
                     <td style={cellStyle}>{new Date(t.created_at).toLocaleDateString()}</td>
                     <td style={cellStyle}>
-                      <button
-                        onClick={() => handleToggleTrust(t.id, t.active)}
-                        style={btnSmall}
-                      >
-                        {t.active ? 'DEACTIVATE' : 'ACTIVATE'}
-                      </button>
+                      <div className="flex gap-2 items-center flex-wrap">
+                        <button onClick={() => handleResetPin(t.id)} style={btnSmall}>
+                          RESET PIN
+                        </button>
+                        <button
+                          onClick={() => handleToggleTrust(t.id, t.active)}
+                          style={btnSmall}
+                        >
+                          {t.active ? 'DEACTIVATE' : 'ACTIVATE'}
+                        </button>
+                      </div>
+                      {resetPinTrustId === t.id && resetPinValue && (
+                        <p style={{ color: 'hsl(147, 100%, 62%)', fontSize: 14, marginTop: 6, fontFamily: "'IBM Plex Mono', monospace" }}>
+                          New PIN: <strong>{resetPinValue}</strong>
+                        </p>
+                      )}
                     </td>
                   </tr>
                 ))}
