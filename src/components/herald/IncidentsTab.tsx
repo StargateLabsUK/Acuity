@@ -302,7 +302,9 @@ function IncidentCard({ inc, onSelectCasualty, closedKeys }: { inc: Incident; on
               {inc.assessment?.headline ?? inc.headline ?? 'Incident'}
             </p>
             <p className="text-lg text-foreground opacity-60">
-              {casualties.length} casualt{casualties.length === 1 ? 'y' : 'ies'} · {getTime(inc.latest_transmission_at ?? inc.created_at)}
+              {casualties.length} casualt{casualties.length === 1 ? 'y' : 'ies'}
+              {(inc.transmission_count ?? 0) > 1 ? ` · x${inc.transmission_count}` : ''}
+              {' · '}{getTime(inc.latest_transmission_at ?? inc.created_at)}
               {inc.incident_number ? ` · #${inc.incident_number}` : ''}
             </p>
           </div>
