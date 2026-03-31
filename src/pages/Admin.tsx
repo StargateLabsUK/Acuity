@@ -151,12 +151,13 @@ export default function Admin() {
       }
 
       // Get user's trust_id
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('trust_id')
         .eq('id', session.user.id)
         .maybeSingle();
 
+      console.log('ADMIN DEBUG:', { userId: session.user.id, profile, profileError });
       setUserTrustId(profile?.trust_id || null);
       setLoading(false);
     };
