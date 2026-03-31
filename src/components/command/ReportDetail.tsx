@@ -543,7 +543,7 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
   };
 
   return (
-    <div className="overflow-y-auto p-3 md:p-5 flex flex-col gap-4 md:gap-6 min-w-0" style={{ scrollbarWidth: 'thin' }}>
+    <div className="overflow-y-auto p-3 md:p-5 flex flex-col gap-4 md:gap-6 min-w-0 bg-card" style={{ scrollbarWidth: 'thin' }}>
 
       {/* 1. Incident Header */}
       <div className="rounded p-2.5 md:p-4" style={{ background: `${col}1F`, borderBottom: `3px solid ${col}` }}>
