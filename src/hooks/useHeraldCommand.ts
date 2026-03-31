@@ -125,8 +125,14 @@ export function useHeraldCommand() {
       if (transfersRes.data) {
         setTransfers(transfersRes.data as unknown as PatientTransfer[]);
       }
+      // Data loaded successfully — we're connected
+      if (!connectedRef.current) {
+        connectedRef.current = true;
+        setConnected(true);
+      }
     } catch {
-      // silent
+      connectedRef.current = false;
+      setConnected(false);
     } finally {
       setLoading(false);
     }
@@ -242,8 +248,7 @@ export function useHeraldCommand() {
           }
         }
       )
-      .subscribe((status, err) => {
-        console.log('REALTIME STATUS:', status, err);
+      .subscribe((status) => {
         const isConnected = status === 'SUBSCRIBED';
         connectedRef.current = isConnected;
         setConnected(isConnected);
@@ -256,15 +261,14 @@ export function useHeraldCommand() {
     fetchData();
     const channel = subscribe();
 
-    retryRef.current = setInterval(() => {
-      if (!connectedRef.current) {
-        supabase.removeChannel(channel);
-        subscribe();
-      }
+    // Poll every 10 seconds as fallback (realtime may not connect with complex RLS)
+    const pollInterval = setInterval(() => {
+      fetchData();
     }, 10000);
 
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
       if (retryRef.current) clearInterval(retryRef.current);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
