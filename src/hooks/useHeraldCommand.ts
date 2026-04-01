@@ -71,37 +71,43 @@ export function useHeraldCommand() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const retryRef = useRef<ReturnType<typeof setInterval>>();
+  const trustIdRef = useRef<string | null>(null);
+  const isOwnerRef = useRef(false);
+
+  // Resolve user's trust_id on mount
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', session.user.id);
+      isOwnerRef.current = roles?.some(r => r.role === 'owner') ?? false;
+      const { data: profile } = await supabase.from('profiles').select('trust_id').eq('id', session.user.id).maybeSingle();
+      trustIdRef.current = profile?.trust_id ?? null;
+    })();
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
+      // Use UTC midnight for today's start
+      const now = new Date();
+      const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+
+      // Build queries — filter by trust_id unless user is owner
+      const tid = trustIdRef.current;
+      let reportsQ = supabase.from('herald_reports').select('*').gte('created_at', todayStart.toISOString()).order('latest_transmission_at', { ascending: false, nullsFirst: false }).limit(200);
+      let shiftsQ = supabase.from('shifts').select('*').is('ended_at', null).order('created_at', { ascending: false }).limit(50);
+      let disposQ = supabase.from('casualty_dispositions').select('*').gte('created_at', todayStart.toISOString()).order('closed_at', { ascending: false }).limit(500);
+      let transQ = supabase.from('patient_transfers').select('*').gte('created_at', todayStart.toISOString()).order('initiated_at', { ascending: false }).limit(200);
+
+      if (!isOwnerRef.current && tid) {
+        reportsQ = reportsQ.eq('trust_id', tid);
+        shiftsQ = shiftsQ.eq('trust_id', tid);
+        disposQ = disposQ.eq('trust_id', tid);
+        transQ = transQ.eq('trust_id', tid);
+      }
 
       const [reportsRes, shiftsRes, dispositionsRes, transfersRes] = await Promise.all([
-        supabase
-          .from('herald_reports')
-          .select('*')
-          .gte('created_at', todayStart.toISOString())
-          .order('latest_transmission_at', { ascending: false, nullsFirst: false })
-          .limit(200),
-        supabase
-          .from('shifts')
-          .select('*')
-          .is('ended_at', null)
-          .order('created_at', { ascending: false })
-          .limit(50),
-        supabase
-          .from('casualty_dispositions')
-          .select('*')
-          .gte('created_at', todayStart.toISOString())
-          .order('closed_at', { ascending: false })
-          .limit(500),
-        supabase
-          .from('patient_transfers')
-          .select('*')
-          .gte('created_at', todayStart.toISOString())
-          .order('initiated_at', { ascending: false })
-          .limit(200),
+        reportsQ, shiftsQ, disposQ, transQ,
       ]);
 
       if (reportsRes.error) throw reportsRes.error;
