@@ -673,7 +673,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               opacity: isProcessing ? 0.9 : 1,
             }}
           >
-            <span style={{ color: '#FFFFFF', fontSize: isProcessing ? 22 : isRecording ? 24 : 28, letterSpacing: '0.25em', fontWeight: 700 }}>
+            <span style={{ color: '#FFFFFF', fontSize: isProcessing ? 22 : 28, letterSpacing: '0.25em', fontWeight: 700 }}>
               {isProcessing ? 'PROCESSING' : isRecording ? 'STOP' : 'RECORD'}
             </span>
           </button>
