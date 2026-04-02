@@ -167,9 +167,13 @@ export default function Command() {
   const handleSelect = useCallback((id: string) => {
     setSelectedId(id);
     if (viewMode === 'mobile') setMobileTab('detail');
-    const report = filteredReports.find((r) => r.id === id);
-    if (report && mapRef.current) {
-      mapRef.current.flyToReport(report);
+    try {
+      const report = filteredReports.find((r) => r.id === id);
+      if (report && mapRef.current) {
+        mapRef.current.flyToReport(report);
+      }
+    } catch {
+      // Map fly failed — ignore, report still shows
     }
   }, [viewMode, filteredReports]);
 
