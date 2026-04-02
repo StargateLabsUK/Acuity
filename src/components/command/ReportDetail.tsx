@@ -249,7 +249,7 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
         <div className="mt-2 rounded px-2 py-1.5" style={{ background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.4)' }}>
           <span className="text-lg font-bold" style={{ color: '#FF3B30' }}>⚠ SAFEGUARDING</span>
           {(report.assessment as any).safeguarding.details && (
-            <span className="text-lg ml-2 text-foreground">{(report.assessment as any).safeguarding.details}</span>
+            <span className="text-lg ml-2 text-foreground">{String((report.assessment as any).safeguarding.details)}</span>
           )}
           {(report.assessment as any).safeguarding.police_requested && (
             <span className="text-lg ml-2 font-bold" style={{ color: '#FF9500' }}>· Police requested</span>
@@ -271,26 +271,24 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
       {/* Disposition-specific summary details */}
       {disp && (
         <div className="mt-2 pt-2 border-t border-border">
-          {/* CONVEYED */}
           {disp.disposition === 'conveyed' && (
             <div className="flex flex-col gap-0.5">
               {dispFields.receiving_hospital && (
-                <div className="text-lg text-foreground"><span className="font-bold" style={{ color: '#34C759' }}>Hospital:</span> {dispFields.receiving_hospital}</div>
+                <div className="text-lg text-foreground"><span className="font-bold" style={{ color: '#34C759' }}>Hospital:</span> {String(dispFields.receiving_hospital)}</div>
               )}
               {dispFields.time_of_handover && (
-                <div className="text-lg text-foreground opacity-70">Handover: {dispFields.time_of_handover}</div>
+                <div className="text-lg text-foreground opacity-70">Handover: {String(dispFields.time_of_handover)}</div>
               )}
               {dispFields.handover_given_to && (
-                <div className="text-lg text-foreground opacity-70">Given to: {dispFields.handover_given_to}</div>
+                <div className="text-lg text-foreground opacity-70">Given to: {String(dispFields.handover_given_to)}</div>
               )}
             </div>
           )}
 
-          {/* DISCHARGED */}
           {disp.disposition === 'see_and_treat' && (
             <div className="flex flex-col gap-0.5">
               {dispFields.time_of_discharge && (
-                <div className="text-lg text-foreground opacity-70">Discharged: {dispFields.time_of_discharge}</div>
+                <div className="text-lg text-foreground opacity-70">Discharged: {String(dispFields.time_of_discharge)}</div>
               )}
               <div className="text-lg text-foreground opacity-70">
                 Advice given: {dispFields.advice_given ? 'Yes' : '—'}
@@ -298,40 +296,37 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
             </div>
           )}
 
-          {/* REFERRED */}
           {disp.disposition === 'see_and_refer' && (
             <div className="flex flex-col gap-0.5">
               {dispFields.referral_destination && (
-                <div className="text-lg text-foreground"><span className="font-bold" style={{ color: '#1E90FF' }}>Referred to:</span> {dispFields.referral_destination}</div>
+                <div className="text-lg text-foreground"><span className="font-bold" style={{ color: '#1E90FF' }}>Referred to:</span> {String(dispFields.referral_destination)}</div>
               )}
               {dispFields.time_of_discharge && (
-                <div className="text-lg text-foreground opacity-70">Time: {dispFields.time_of_discharge}</div>
+                <div className="text-lg text-foreground opacity-70">Time: {String(dispFields.time_of_discharge)}</div>
               )}
             </div>
           )}
 
-          {/* REFUSED — clinical risk flag */}
           {disp.disposition === 'refused_transport' && (
             <div>
               <div className="rounded p-2 mb-1" style={{ background: 'rgba(255,149,0,0.10)', border: '1px solid rgba(255,149,0,0.3)' }}>
-                <div className="text-lg font-bold" style={{ color: '#FF9500' }}>⚠ CLINICAL RISK — Patient refused transport</div>
+                <div className="text-lg font-bold" style={{ color: '#FF9500' }}>{'⚠ CLINICAL RISK — Patient refused transport'}</div>
               </div>
               <div className="flex flex-col gap-0.5">
                 <div className="text-lg text-foreground opacity-70">
                   Capacity assessed: {dispFields.capacity_assessed ? (dispFields.patient_has_capacity ? 'Has capacity' : 'Lacks capacity') : 'Not assessed'}
                 </div>
                 {dispFields.time_of_refusal && (
-                  <div className="text-lg text-foreground opacity-70">Refusal: {dispFields.time_of_refusal}</div>
+                  <div className="text-lg text-foreground opacity-70">Refusal: {String(dispFields.time_of_refusal)}</div>
                 )}
               </div>
             </div>
           )}
 
-          {/* ROLE */}
           {disp.disposition === 'role' && (
             <div className="flex flex-col gap-0.5">
               {dispFields.time_of_recognition && (
-                <div className="text-lg text-foreground opacity-70">Recognition: {dispFields.time_of_recognition}</div>
+                <div className="text-lg text-foreground opacity-70">Recognition: {String(dispFields.time_of_recognition)}</div>
               )}
               <div className="text-lg text-foreground opacity-70">
                 GP: {dispFields.gp_notified ? '✓' : '—'} · Police: {dispFields.police_notified ? '✓' : '—'}
