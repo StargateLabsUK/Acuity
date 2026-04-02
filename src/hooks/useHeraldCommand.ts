@@ -70,11 +70,13 @@ export function useHeraldCommand() {
   const [transfers, setTransfers] = useState<PatientTransfer[]>([]);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
   const retryRef = useRef<ReturnType<typeof setInterval>>();
   const trustIdRef = useRef<string | null>(null);
   const isOwnerRef = useRef(false);
+  const connectedRef = useRef(false);
 
-  // Resolve user's trust_id on mount
+  // Resolve user's trust_id on mount — must complete before any data fetch
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -83,6 +85,7 @@ export function useHeraldCommand() {
       isOwnerRef.current = roles?.some(r => r.role === 'owner') ?? false;
       const { data: profile } = await supabase.from('profiles').select('trust_id').eq('id', session.user.id).maybeSingle();
       trustIdRef.current = profile?.trust_id ?? null;
+      setReady(true);
     })();
   }, []);
 
@@ -143,8 +146,6 @@ export function useHeraldCommand() {
       setLoading(false);
     }
   }, []);
-
-  const connectedRef = useRef(false);
 
   const subscribe = useCallback(() => {
     const channel = supabase
@@ -264,6 +265,8 @@ export function useHeraldCommand() {
   }, []);
 
   useEffect(() => {
+    if (!ready) return; // Wait for trust_id to be resolved
+
     fetchData();
     const channel = subscribe();
 
@@ -282,7 +285,7 @@ export function useHeraldCommand() {
       window.removeEventListener('herald-action-resolved', handleResolved);
       if (retryRef.current) clearInterval(retryRef.current);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const todayReports = reports.filter((r) => {
     const d = new Date(r.created_at ?? r.timestamp);
