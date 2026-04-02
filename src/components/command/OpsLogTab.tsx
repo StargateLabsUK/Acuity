@@ -346,9 +346,10 @@ function IncidentDetail({
   transfers: PatientTransfer[];
   onBack: () => void;
 }) {
-  const p = report.assessment?.priority ?? report.priority;
-  const col = p ? PRIORITY_COLORS[p] ?? '#888' : '#888';
-  const a = report.assessment ? sanitizeAssessment(report.assessment) : null;
+  const p = String(report.assessment?.priority ?? report.priority ?? '—');
+  const col = PRIORITY_COLORS[p] ?? '#888';
+  let a: ReturnType<typeof sanitizeAssessment> | null = null;
+  try { a = report.assessment ? sanitizeAssessment(report.assessment) : null; } catch { a = null; }
   const reportDisps = dispositions.filter(d => d.report_id === report.id);
   const reportTransfers = transfers.filter(t => t.report_id === report.id);
   const reportTx = transmissions
@@ -399,7 +400,7 @@ function IncidentDetail({
         {/* Header */}
         <div className="rounded-lg p-4" style={{ background: `${col}12`, borderLeft: `4px solid ${col}` }}>
           <div className="flex items-center gap-3 flex-wrap mb-2">
-            <span className="text-xl font-bold" style={{ color: col }}>{p ?? '—'}</span>
+            <span className="text-xl font-bold" style={{ color: col }}>{p}</span>
             {report.incident_number && (
               <span className="text-sm font-bold px-2 py-0.5 rounded" style={{ border: '1px solid hsl(var(--border))', color: 'hsl(var(--foreground))' }}>
                 #{report.incident_number}
@@ -436,7 +437,7 @@ function IncidentDetail({
               )}
             </div>
             {a.safeguarding.details && (
-              <p className="text-sm text-foreground">{a.safeguarding.details}</p>
+              <p className="text-sm text-foreground">{String(a.safeguarding.details)}</p>
             )}
           </div>
         )}
@@ -446,7 +447,7 @@ function IncidentDetail({
           <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">INCIDENT SUMMARY</h3>
           {a?.formatted_report ? (
             <div className="border border-border rounded-lg p-3 text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
-              {a.formatted_report}
+              {String(a.formatted_report)}
             </div>
           ) : (
             <div className="border border-border rounded-lg p-3 text-sm text-muted-foreground">
@@ -669,8 +670,8 @@ function IncidentCard({ report, dispositions, transfers, onClick }: {
   transfers: PatientTransfer[];
   onClick: () => void;
 }) {
-  const p = report.assessment?.priority ?? report.priority;
-  const col = p ? PRIORITY_COLORS[p] ?? '#888' : '#888';
+  const p = String(report.assessment?.priority ?? report.priority ?? '—');
+  const col = PRIORITY_COLORS[p] ?? '#888';
   const casCount = Math.max(getCasualtyCount(report), dispositions.filter(d => d.report_id === report.id).length);
   const isClosed = report.status === 'closed';
   const hasTransfer = transfers.some(t => t.report_id === report.id);
@@ -681,7 +682,7 @@ function IncidentCard({ report, dispositions, transfers, onClick }: {
       className="w-full text-left rounded-lg border border-border bg-card shadow-sm p-3 cursor-pointer hover:bg-muted/30 transition-colors mb-2 block"
     >
       <div className="flex items-center gap-2 mb-1 flex-wrap">
-        <span className="text-sm font-bold" style={badgeStyle(col)}>{p ?? '—'}</span>
+        <span className="text-sm font-bold" style={badgeStyle(col)}>{p}</span>
         {report.incident_number && (
           <span className="text-sm font-semibold px-1.5 py-0.5 rounded"
             style={{ border: '1px solid hsl(var(--border))', color: 'hsl(var(--foreground))' }}>
