@@ -450,7 +450,6 @@ export function ReportDetail(props: Props) {
 
 function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props) {
   const [transmissions, setTransmissions] = useState<IncidentTransmission[]>([]);
-  // Local overrides for editable fields
   const [localIncidentNum, setLocalIncidentNum] = useState<string | null>(null);
   const [localHospital, setLocalHospital] = useState<string | null>(null);
 
@@ -476,6 +475,21 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
       </div>
     );
   }
+
+  // DEBUG: Minimal render to find crash source
+  const assessmentKeys = report.assessment ? Object.keys(report.assessment) : [];
+  return (
+    <div className="p-4 bg-card min-h-full">
+      <p className="text-lg font-bold text-foreground">Report ID: {String(report.id)}</p>
+      <p className="text-lg text-foreground">Headline: {String(report.headline ?? '—')}</p>
+      <p className="text-lg text-foreground">Priority: {String(report.priority ?? '—')}</p>
+      <p className="text-lg text-foreground">Callsign: {String(report.session_callsign ?? '—')}</p>
+      <p className="text-lg text-foreground">Assessment keys: {assessmentKeys.join(', ')}</p>
+      <p className="text-lg text-foreground">Transmissions: {transmissions.length}</p>
+      <p className="text-lg text-foreground">Dispositions: {dispositions.length}</p>
+      <p className="text-lg" style={{ color: '#34C759' }}>DEBUG: Minimal render works</p>
+    </div>
+  );
 
   const rawA = report.assessment;
   let a: ReturnType<typeof sanitizeAssessment> | null = null;
