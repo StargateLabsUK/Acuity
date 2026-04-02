@@ -475,6 +475,8 @@ function DropdownSelect({ value, onChange, options, placeholder }: {
       <option value="">{placeholder || 'Select...'}</option>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
     </select>
+  );
+}
 
 function EditableField2({ value, onSave, color }: { value: string; onSave: (v: string) => void; color?: string }) {
   const [editing, setEditing] = useState(false);
@@ -512,8 +514,6 @@ function EditableField2({ value, onSave, color }: { value: string; onSave: (v: s
         style={{ color: '#888', border: '1px solid rgba(136,136,136,0.3)' }}
       >X</button>
     </span>
-  );
-}
   );
 }
 
