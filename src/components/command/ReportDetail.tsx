@@ -580,6 +580,7 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
     await supabase.from('herald_reports').update({ receiving_hospital: val || null } as any).eq('id', report.id);
   };
 
+  try {
   return (
     <div className="overflow-y-auto p-3 md:p-5 flex flex-col gap-4 md:gap-6 min-w-0 min-h-full bg-card" style={{ scrollbarWidth: 'thin' }}>
 
@@ -927,4 +928,12 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
       )}
     </div>
   );
+  } catch (renderErr: any) {
+    return (
+      <div className="p-6 text-center bg-card min-h-full">
+        <p className="text-lg font-bold" style={{ color: '#FF3B30' }}>Report render error</p>
+        <p className="text-lg mt-2" style={{ color: '#4A6058' }}>{String(renderErr?.message || renderErr)}</p>
+      </div>
+    );
+  }
 }
