@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
 import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 
@@ -13,7 +13,7 @@ export interface MapTabHandle {
   flyToReport: (report: CommandReport) => void;
 }
 
-const PRIORITY_RADIUS: Record<string, number> = { P1: 12, P2: 10, P3: 8 };
+mapboxgl.accessToken = (import.meta.env.VITE_MAPBOX_TOKEN || '').trim();
 
 function getReportPriority(r: CommandReport) {
   return r.assessment?.priority ?? r.priority ?? 'P3';
@@ -21,8 +21,9 @@ function getReportPriority(r: CommandReport) {
 
 export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<Map<string, L.CircleMarker>>(new Map());
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  const popupsRef = useRef<Map<string, mapboxgl.Popup>>(new Map());
   const fittedRef = useRef(false);
 
   const geoReports = useMemo(
@@ -34,117 +35,105 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     flyToReport: (report: CommandReport) => {
       const map = mapRef.current;
       if (!map || report.lat == null || report.lng == null) return;
-      map.flyTo([report.lat, report.lng], 13, { duration: 1.2 });
-      const marker = markersRef.current.get(report.id);
-      if (marker) {
-        marker.openPopup();
-      }
+      map.flyTo({ center: [report.lng, report.lat], zoom: 14, duration: 1200 });
+      const popup = popupsRef.current.get(report.id);
+      if (popup) popup.addTo(map);
     },
   }));
 
+  // Initialize map
   useEffect(() => {
-    if (!containerRef.current || geoReports.length === 0 || mapRef.current) return;
+    if (!containerRef.current || mapRef.current) return;
 
-    const map = L.map(containerRef.current, {
-      zoomControl: false,
+    const map = new mapboxgl.Map({
+      container: containerRef.current,
+      style: 'mapbox://styles/mapbox/dark-v11',
+      center: [-1.5, 53.5],
+      zoom: 6,
       attributionControl: true,
-    }).setView([54.5, -2.5], 6);
+    });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map);
-
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
     mapRef.current = map;
 
-    const resizeTimer = window.setTimeout(() => map.invalidateSize(), 100);
-
     return () => {
-      window.clearTimeout(resizeTimer);
       map.remove();
       mapRef.current = null;
       markersRef.current.clear();
+      popupsRef.current.clear();
       fittedRef.current = false;
     };
-  }, [geoReports.length]);
+  }, []);
 
+  // Update markers
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
+    // Remove old markers
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current.clear();
+    popupsRef.current.forEach((popup) => popup.remove());
+    popupsRef.current.clear();
 
     geoReports.forEach((r) => {
       const p = getReportPriority(r);
       const color = PRIORITY_COLORS[p] ?? '#34C759';
-      const radius = PRIORITY_RADIUS[p] ?? 8;
       const label = SERVICE_LABELS[r.assessment?.service ?? r.service ?? 'unknown'] ?? 'UNK';
-      const headline = r.assessment?.headline ?? r.headline ?? 'No headline';
+      const headline = String(r.assessment?.headline ?? r.headline ?? 'No headline');
       const ts = new Date(r.created_at ?? r.timestamp);
       const timeStr =
         ts.getUTCHours().toString().padStart(2, '0') + ':' +
         ts.getUTCMinutes().toString().padStart(2, '0') + 'Z';
 
-      const popupContent = document.createElement('div');
-      popupContent.style.display = 'flex';
-      popupContent.style.flexDirection = 'column';
-      popupContent.style.gap = '6px';
-      popupContent.style.minWidth = '220px';
-
-      const title = document.createElement('div');
-      title.style.fontWeight = '700';
-      title.textContent = `${p} · ${label}`;
-
-      const body = document.createElement('div');
-      body.textContent = headline;
-
-      const meta = document.createElement('div');
-      meta.style.opacity = '0.7';
-      meta.textContent = `${timeStr} · ${r.lat?.toFixed(4)}, ${r.lng?.toFixed(4)}`;
-
-      const viewButton = document.createElement('button');
-      viewButton.type = 'button';
-      viewButton.textContent = 'VIEW FULL REPORT';
-      viewButton.style.padding = '6px 10px';
-      viewButton.style.borderRadius = '6px';
-      viewButton.style.border = `1px solid ${color}`;
-      viewButton.style.background = `${color}1A`;
-      viewButton.style.cursor = 'pointer';
-      viewButton.style.fontWeight = '700';
-      viewButton.onclick = () => onSelectReport(r.id);
-
-      popupContent.append(title, body, meta, viewButton);
-
-      const marker = L.circleMarker([r.lat!, r.lng!], {
-        radius,
-        color,
-        fillColor: color,
-        fillOpacity: 0.85,
-        weight: 2,
-      })
-        .addTo(map)
-        .bindPopup(popupContent, { maxWidth: 280 });
-
-      marker.on('click', () => onSelectReport(r.id));
-
+      // Create marker element
+      const el = document.createElement('div');
+      el.style.width = p === 'P1' ? '20px' : '16px';
+      el.style.height = p === 'P1' ? '20px' : '16px';
+      el.style.borderRadius = '50%';
+      el.style.backgroundColor = color;
+      el.style.border = '2px solid rgba(255,255,255,0.6)';
+      el.style.cursor = 'pointer';
+      el.style.boxShadow = `0 0 8px ${color}80`;
       if (r.isNew) {
-        marker.setStyle({ weight: 4 });
-        window.setTimeout(() => marker.setStyle({ weight: 2 }), 900);
+        el.style.animation = 'pulse 1.5s ease-in-out 3';
       }
 
+      // Popup
+      const popupHtml = `
+        <div style="font-family: 'IBM Plex Mono', monospace; min-width: 200px;">
+          <div style="font-weight: 700; margin-bottom: 4px;">${p} · ${label}</div>
+          <div style="margin-bottom: 4px;">${headline}</div>
+          <div style="opacity: 0.7; font-size: 12px;">${timeStr} · ${r.lat?.toFixed(4)}, ${r.lng?.toFixed(4)}</div>
+        </div>
+      `;
+
+      const popup = new mapboxgl.Popup({ offset: 15, maxWidth: '280px' })
+        .setHTML(popupHtml);
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([r.lng!, r.lat!])
+        .setPopup(popup)
+        .addTo(map);
+
+      el.addEventListener('click', () => {
+        onSelectReport(r.id);
+      });
+
       markersRef.current.set(r.id, marker);
+      popupsRef.current.set(r.id, popup);
     });
 
+    // Fit bounds on first load
     if (!fittedRef.current && geoReports.length > 0) {
       fittedRef.current = true;
-      const bounds = L.latLngBounds(geoReports.map((r) => [r.lat!, r.lng!] as [number, number]));
-      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+      const bounds = new mapboxgl.LngLatBounds();
+      geoReports.forEach((r) => bounds.extend([r.lng!, r.lat!]));
+      map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
     }
   }, [geoReports, onSelectReport]);
 
-  if (geoReports.length === 0) {
+  if (geoReports.length === 0 && !mapRef.current) {
     return (
       <div className="h-full overflow-y-auto p-4">
         <div className="rounded-lg px-3 py-2 border border-muted bg-muted/30">
@@ -161,9 +150,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       <div ref={containerRef} className="absolute inset-0 z-0" />
 
       {/* Legend */}
-      <div
-        className="absolute bottom-4 left-4 rounded-lg px-3 py-2.5 z-10 border border-border bg-card"
-      >
+      <div className="absolute bottom-4 left-4 rounded-lg px-3 py-2.5 z-10 border border-border bg-card">
         <div className="flex flex-col gap-1.5">
           {[
             { p: 'P1', label: 'IMMEDIATE' },
@@ -181,7 +168,6 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
           ))}
         </div>
       </div>
-
     </div>
   );
 });
