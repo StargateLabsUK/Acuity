@@ -43,8 +43,9 @@ function getLocation(report: OpsReport): string {
 
 function getIncidentType(report: OpsReport): string {
   const a = report.assessment;
-  if (a?.headline) return a.headline;
-  return report.headline ?? 'Unknown';
+  if (a?.headline && typeof a.headline === 'string') return a.headline;
+  if (report.headline && typeof report.headline === 'string') return report.headline;
+  return 'Unknown';
 }
 
 function matchesSearch(text: string | null | undefined, q: string): boolean {
@@ -230,7 +231,7 @@ function TransmissionEntry({ tx, index }: { tx: OpsTransmission; index: number }
         )}
         {p && <span className="text-sm font-bold" style={badgeStyle(col)}>{p}</span>}
       </div>
-      <p className="text-sm text-foreground">{tx.headline ?? tx.assessment?.headline ?? '—'}</p>
+      <p className="text-sm text-foreground">{String(tx.headline ?? tx.assessment?.headline ?? '—')}</p>
 
       <div className="space-y-1.5">
         <Expandable label="VERBATIM TRANSCRIPT" color="#1E90FF">
@@ -288,7 +289,7 @@ function TransmissionEntry({ tx, index }: { tx: OpsTransmission; index: number }
                         <div className="ml-2 flex flex-col gap-0.5">
                           {(val as unknown[]).map((item, i) => (
                             <div key={i} className="text-sm text-foreground">
-                              • {typeof item === 'object' ? JSON.stringify(item) : String(item)}
+                              {'• '}{typeof item === 'object' && item !== null ? (typeof (item as any).text === 'string' ? (item as any).text : JSON.stringify(item)) : String(item ?? '')}
                             </div>
                           ))}
                         </div>
