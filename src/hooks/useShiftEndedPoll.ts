@@ -41,6 +41,8 @@ export function useShiftEndedPoll(onShiftEnded: () => void) {
           }
 
           // Check if this crew member was removed (left_at set)
+          // Only clear the field device — don't clear shared session
+          // so the incidents page keeps working
           if (operatorId) {
             const { data: linkData } = await supabase
               .from('shift_link_codes')
@@ -51,7 +53,8 @@ export function useShiftEndedPoll(onShiftEnded: () => void) {
               .maybeSingle();
 
             if (linkData?.left_at) {
-              clearSession();
+              // Don't call clearSession() — that would kill the incidents page session too
+              // Just trigger the callback which resets the React state
               cbRef.current();
               return;
             }
