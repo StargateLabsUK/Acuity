@@ -157,6 +157,20 @@ serve(async (req) => {
         });
       }
 
+      // Password policy: min 8 chars, at least one letter and one number
+      if (typeof password !== 'string' || password.length < 8) {
+        return new Response(JSON.stringify({ error: "Password must be at least 8 characters" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+        return new Response(JSON.stringify({ error: "Password must contain at least one letter and one number" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Trust admins can only create command users for their own trust
       if (isAdmin && !isOwner) {
         if (role !== "command") {
