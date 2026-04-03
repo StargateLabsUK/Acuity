@@ -364,7 +364,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           const dedupCallsign = sessionCtx?.callsign || '';
           const lastSub = lastSubmissionRef.current;
           if (lastSub && lastSub.content === t && lastSub.callsign === dedupCallsign && (Date.now() - lastSub.timestamp) < 30000) {
-            console.log('Duplicate transmission discarded (audio)');
+            // Duplicate — skip
             setState('idle');
             return;
           }
@@ -455,7 +455,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       const dedupCallsign = sessionCtx?.callsign || '';
       const lastSub = lastSubmissionRef.current;
       if (lastSub && lastSub.content === text && lastSub.callsign === dedupCallsign && (Date.now() - lastSub.timestamp) < 30000) {
-        console.log('Duplicate transmission discarded (test)');
+        // Duplicate — skip
         setState('idle');
         return;
       }

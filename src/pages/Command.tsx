@@ -5,7 +5,6 @@ import { Maximize2, Minimize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useHeraldCommand } from '@/hooks/useHeraldCommand';
 import { CommandTopBar } from '@/components/command/CommandTopBar';
-import { IncomingFeed } from '@/components/command/IncomingFeed';
 import { ReportDetail } from '@/components/command/ReportDetail';
 import { CommandStatus } from '@/components/command/CommandStatus';
 import { MapTab } from '@/components/command/MapTab';
@@ -163,19 +162,6 @@ export default function Command() {
     });
     return counts;
   }, [filteredReports]);
-
-  const handleSelect = useCallback((id: string) => {
-    setSelectedId(id);
-    if (viewMode === 'mobile') setMobileTab('detail');
-    try {
-      const report = filteredReports.find((r) => r.id === id);
-      if (report && mapRef.current) {
-        mapRef.current.flyToReport(report);
-      }
-    } catch {
-      // Map fly failed — ignore, report still shows
-    }
-  }, [viewMode, filteredReports]);
 
   const handleMapSelect = useCallback((id: string) => {
     setSelectedId(id);
