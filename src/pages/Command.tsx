@@ -78,10 +78,10 @@ export default function Command() {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
+  const [mobileTab, setMobileTab] = useState<MobileTab>('ops');
   const [filters] = useState({ service: '', callsign: '', timeRange: 'today' as const });
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
-  const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops' | 'sla' | 'map'>('status');
+  const [desktopUpperTab, setDesktopUpperTab] = useState<'ops' | 'sla' | 'map'>('ops');
   const [opsReportId, setOpsReportId] = useState<string | null>(null);
   const viewMode = useViewMode();
   const mapRef = useRef<MapTabHandle>(null);
@@ -275,14 +275,6 @@ export default function Command() {
         <div className="flex-1 overflow-hidden p-3 relative">
           <ExpandButton expanded onClick={() => setExpandedPanel(null)} />
           <div className="h-full rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-            {expandedPanel === 'feed' && (
-              <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
-            )}
-            {expandedPanel === 'detail' && !selectedReport && (
-              <div className="h-full overflow-y-auto">
-                <ReportDetail report={null} dispositions={dispositions} transfers={transfers} />
-              </div>
-            )}
             {expandedPanel === 'ops' && (
               <OpsLogTab onSelectReport={handleOpsReportSelect} />
             )}
@@ -301,7 +293,7 @@ export default function Command() {
         <div className={`flex flex-col p-3 gap-3 ${desktopUpperTab !== 'status' ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
           <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab !== 'status' ? 'flex-1 flex flex-col min-h-0' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
-              {(['status', 'map', 'ops', 'sla'] as const).map((tab) => (
+              {(['ops', 'map', 'sla'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setDesktopUpperTab(tab)}
@@ -316,16 +308,7 @@ export default function Command() {
                 </button>
               ))}
             </div>
-            {desktopUpperTab === 'status' ? (
-              <CommandStatus
-                todayReports={filteredReports}
-                priorityCounts={filteredPriorityCounts}
-                serviceCounts={filteredServiceCounts}
-                uniqueDevices={uniqueDevices}
-                connected={connected}
-                activeShifts={activeShifts} transfers={transfers}
-              />
-            ) : desktopUpperTab === 'map' ? (
+            {desktopUpperTab === 'map' ? (
               <div className="flex-1 overflow-hidden h-full min-h-0">
                 <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
               </div>
@@ -349,18 +332,6 @@ export default function Command() {
               </div>
             )}
           </div>
-          {desktopUpperTab === 'status' && (
-          <div className="flex min-w-0 gap-3">
-            <div className="relative flex flex-col min-w-0 w-1/2 rounded-lg border border-border bg-card shadow-sm">
-              <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
-              <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
-            </div>
-            <div className="relative flex flex-col min-w-0 w-1/2">
-              <ExpandButton expanded={false} onClick={() => toggleExpand('detail')} />
-              <ReportDetail report={selectedReport} dispositions={dispositions} transfers={transfers} />
-            </div>
-          </div>
-          )}
         </div>
       </div>
     );
@@ -376,7 +347,7 @@ export default function Command() {
         <div className={`flex flex-col p-2 gap-2 ${tabletTab !== 'status' ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
           <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${tabletTab !== 'status' ? 'flex-1 flex flex-col min-h-0' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
-              {(['status', 'map', 'ops', 'sla'] as const).map((tab) => (
+              {(['ops', 'map', 'sla'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setDesktopUpperTab(tab)}
@@ -391,16 +362,7 @@ export default function Command() {
                 </button>
               ))}
             </div>
-            {tabletTab === 'status' ? (
-              <CommandStatus
-                todayReports={filteredReports}
-                priorityCounts={filteredPriorityCounts}
-                serviceCounts={filteredServiceCounts}
-                uniqueDevices={uniqueDevices}
-                connected={connected}
-                activeShifts={activeShifts} transfers={transfers}
-              />
-            ) : tabletTab === 'map' ? (
+            {tabletTab === 'map' ? (
               <div className="flex-1 overflow-hidden h-full min-h-0">
                 <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
               </div>
@@ -424,18 +386,6 @@ export default function Command() {
               </div>
             )}
           </div>
-          {tabletTab === 'status' && (
-          <div className="flex min-w-0 gap-2">
-            <div className="relative flex flex-col min-w-0 w-2/5 rounded-lg border border-border bg-card shadow-sm">
-              <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
-              <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
-            </div>
-            <div className="relative flex flex-col min-w-0 w-3/5">
-              <ExpandButton expanded={false} onClick={() => toggleExpand('detail')} />
-              <ReportDetail report={selectedReport} dispositions={dispositions} transfers={transfers} />
-            </div>
-          </div>
-          )}
         </div>
       </div>
     );
@@ -447,28 +397,6 @@ export default function Command() {
       {topBar}
 
       <div className="flex-1 overflow-hidden">
-        {mobileTab === 'feed' && (
-          <div className="h-full p-2">
-            <div className="h-full rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-              <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
-            </div>
-          </div>
-        )}
-        {mobileTab === 'detail' && <ReportDetail report={selectedReport} dispositions={dispositions} transfers={transfers} />}
-        {mobileTab === 'status' && (
-          <div className="h-full overflow-y-auto p-2">
-            <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-              <CommandStatus
-                todayReports={filteredReports}
-                priorityCounts={filteredPriorityCounts}
-                serviceCounts={filteredServiceCounts}
-                uniqueDevices={uniqueDevices}
-                connected={connected}
-                activeShifts={activeShifts} transfers={transfers}
-              />
-            </div>
-          </div>
-        )}
         {mobileTab === 'map' && (
           <div className="h-full">
             <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
@@ -501,9 +429,9 @@ export default function Command() {
         )}
       </div>
       <div className="flex flex-shrink-0 border-t border-border bg-card">
-        {mobileTabBtn('feed', 'FEED')}
-        {mobileTabBtn('detail', 'DETAIL')}
+        {mobileTabBtn('ops', 'OPS')}
         {mobileTabBtn('map', 'MAP')}
+        {mobileTabBtn('sla', 'SLA')}
       </div>
     </div>
   );
