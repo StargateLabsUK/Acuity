@@ -298,7 +298,7 @@ function IncidentCard({ inc, onSelectCasualty, closedKeys }: { inc: Incident; on
             {p}
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-lg text-foreground font-medium truncate">
+            <p className="text-lg text-foreground font-medium">
               {inc.assessment?.headline ?? inc.headline ?? 'Incident'}
             </p>
             <p className="text-lg text-foreground opacity-60">
