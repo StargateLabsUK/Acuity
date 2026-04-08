@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 
 type OwnerTab = 'trusts' | 'users' | 'audit' | 'devices';
 type AdminTab = 'my-trust' | 'users' | 'audit' | 'devices';
@@ -223,14 +223,12 @@ export default function Admin() {
 
   const callAdminApi = async (body: Record<string, unknown>) => {
     const session = (await supabase.auth.getSession()).data.session;
-    const supabaseUrl = supabase.supabaseUrl || (import.meta.env.VITE_SUPABASE_URL || '').trim();
-    const anonKey = supabase.supabaseKey || (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
-    return fetch(`${supabaseUrl}/functions/v1/admin-trust`, {
+    return fetch(`${SUPABASE_URL}/functions/v1/admin-trust`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': anonKey,
-        'Authorization': `Bearer ${session?.access_token || anonKey}`,
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${session?.access_token || SUPABASE_PUBLISHABLE_KEY}`,
       },
       body: JSON.stringify(body),
     });
