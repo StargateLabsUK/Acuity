@@ -222,14 +222,21 @@ export default function Admin() {
   }, [role, activeTab, loadTrusts, loadUsers, loadAudit, loadShifts]);
 
   const callAdminApi = async (body: Record<string, unknown>) => {
-    const { data, error } = await supabase.functions.invoke('admin-trust', {
-      body,
-    });
-    // Wrap in a Response-like object for compatibility
-    if (error) {
-      return { ok: false, status: 500, text: async () => JSON.stringify({ error: error.message }), json: async () => ({ error: error.message }) };
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-trust', {
+        body,
+      });
+      if (error) {
+        return { ok: false, status: 500, text: async () => String(error.message ?? error) };
+      }
+      // Check if data itself contains an error
+      if (data?.error) {
+        return { ok: false, status: 400, text: async () => JSON.stringify(data) };
+      }
+      return { ok: true, status: 200, text: async () => JSON.stringify(data) };
+    } catch (e: any) {
+      return { ok: false, status: 500, text: async () => e?.message || 'Network error' };
     }
-    return { ok: true, status: 200, text: async () => JSON.stringify(data), json: async () => data };
   };
 
   const handleCreateTrust = async () => {
