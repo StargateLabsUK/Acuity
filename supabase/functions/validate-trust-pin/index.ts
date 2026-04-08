@@ -1,7 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+
+async function hashPin(pin: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin + "herald-salt-2026");
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return "$sha256$" + hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
 // Rate limiting: simple in-memory tracker
 const attempts = new Map<string, { count: number; resetAt: number }>();
@@ -47,7 +54,6 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch all active trusts and compare with bcrypt
     const { data: trusts, error } = await supabase
       .from("trusts")
       .select("id, name, slug, active, trust_pin_hash")
@@ -56,38 +62,31 @@ serve(async (req) => {
     if (error || !trusts || trusts.length === 0) {
       return new Response(
         JSON.stringify({ error: "Trust code not recognised — check with your station manager" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Try bcrypt comparison first, fall back to SHA-256 for legacy hashes
+    const pinHash = await hashPin(pin);
     let matchedTrust = null;
 
     for (const trust of trusts) {
       try {
-        // Try bcrypt first
-        if (trust.trust_pin_hash.startsWith("$2")) {
-          const matches = await bcrypt.compare(pin, trust.trust_pin_hash);
-          if (matches) {
+        if (trust.trust_pin_hash.startsWith("$sha256$")) {
+          // SHA-256 format (from admin page)
+          if (trust.trust_pin_hash === pinHash) {
             matchedTrust = trust;
             break;
           }
-        } else {
-          // Legacy SHA-256 fallback
-          const data = new TextEncoder().encode(pin);
-          const hash = await crypto.subtle.digest("SHA-256", data);
-          const hex = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
-          if (hex === trust.trust_pin_hash) {
+        } else if (trust.trust_pin_hash.startsWith("$2")) {
+          // Legacy bcrypt format — use pgcrypto via database function
+          const { data: match } = await supabase.rpc("verify_bcrypt_pin", {
+            plain_pin: pin,
+            hashed_pin: trust.trust_pin_hash,
+          });
+          if (match === true) {
             matchedTrust = trust;
-            // Upgrade to bcrypt
-            const bcryptHash = await bcrypt.hash(pin);
-            await supabase
-              .from("trusts")
-              .update({ trust_pin_hash: bcryptHash })
-              .eq("id", trust.id);
+            // Upgrade to SHA-256
+            await supabase.from("trusts").update({ trust_pin_hash: pinHash }).eq("id", trust.id);
             break;
           }
         }
@@ -99,10 +98,7 @@ serve(async (req) => {
     if (!matchedTrust) {
       return new Response(
         JSON.stringify({ error: "Trust code not recognised — check with your station manager" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -112,13 +108,10 @@ serve(async (req) => {
         trust_name: matchedTrust.name,
         trust_slug: matchedTrust.slug,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: "Server error" }), {
+    return new Response(JSON.stringify({ error: "Server error: " + (e?.message || String(e)) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

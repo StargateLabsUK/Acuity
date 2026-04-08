@@ -1,7 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+
+async function hashPin(pin: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin + "herald-salt-2026");
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return "$sha256$" + hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
 serve(async (req) => {
   const preflight = handleCors(req);
@@ -64,7 +71,7 @@ serve(async (req) => {
         });
       }
 
-      const hash = await bcrypt.hash(pin);
+      const hash = await hashPin(pin);
       const { data, error } = await supabase
         .from("trusts")
         .insert({ name, slug, trust_pin_hash: hash, active: true })
@@ -121,7 +128,7 @@ serve(async (req) => {
         });
       }
 
-      const hash = await bcrypt.hash(pin);
+      const hash = await hashPin(pin);
       const { error: updateError } = await supabase
         .from("trusts")
         .update({ trust_pin_hash: hash })
