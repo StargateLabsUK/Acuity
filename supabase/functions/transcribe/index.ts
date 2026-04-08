@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { isRateLimited } from "../_shared/rate-limit.ts";
 
-const MAX_AUDIO_BASE64_LENGTH = 8_000_000; // ~6MB base64 ≈ 4.5MB binary
+const MAX_AUDIO_BASE64_LENGTH = 33_000_000; // ~25MB base64 ≈ 18.75MB binary (Whisper supports up to 25MB)
 
 Deno.serve(async (req) => {
   const preflight = handleCors(req);
@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
     formData.append('file', blob, `audio.${ext}`);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
+    formData.append('prompt', 'Emergency ambulance radio transmission. Paramedic speaking to Control. Medical terminology, ATMIST format, METHANE, triage priorities P1 P2 P3, GCS scores, vital signs, drug names, hospital names, callsigns like Delta 4, HEMS, RTC, ROSC, VF, iGel, adrenaline, bilateral, femoral, pelvic binder, RSI, SpO2, tachycardia.');
 
     const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -103,8 +104,8 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ transcript: sanitised }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: 'Transcription failed' }), {
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: 'Transcription failed: ' + (error?.message || String(error)) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
