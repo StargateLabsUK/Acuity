@@ -254,9 +254,9 @@ export default function Admin() {
         setResetPinTrustId(trustId);
         setResetPinValue(pin);
       } else {
-        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+        const text = await res.text();
         setResetPinTrustId(trustId);
-        setResetPinValue(`ERROR: ${err.error || res.status}`);
+        setResetPinValue(`ERROR ${res.status}: ${text.slice(0, 100)}`);
       }
     } catch (e: any) {
       setResetPinTrustId(trustId);
