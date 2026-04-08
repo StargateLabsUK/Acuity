@@ -13,7 +13,7 @@ interface Props {
 const inputStyle: React.CSSProperties = {
   width: '100%',
   background: '#0D1117',
-  border: '1px solid #0F1820',
+  border: '1px solid #2A3A32',
   color: '#C8D0CC',
   padding: '14px',
   borderRadius: 3,
@@ -23,7 +23,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  color: '#1E3028',
+  color: '#8A9B94',
   fontSize: 18,
   letterSpacing: '0.2em',
   marginBottom: 6,
@@ -213,12 +213,15 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       style={{ background: '#080B10' }}
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
-        <h1 className="font-heading text-2xl text-foreground tracking-[0.08em] text-center mb-1">
+        <h1 className="font-heading text-4xl text-foreground tracking-[0.08em] text-center mb-1">
           HERALD
         </h1>
+        <p style={{ color: '#4A6058', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
+          Real-time Field Intelligence
+        </p>
         <p
           style={{
-            color: '#4A6058',
+            color: '#8A9B94',
             fontSize: 14,
             letterSpacing: '0.25em',
             textAlign: 'center',
@@ -264,7 +267,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
             onChange={(e) => setVehicleType(e.target.value)}
             style={{
               ...inputStyle,
-              color: vehicleType ? '#C8D0CC' : '#1E3028',
+              color: vehicleType ? '#E0E8E4' : '#4A6058',
               appearance: 'none',
               WebkitAppearance: 'none',
             }}
@@ -286,8 +289,8 @@ export function ShiftLogin({ onShiftStarted }: Props) {
             width: '100%',
             padding: 12,
             background: 'transparent',
-            border: canSubmit ? '1px solid rgba(255,255,255,0.3)' : '1px solid #1E3028',
-            color: canSubmit ? '#FFFFFF' : '#1E3028',
+            border: canSubmit ? '1px solid rgba(255,255,255,0.3)' : '1px solid #2A3A32',
+            color: canSubmit ? '#FFFFFF' : '#4A6058',
             fontFamily: "'IBM Plex Mono', monospace",
             fontSize: 14,
             fontWeight: 500,

@@ -7,8 +7,8 @@ type LoginStep = 'credentials' | 'mfa-verify' | 'mfa-enroll';
 const inputStyle: React.CSSProperties = {
   width: '100%',
   background: '#0D1117',
-  border: '1px solid #0F1820',
-  color: '#C8D0CC',
+  border: '1px solid #2A3A32',
+  color: '#E0E8E4',
   padding: '14px',
   borderRadius: 3,
   fontFamily: "'IBM Plex Mono', monospace",
@@ -17,7 +17,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  color: '#4A6058',
+  color: '#8A9B94',
   fontSize: 14,
   letterSpacing: '0.2em',
   marginBottom: 6,
@@ -269,14 +269,17 @@ export default function Login() {
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
         <h1
-          className="text-2xl font-bold tracking-[0.08em] text-center mb-1"
+          className="text-4xl font-bold tracking-[0.08em] text-center mb-1"
           style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, color: '#FFFFFF' }}
         >
           HERALD
         </h1>
+        <p style={{ color: '#4A6058', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
+          Real-time Field Intelligence
+        </p>
         <p
           style={{
-            color: '#4A6058',
+            color: '#8A9B94',
             fontSize: 14,
             letterSpacing: '0.25em',
             textAlign: 'center',

@@ -83,14 +83,17 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
       >
         <div className="w-full" style={{ maxWidth: 400 }}>
           <h1
-            className="text-2xl font-bold tracking-[0.08em] text-center mb-1"
+            className="text-4xl font-bold tracking-[0.08em] text-center mb-1"
             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, color: '#FFFFFF' }}
           >
             HERALD
           </h1>
+          <p style={{ color: '#4A6058', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
+            Real-time Field Intelligence
+          </p>
           <p
             style={{
-              color: '#4A6058',
+              color: '#8A9B94',
               fontSize: 14,
               letterSpacing: '0.25em',
               textAlign: 'center',
@@ -109,8 +112,8 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
             style={{
               width: '100%',
               background: '#0D1117',
-              border: '1px solid #0F1820',
-              color: '#C8D0CC',
+              border: '1px solid #2A3A32',
+              color: '#E0E8E4',
               padding: '14px',
               borderRadius: 3,
               fontFamily: "'IBM Plex Mono', monospace",
@@ -160,14 +163,17 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
     >
       <div className="w-full" style={{ maxWidth: 400 }}>
         <h1
-          className="text-2xl font-bold tracking-[0.08em] text-center mb-1"
+          className="text-4xl font-bold tracking-[0.08em] text-center mb-1"
           style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, color: '#FFFFFF' }}
         >
           HERALD
         </h1>
+        <p style={{ color: '#4A6058', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
+          Real-time Field Intelligence
+        </p>
         <p
           style={{
-            color: '#4A6058',
+            color: '#8A9B94',
             fontSize: 14,
             letterSpacing: '0.25em',
             textAlign: 'center',
@@ -194,7 +200,7 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
                 width: 52,
                 height: 64,
                 background: '#0D1117',
-                border: error ? '1px solid #FF3B30' : '1px solid #0F1820',
+                border: error ? '1px solid #FF3B30' : '1px solid #2A3A32',
                 color: '#FFFFFF',
                 fontSize: 28,
                 fontFamily: "'IBM Plex Mono', monospace",
