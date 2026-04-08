@@ -295,10 +295,20 @@ export function useHeraldCommand() {
 
   const priorityCounts = { P1: 0, P2: 0, P3: 0 };
   todayReports.forEach((r) => {
-    const p = r.assessment?.priority ?? r.priority;
-    if (p === 'P1') priorityCounts.P1++;
-    else if (p === 'P2') priorityCounts.P2++;
-    else if (p === 'P3') priorityCounts.P3++;
+    const atmist = r.assessment?.atmist;
+    if (atmist && typeof atmist === 'object') {
+      Object.keys(atmist).forEach((key) => {
+        const baseP = key.replace(/-\d+$/, '');
+        if (baseP === 'P1') priorityCounts.P1++;
+        else if (baseP === 'P2') priorityCounts.P2++;
+        else if (baseP === 'P3') priorityCounts.P3++;
+      });
+    } else {
+      const p = r.assessment?.priority ?? r.priority;
+      if (p === 'P1') priorityCounts.P1++;
+      else if (p === 'P2') priorityCounts.P2++;
+      else if (p === 'P3') priorityCounts.P3++;
+    }
   });
 
   const serviceCounts: Record<string, number> = {};

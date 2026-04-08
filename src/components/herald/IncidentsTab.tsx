@@ -5,7 +5,7 @@ import { getVehicleLabel } from '@/lib/vehicle-types';
 import { fetchIncidentsRemote } from '@/lib/herald-api';
 import { supabase } from '@/integrations/supabase/client';
 import { getReports, updateReport, saveCasualtyDisposition, isCasualtyClosed, getCasualtyDispositions } from '@/lib/herald-storage';
-import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
+import { PRIORITY_COLORS, PRIORITY_LABELS, DISPOSITION_LABELS } from '@/lib/herald-types';
 import type { Assessment, ActionItem, DispositionType, CasualtyDisposition, DispositionFields } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 import { sanitizeAssessment, formatActionAge } from '@/lib/sanitize-assessment';
@@ -140,6 +140,21 @@ function extractCasualties(inc: Incident): CasualtyData[] {
       else if (assessHospitals.length > idx) hospital = assessHospitals[idx];
 
       const isSingle = keys.length === 1;
+
+      // Per-casualty name: prefer atmist.name, fall back to parsing patient_name
+      let patientName: string | undefined = val?.name ?? undefined;
+      if (!patientName && a.patient_name) {
+        if (isSingle) {
+          // Single casualty — use the whole patient_name (strip any "P1: " prefix)
+          patientName = a.patient_name.replace(/^P\d+:\s*/, '');
+        } else {
+          // Multi-casualty — parse "P1: Name, P2: Name" format
+          const re = new RegExp(`${baseP}:\\s*([^,]+)`, 'i');
+          const m = a.patient_name.match(re);
+          if (m) patientName = m[1].trim();
+        }
+      }
+
       return {
         key, priority: baseP, label,
         atmist: {
@@ -151,7 +166,7 @@ function extractCasualties(inc: Incident): CasualtyData[] {
         receivingHospital: hospital,
         actionItems: filterActionItemsForCasualty(a, key, isSingle),
         resolvedItems: filterResolvedForCasualty(a, key, isSingle),
-        patientName: a.patient_name ?? undefined,
+        patientName,
       };
     });
 }
@@ -651,7 +666,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
         <div className="rounded-lg p-3 mb-4" style={{ background: `${col}1A`, borderLeft: `4px solid ${col}` }}>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-2xl font-bold" style={{ color: col }}>{cas.priority}</span>
-            <span className="text-lg font-bold" style={{ color: col }}>{inc.assessment?.priority_label ?? ''}</span>
+            <span className="text-lg font-bold" style={{ color: col }}>{PRIORITY_LABELS[cas.priority] ?? inc.assessment?.priority_label ?? ''}</span>
           </div>
           <p className="text-lg text-foreground font-medium">{cas.label}</p>
         </div>

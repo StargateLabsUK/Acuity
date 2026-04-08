@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     formData.append('file', blob, `audio.${ext}`);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
-    formData.append('prompt', 'Emergency ambulance radio transmission. Paramedic speaking to Control. Medical terminology, ATMIST format, METHANE, triage priorities P1 P2 P3, GCS scores, vital signs, drug names, hospital names, callsigns like Delta 4, HEMS, RTC, ROSC, VF, iGel, adrenaline, bilateral, femoral, pelvic binder, RSI, SpO2, tachycardia.');
+    formData.append('prompt', 'Emergency ambulance radio transmission. Paramedic speaking to Control. Medical terminology, ATMIST format, METHANE, triage priorities P1 P2 P3, GCS scores, vital signs, drug names, hospital names, callsigns like Delta 4, HEMS, RTC, ROSC, VF, iGel, adrenaline, bilateral, femoral, pelvic binder, RSI, SpO2, tachycardia. UK locations: Warmsworth, Carr House Road, Doncaster, Rotherham, Sheffield, Barnsley, Wakefield, Worksop, Ryton Street.');
 
     const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -148,6 +148,8 @@ const RULES: Rule[] = [
   { pattern: /\bWrighton\s+Street\b/gi, replacement: 'Ryton Street', label: 'Wrighton→Ryton' },
   { pattern: /\bWorkstop\b/gi, replacement: 'Worksop', label: 'Workstop→Worksop' },
   { pattern: /\bMaple\s+Corp\b/gi, replacement: 'Maple Court', label: 'Maple-Corp→Maple-Court' },
+  { pattern: /\bCow\s+House\b/gi, replacement: 'Carr House', label: 'Cow-House→Carr-House' },
+  { pattern: /\bWandsworth\b/gi, replacement: 'Warmsworth', label: 'Wandsworth→Warmsworth' },
 
   // 3b. Common mishears
   { pattern: /\bweary\s+trip\b/gi, replacement: 'query trip', label: 'weary-trip→query-trip' },

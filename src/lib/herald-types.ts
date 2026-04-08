@@ -218,6 +218,13 @@ export const PRIORITY_COLORS: Record<string, string> = {
   P3: '#34C759',
 };
 
+export const PRIORITY_LABELS: Record<string, string> = {
+  P1: 'IMMEDIATE',
+  P2: 'URGENT',
+  P3: 'DELAYED',
+  P4: 'EXPECTANT',
+};
+
 export const SERVICE_LABELS: Record<string, string> = {
   military: 'Military',
   ambulance: 'Ambulance',

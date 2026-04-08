@@ -115,6 +115,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
   },
   "atmist": {
     "P1": {
+      "name": "Patient name for THIS casualty only, if crew explicitly states it (e.g. 'patient is Margaret', 'his name is John'). null if not stated. Words like 'male', 'female', 'woman', 'man' are sex descriptors NOT names.",
       "A": "Age AND sex together — e.g. '84-year-old female', '35-year-old male'. Words like male/female/man/woman go HERE not in patient_name",
       "T": "Time of injury",
       "M": "Mechanism of injury",
@@ -123,7 +124,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
       "T_treatment": "Treatment given"
     }
   },
-  "patient_name": "Only if crew explicitly says the patient's name (e.g. 'patient is Margaret', 'his name is John'). null if not stated. Words like 'male', 'female', 'woman', 'man' are sex descriptors NOT names.",
+  "patient_name": "DEPRECATED — use atmist.<priority>.name instead. For backward compat: null for MCIs; for single-casualty, the patient name if explicitly stated.",
   "safeguarding": {
     "concern_identified": "true if crew mentions unexplained injuries, safeguarding concern, domestic abuse/violence, vulnerable adult, child protection, neglect, or requests police for non-trauma/non-RTC reasons. false otherwise",
     "details": "brief description of the safeguarding concern, or null if none",
