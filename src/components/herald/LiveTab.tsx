@@ -423,14 +423,53 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           };
           lastSubmissionRef.current = { content: t, callsign: dedupCallsign, timestamp: Date.now() };
           setState('ready');
-        } catch {
-          // Transcription itself failed — can't recover
+        } catch (err: any) {
+          // Transcription or processing failed — retry once automatically
+          try {
+            const retryBlob = new Blob(chunksRef.current, { type: mimeTypeRef.current || 'audio/webm' });
+            const retryBase64 = await blobToBase64(retryBlob);
+            const retryT = await transcribeAudio(retryBase64);
+            if (retryT) {
+              setTranscript(retryT);
+              const sessionRetry = await getSession();
+              let retryResult: any = null;
+              try {
+                const existingAtmist = await fetchExistingAtmist(sessionRetry?.callsign, sessionRetry?.shift_id);
+                retryResult = await assessTranscript(retryT, { vehicle_type: sessionRetry?.vehicle_type, can_transport: sessionRetry?.can_transport, existing_atmist: existingAtmist });
+                if (retryResult?.structured) {
+                  retryResult.structured.callsign = sessionRetry?.callsign || null;
+                  retryResult.structured.operator_id = sessionRetry?.operator_id || null;
+                }
+                onAiStatus('ok');
+              } catch {
+                onAiStatus('error');
+                retryResult = {
+                  service: 'unknown', protocol: 'NONE', priority: null, priority_label: null,
+                  headline: retryT.substring(0, 80), incident_type: 'Unknown', major_incident: false,
+                  scene_location: null, receiving_hospital: [], clinical_findings: { A: 'Not assessed', B: 'Not assessed', C: 'Not assessed', D: 'Not assessed', E: 'Not assessed' },
+                  atmist: {}, treatment_given: [], action_items: [],
+                  structured: { callsign: sessionRetry?.callsign || null, incident_number: null, operator_id: sessionRetry?.operator_id || null },
+                  actions: ['AI assessment unavailable — review transcript manually'], formatted_report: retryT, clinical_history: '',
+                };
+              }
+              setAssessment(retryResult);
+              const loc = await getLocation();
+              const reportId = crypto.randomUUID();
+              setCurrentReportId(reportId);
+              pendingReportRef.current = { id: reportId, transcript: retryT, assessment: retryResult, lat: loc?.lat, lng: loc?.lng, accuracy: loc?.accuracy };
+              lastSubmissionRef.current = { content: retryT, callsign: sessionRetry?.callsign || '', timestamp: Date.now() };
+              setState('ready');
+              resolve();
+              return;
+            }
+          } catch { /* retry also failed */ }
+
           onAiStatus('error');
-          setError('Transcription failed — check connection');
+          setError('Processing failed — tap RECORD to try again');
           setTimeout(() => {
             setError('');
             setState('idle');
-          }, 3000);
+          }, 5000);
         }
         resolve();
       };

@@ -24,7 +24,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
   const fittedRef = useRef(false);
 
   const geoReports = useMemo(
-    () => reports.filter((r) => r.lat != null && r.lng != null),
+    () => reports.filter((r) => r.lat != null && r.lng != null && (r as any).status !== 'closed'),
     [reports]
   );
 
@@ -187,7 +187,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
   const [listOpen, setListOpen] = useState(true);
 
   const sortedReports = useMemo(() =>
-    [...reports].sort((a, b) => new Date(b.created_at ?? b.timestamp).getTime() - new Date(a.created_at ?? a.timestamp).getTime()),
+    [...reports].filter(r => (r as any).status !== 'closed').sort((a, b) => new Date(b.created_at ?? b.timestamp).getTime() - new Date(a.created_at ?? a.timestamp).getTime()),
     [reports]
   );
 
