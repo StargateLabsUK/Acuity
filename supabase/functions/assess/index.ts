@@ -44,6 +44,10 @@ scene_location — where the incident is happening. Never populate with a hospit
 
 receiving_hospital — where casualties are being transported. Can be an array for multi-casualty incidents. Extract per casualty where possible. Empty array if not mentioned.
 
+structured.number_of_casualties — ALWAYS populate this. Count the patients described in the transmission. If one patient is described, put "1". Only null if genuinely impossible to determine.
+
+structured.emergency_services — ALWAYS populate this. List any services requested or mentioned: police, HEMS, fire brigade, additional ambulances, specialist teams. Extract from "requesting police", "need HEMS", "fire on scene" etc. Only null if no services mentioned at all.
+
 clinical_findings — always use ABCDE structure. If a category is not mentioned in the transmission mark it "Not assessed". Never use arbitrary lettering. Never leave blank.
 
 treatment_given — completed clinical actions only. IV access, fluids, airway adjuncts, drugs, CPR, packaging, immobilisation. Do not include pending requests, instructions to crew, or actions not yet confirmed as done. "Confirm receiving hospital" is NOT treatment — put it in action_items.
@@ -99,8 +103,8 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
     "operator_id": null,
     "hazards": "METHANE H value if explicitly stated, else null",
     "access": "METHANE A — physical scene access routes ONLY (road names, entry points, approach directions, door access). NEVER clinical data, patient demographics, or treatment info. Null if not stated",
-    "number_of_casualties": "METHANE N value if explicitly stated, else null",
-    "emergency_services": "METHANE E value if explicitly stated, else null"
+    "number_of_casualties": "METHANE N — count of patients mentioned. If crew describes one patient, put '1'. If multiple casualties mentioned, count them. Only null if truly unknown",
+    "emergency_services": "METHANE E — list ALL services requested or on scene. Include: police, HEMS, fire, additional ambulances, specialist teams. Extract from phrases like 'requesting police', 'need HEMS', 'fire on scene'. Null only if no services mentioned"
   },
   "clinical_findings": {
     "A": "Airway assessment or 'Not assessed'",
