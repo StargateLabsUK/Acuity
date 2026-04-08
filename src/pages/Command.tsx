@@ -165,13 +165,11 @@ export default function Command() {
 
   const handleMapSelect = useCallback((id: string) => {
     setSelectedId(id);
+    setOpsReportId(id);
+    setDesktopUpperTab('ops');
     if (viewMode === 'mobile') {
-      setMobileTab('detail');
-      return;
+      setMobileTab('ops');
     }
-
-    // On larger screens, jump back to STATUS so users immediately see report detail.
-    setDesktopUpperTab('status');
   }, [viewMode]);
 
   const toggleExpand = useCallback((panel: ExpandedPanel) => {
