@@ -223,11 +223,11 @@ export default function Admin() {
 
   const callAdminApi = async (body: Record<string, unknown>) => {
     const session = (await supabase.auth.getSession()).data.session;
-    return fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-trust`, {
+    return fetch(`${(import.meta.env.VITE_SUPABASE_URL || '').trim()}/functions/v1/admin-trust`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        apikey: (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim(),
         Authorization: `Bearer ${session?.access_token}`,
       },
       body: JSON.stringify(body),

@@ -27,7 +27,7 @@ serve(async (req) => {
     // Verify user is admin
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Unauthorized: " + (userError?.message || "no user"), hasToken: !!token, tokenLen: token.length }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
