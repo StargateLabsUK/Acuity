@@ -1202,9 +1202,11 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
   const extractVisibleCasualties = useCallback((inc: Incident): CasualtyData[] => {
     const all = extractCasualties(inc);
     if (isOwnIncident(inc)) return all;
-    // This incident was received via transfer — only show transferred casualties
+    // This incident was received via transfer — only show transferred casualties.
+    // If we have no transfer data for it, show nothing (strict — prevents leaking
+    // other patients when transfer sync has failed).
     const transferredKeys = transferredCasualties.get(inc.id);
-    if (!transferredKeys || transferredKeys.size === 0) return all;
+    if (!transferredKeys || transferredKeys.size === 0) return [];
     return all.filter(c => transferredKeys.has(c.key));
   }, [isOwnIncident, transferredCasualties]);
 
