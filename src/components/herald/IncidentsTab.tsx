@@ -339,6 +339,18 @@ function IncidentCard({ inc, onSelectCasualty, closedKeys, transferredKeys }: { 
             </p>
           )}
 
+          {/* Incident summary — full narrative, not truncated */}
+          {(inc.assessment?.formatted_report || inc.transcript) && (
+            <div className="mt-2 mb-3">
+              <p className="text-lg font-bold tracking-[0.15em] mb-1" style={{ color: '#1E90FF' }}>
+                INCIDENT SUMMARY
+              </p>
+              <div className="rounded-lg border border-border bg-background p-3 text-lg text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                {inc.assessment?.formatted_report || inc.transcript}
+              </div>
+            </div>
+          )}
+
           {/* Casualty list */}
           <p className="text-lg font-bold tracking-[0.15em] mt-2 mb-2" style={{ color: '#1E90FF' }}>
             PATIENTS
@@ -414,6 +426,18 @@ function IncidentDetailView({ inc, onBack, onSelectCasualty, closedKeys, transfe
             <p className="text-lg text-foreground opacity-70 mt-1">📍 {a.scene_location}</p>
           )}
         </div>
+
+        {/* Incident summary — full narrative, not truncated */}
+        {(a?.formatted_report || inc.transcript) && (
+          <div className="mb-4">
+            <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>
+              INCIDENT SUMMARY
+            </p>
+            <div className="rounded-lg border border-border bg-card p-3 text-lg text-foreground whitespace-pre-wrap break-words leading-relaxed">
+              {a?.formatted_report || inc.transcript}
+            </div>
+          </div>
+        )}
 
         {/* Casualty cards */}
         <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>

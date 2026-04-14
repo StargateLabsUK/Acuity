@@ -5,6 +5,26 @@ import { isRateLimited } from "../_shared/rate-limit.ts";
 
 const MAX_TRANSCRIPT_LENGTH = 5000;
 const MAX_DIFFS_COUNT = 50;
+const FALLBACK_HEADLINE_MAX_LENGTH = 250;
+
+// Fallback headline generator used when AI parsing fails. Tries to end on a
+// sentence boundary, falls back to a word boundary, never mid-word.
+function buildFallbackHeadline(transcript: string, maxLen = FALLBACK_HEADLINE_MAX_LENGTH): string {
+  const t = (transcript ?? "").trim();
+  if (!t) return "Transmission received";
+  if (t.length <= maxLen) return t;
+  const capped = t.slice(0, maxLen);
+  // Prefer the last full sentence inside the cap (if at least ~30% of the cap)
+  const sentenceEnd = Math.max(
+    capped.lastIndexOf(". "),
+    capped.lastIndexOf("! "),
+    capped.lastIndexOf("? "),
+  );
+  if (sentenceEnd > maxLen * 0.3) return capped.slice(0, sentenceEnd + 1);
+  // Otherwise fall back to the last word boundary + ellipsis
+  const lastSpace = capped.lastIndexOf(" ");
+  return (lastSpace > 0 ? capped.slice(0, lastSpace) : capped).trimEnd() + "…";
+}
 
 const SYSTEM_PROMPT = `You are Herald, an AI radio intelligence system for UK emergency services. Your job is to receive ambulance crew radio transmissions and generate structured ePRF (electronic Patient Report Form) records. You only process and document ambulance crew communications. If a transmission contains information from police or fire services, extract only what is clinically relevant to the ambulance crew's patient care. Do not generate records or fields for police or fire activity.
 
@@ -355,7 +375,7 @@ serve(async (req) => {
           protocol: "METHANE",
           priority: "P3",
           priority_label: "ROUTINE",
-          headline: transcript.substring(0, 80),
+          headline: buildFallbackHeadline(transcript),
           incident_type: "Unknown",
           major_incident: false,
           scene_location: "Not specified",
@@ -385,7 +405,7 @@ serve(async (req) => {
           protocol: "METHANE",
           priority: "P3",
           priority_label: "ROUTINE",
-          headline: transcript.substring(0, 80),
+          headline: buildFallbackHeadline(transcript),
           incident_type: "Unknown",
           major_incident: false,
           scene_location: "Not specified",
