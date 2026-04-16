@@ -219,8 +219,7 @@ function buildCasualtyEprf(cas: CasualtyData, inc: Incident, disposition: Dispos
 INCIDENT: ${incidentNum}
 DATE/TIME: ${dateStr} ${timeStr}
 CALLSIGN: ${inc.session_callsign ?? '—'}
-INCIDENT TYPE: ${a?.incident_type ?? a?.protocol ?? 'Unknown'}${a?.major_incident ? ' [MAJOR INCIDENT]' : ''}
-SCENE: ${a?.scene_location || 'Not specified'}
+INCIDENT TYPE: ${a?.incident_type ?? a?.protocol ?? 'Unknown'}SCENE: ${a?.scene_location || 'Not specified'}
 
 PATIENT: ${cas.label}
 PRIORITY: ${cas.priority}
@@ -335,8 +334,7 @@ function IncidentCard({ inc, onSelectCasualty, closedKeys, transferredKeys }: { 
           )}
           {inc.assessment?.incident_type && inc.assessment.incident_type !== 'Unknown' && (
             <p className="text-lg mb-2" style={{ color: col }}>
-              {inc.assessment.incident_type}{inc.assessment.major_incident ? ' [MAJOR]' : ''}
-            </p>
+              {inc.assessment.incident_type}            </p>
           )}
 
           {/* Casualty list */}
@@ -407,8 +405,7 @@ function IncidentDetailView({ inc, onBack, onSelectCasualty, closedKeys, transfe
           </p>
           {a?.incident_type && a.incident_type !== 'Unknown' && (
             <p className="text-lg" style={{ color: col }}>
-              {a.incident_type}{a.major_incident ? ' [MAJOR]' : ''}
-            </p>
+              {a.incident_type}            </p>
           )}
           {a?.scene_location && (
             <p className="text-lg text-foreground opacity-70 mt-1">📍 {a.scene_location}</p>

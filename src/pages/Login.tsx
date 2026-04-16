@@ -69,7 +69,7 @@ export default function Login() {
     } else if (data.some(r => r.role === 'admin')) {
       window.location.href = '/admin';
     } else if (data.some(r => r.role === 'command')) {
-      window.location.href = '/command';
+      window.location.href = '/operations';
     } else {
       setError('Account has no admin or command role. Roles: ' + data.map(r => r.role).join(', '));
     }

@@ -650,47 +650,7 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
         />
       </div>
 
-      {/* 1. ACTION ITEMS — first so command sees what needs response */}
-      {(activeActions.length > 0 || allResolved.length > 0) && (
-        <div>
-          <SectionLabel color="#FF9500">⚠ ACTION ITEMS</SectionLabel>
-          {activeActions.length > 0 && (
-            <div className="flex flex-col gap-2 mb-3">
-              {activeActions.map((item, i) => {
-                let text = '';
-                let openedAt = '';
-                try {
-                  text = typeof item === 'object' && item !== null ? String((item as any).text ?? JSON.stringify(item)) : String(item ?? '');
-                  openedAt = typeof item === 'object' && item !== null ? String((item as any).opened_at ?? '') : '';
-                } catch { text = 'Action item'; }
-                if (!openedAt) openedAt = String(report.created_at || report.timestamp || '');
-
-                return (
-                  <div key={i} className="rounded p-3 flex gap-3 items-start"
-                    style={{ background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.3)' }}>
-                    <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>{'⚠'}</span>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-lg text-foreground font-medium break-words">{text}</span>
-                      {openedAt ? (
-                        <span className="text-lg ml-2 opacity-60" style={{ color: '#FF9500' }}>{' — '}{formatActionAge(openedAt)}</span>
-                      ) : null}
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); resolveActionItem(i); }}
-                      className="flex-shrink-0 text-lg font-bold rounded-sm px-2 py-0.5 cursor-pointer transition-colors hover:opacity-80"
-                      style={{ color: '#34C759', border: '1px solid rgba(52,199,89,0.4)', background: 'rgba(52,199,89,0.08)' }}>
-                      {'RESOLVE'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {allResolved.length > 0 && <ResolvedSection items={allResolved} />}
-        </div>
-      )}
-
-      {/* 2. CASUALTIES */}
+      {/* CASUALTIES */}
       {atmist && Object.keys(atmist).length > 0 && (
         <div>
           <SectionLabel color="#1E90FF">CASUALTIES</SectionLabel>
@@ -790,31 +750,6 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
         );
       })()}
 
-      {/* METHANE */}
-      <div>
-        <SectionLabel color={col}>METHANE</SectionLabel>
-        <DetailCard>
-          <div className="flex flex-col gap-3">
-            {[
-              { key: 'M', label: 'Major incident', value: methane.M },
-              { key: 'E', label: 'Exact location', value: methane.E },
-              { key: 'T', label: 'Type of incident', value: methane.T },
-              { key: 'H', label: 'Hazards', value: methane.H },
-              { key: 'A', label: 'Access routes', value: methane.A_access },
-              { key: 'N', label: 'Number of casualties', value: methane.N },
-              { key: 'E2', label: 'Emergency services', value: methane.E_emergency },
-            ].map(({ key, label, value }) => (
-              <div key={key}>
-                <div className="flex gap-2">
-                  <span className="text-lg font-bold min-w-[24px]" style={{ color: col }}>{key === 'E2' ? 'E' : key}</span>
-                  <span className="text-lg font-bold" style={{ color: col }}>{label}</span>
-                </div>
-                <div className="text-lg text-foreground ml-8 break-words">{value || '—'}</div>
-              </div>
-            ))}
-          </div>
-        </DetailCard>
-      </div>
 
       {/* TRANSMISSION LOG */}
       {transmissions.length > 0 && (
@@ -888,22 +823,6 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
         </div>
       )}
 
-      {/* 7. Scene Access & Hazards */}
-      {(methane.A_access !== 'Not specified' || methane.H !== 'None reported') && (
-        <div>
-          <SectionLabel color={col}>SCENE ACCESS & HAZARDS</SectionLabel>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <DetailCard>
-              <div className="text-lg font-bold mb-1" style={{ color: col }}>ACCESS ROUTES</div>
-              <div className="text-lg text-foreground break-words">{methane.A_access}</div>
-            </DetailCard>
-            <DetailCard>
-              <div className="text-lg font-bold mb-1" style={{ color: col }}>HAZARDS</div>
-              <div className="text-lg text-foreground break-words">{methane.H}</div>
-            </DetailCard>
-          </div>
-        </div>
-      )}
 
       {/* Formatted Report */}
       {formattedReport && (
