@@ -229,15 +229,15 @@ export function TransferInitiate({ session, incident, casualty, onBack, onTransf
                     background: isSelected ? 'rgba(30,144,255,0.08)' : 'transparent',
                   }}>
                   <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold" style={{ color: isSelected ? '#1E90FF' : '#3DFF8C' }}>
+                    <span className="text-lg font-bold" style={{ color: isSelected ? '#1E90FF' : '#059669' }}>
                       {s.callsign}
                     </span>
                     <span className="text-lg text-foreground opacity-60">{s.service ?? ''}</span>
                     {s.vehicle_type && (
                       <span className="text-lg font-bold rounded-sm px-1.5 py-0.5 ml-auto"
                         style={{
-                          color: s.can_transport ? '#3DFF8C' : '#FF9500',
-                          border: `1px solid ${s.can_transport ? 'rgba(61,255,140,0.2)' : 'rgba(255,149,0,0.3)'}`,
+                          color: s.can_transport ? '#059669' : '#FF9500',
+                          border: `1px solid ${s.can_transport ? 'rgba(5,150,105,0.2)' : 'rgba(255,149,0,0.3)'}`,
                         }}>
                         {s.vehicle_type.toUpperCase()}
                       </span>
@@ -279,7 +279,7 @@ export function TransferInitiate({ session, incident, casualty, onBack, onTransf
 
       {/* Bottom action */}
       {selected && (
-        <div className="px-3 py-3 border-t border-border" style={{ background: '#1A1E24' }}>
+        <div className="px-3 py-3 border-t border-border" style={{ background: '#F5F5F0' }}>
           {confirming ? (
             <div className="p-3 rounded-lg" style={{ border: '2px solid #1E90FF', background: 'rgba(30,144,255,0.08)' }}>
               <p className="text-lg font-bold mb-1" style={{ color: '#1E90FF' }}>Transfer this patient?</p>

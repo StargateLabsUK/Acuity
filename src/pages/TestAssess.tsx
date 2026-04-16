@@ -197,11 +197,11 @@ function AssessmentView({ result }: { result: TransmissionResult }) {
 
         {/* Raw transcript */}
         <details className="mt-3">
-          <summary className="text-lg cursor-pointer" style={{ color: '#4A6058' }}>Show transcript + raw JSON</summary>
+          <summary className="text-lg cursor-pointer" style={{ color: '#666666' }}>Show transcript + raw JSON</summary>
           <div className="mt-2 rounded-lg border border-border bg-background p-3">
-            <p className="text-lg font-bold mb-1" style={{ color: '#4A6058' }}>TRANSCRIPT:</p>
+            <p className="text-lg font-bold mb-1" style={{ color: '#666666' }}>TRANSCRIPT:</p>
             <p className="text-lg text-foreground opacity-70 italic mb-3">"{result.transcript}"</p>
-            <p className="text-lg font-bold mb-1" style={{ color: '#4A6058' }}>RAW JSON:</p>
+            <p className="text-lg font-bold mb-1" style={{ color: '#666666' }}>RAW JSON:</p>
             <pre className="text-sm text-foreground opacity-60 whitespace-pre-wrap break-words font-mono">
               {JSON.stringify(a, null, 2)}
             </pre>
@@ -253,11 +253,11 @@ export default function TestAssess() {
   }, [transcript, sending, nextId]);
 
   return (
-    <div className="min-h-screen" style={{ background: '#1A1E24' }}>
+    <div className="min-h-screen" style={{ background: '#F5F5F0' }}>
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border" style={{ background: '#22272E' }}>
+      <div className="px-4 py-3 border-b border-border" style={{ background: '#EEEEE9' }}>
         <h1 className="text-lg font-bold tracking-[0.2em]" style={{ color: '#1E90FF' }}>
-          HERALD — ATMIST TEST
+          ACUITY — ATMIST TEST
         </h1>
         <p className="text-lg text-foreground opacity-50 mt-1">
           Type a transcript below and send it to the AI. Results show exactly as crew would see them.
@@ -265,7 +265,7 @@ export default function TestAssess() {
       </div>
 
       {/* Input area */}
-      <div className="px-4 py-4 border-b border-border" style={{ background: '#1A1E24' }}>
+      <div className="px-4 py-4 border-b border-border" style={{ background: '#F5F5F0' }}>
         <textarea
           value={transcript}
           onChange={e => setTranscript(e.target.value)}

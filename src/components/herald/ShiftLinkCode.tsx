@@ -158,7 +158,7 @@ export function ShiftLinkCode({ session }: Props) {
             letterSpacing: '0.1em',
             color: 'hsl(var(--muted-foreground))',
             background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.15)',
+            border: '1px solid rgba(0,0,0,0.12)',
             padding: '4px 10px',
             borderRadius: 3,
             cursor: 'pointer',

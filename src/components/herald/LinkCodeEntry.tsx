@@ -79,16 +79,16 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
     return (
       <div
         className="flex flex-col items-center justify-center min-h-screen px-4"
-        style={{ background: '#1A1E24' }}
+        style={{ background: '#F5F5F0' }}
       >
         <div className="w-full" style={{ maxWidth: 400 }}>
           <h1
             className="text-4xl font-bold tracking-[0.08em] text-center mb-1"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, color: '#FFFFFF' }}
+            style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: '0.25em', textTransform: 'uppercase' as const, color: '#1A1A1A' }}
           >
-            HERALD
+            ACUITY
           </h1>
-          <p style={{ color: '#4A6058', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
+          <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
             Real-time Field Intelligence
           </p>
           <p
@@ -111,9 +111,9 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
             placeholder="Your personal ID number"
             style={{
               width: '100%',
-              background: '#0D1117',
-              border: '1px solid #2A3A32',
-              color: '#E0E8E4',
+              background: '#FFFFFF',
+              border: '1px solid #E2E2DE',
+              color: '#1A1A1A',
               padding: '14px',
               borderRadius: 3,
               fontFamily: "'IBM Plex Mono', monospace",
@@ -137,7 +137,7 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
               padding: 12,
               background: 'transparent',
               border: collarNumber.trim()
-                ? '1px solid rgba(255,255,255,0.3)'
+                ? '1px solid rgba(0,0,0,0.15)'
                 : '1px solid #1E3028',
               color: collarNumber.trim() ? '#FFFFFF' : '#1E3028',
               fontFamily: "'IBM Plex Mono', monospace",
@@ -159,16 +159,16 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen px-4"
-      style={{ background: '#1A1E24' }}
+      style={{ background: '#F5F5F0' }}
     >
       <div className="w-full" style={{ maxWidth: 400 }}>
         <h1
           className="text-4xl font-bold tracking-[0.08em] text-center mb-1"
-          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, color: '#FFFFFF' }}
+          style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: '0.25em', textTransform: 'uppercase' as const, color: '#1A1A1A' }}
         >
-          HERALD
+          ACUITY
         </h1>
-        <p style={{ color: '#4A6058', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
+        <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
           Real-time Field Intelligence
         </p>
         <p
@@ -199,9 +199,9 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
               style={{
                 width: 52,
                 height: 64,
-                background: '#0D1117',
-                border: error ? '1px solid #FF3B30' : '1px solid #2A3A32',
-                color: '#FFFFFF',
+                background: '#FFFFFF',
+                border: error ? '1px solid #FF3B30' : '1px solid #E2E2DE',
+                color: '#1A1A1A',
                 fontSize: 28,
                 fontFamily: "'IBM Plex Mono', monospace",
                 fontWeight: 700,
@@ -220,7 +220,7 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
         )}
 
         {submitting && (
-          <p style={{ color: '#4A6058', fontSize: 14, textAlign: 'center', letterSpacing: '0.15em' }}>
+          <p style={{ color: '#666666', fontSize: 14, textAlign: 'center', letterSpacing: '0.15em' }}>
             LINKING...
           </p>
         )}
@@ -231,7 +231,7 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
             display: 'block',
             margin: '24px auto 0',
             fontSize: 14,
-            color: '#4A6058',
+            color: '#666666',
             background: 'transparent',
             border: 'none',
             cursor: 'pointer',

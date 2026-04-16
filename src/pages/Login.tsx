@@ -6,9 +6,9 @@ type LoginStep = 'credentials' | 'mfa-verify' | 'mfa-enroll';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: '#0D1117',
-  border: '1px solid #2A3A32',
-  color: '#E0E8E4',
+  background: '#FFFFFF',
+  border: '1px solid #E2E2DE',
+  color: '#1A1A1A',
   padding: '14px',
   borderRadius: 3,
   fontFamily: "'IBM Plex Mono', monospace",
@@ -149,11 +149,11 @@ export default function Login() {
     }
 
     // No MFA — enroll now
-    // FIX: Set issuer to 'Herald' so authenticator app shows correct name
+    // FIX: Set issuer to 'Acuity' so authenticator app shows correct name
     const { data: enrollData, error: enrollError } = await supabase.auth.mfa.enroll({
       factorType: 'totp',
-      friendlyName: 'Herald',
-      issuer: 'Herald',
+      friendlyName: 'Acuity',
+      issuer: 'Acuity',
     });
 
     if (enrollError || !enrollData) {
@@ -265,16 +265,16 @@ export default function Login() {
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen px-4"
-      style={{ background: '#1A1E24' }}
+      style={{ background: '#F5F5F0' }}
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
         <h1
           className="text-4xl font-bold tracking-[0.08em] text-center mb-1"
-          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, color: '#FFFFFF' }}
+          style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: '0.25em', textTransform: 'uppercase' as const, color: '#1A1A1A' }}
         >
-          HERALD
+          ACUITY
         </h1>
-        <p style={{ color: '#4A6058', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
+        <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
           Real-time Field Intelligence
         </p>
         <p
@@ -331,8 +331,8 @@ export default function Login() {
                 width: '100%',
                 padding: 12,
                 background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.3)',
-                color: '#FFFFFF',
+                border: '1px solid rgba(0,0,0,0.15)',
+                color: '#1A1A1A',
                 fontFamily: "'IBM Plex Mono', monospace",
                 fontSize: 14,
                 fontWeight: 500,
@@ -352,7 +352,7 @@ export default function Login() {
                 padding: 12,
                 background: 'transparent',
                 border: '1px solid #1E3028',
-                color: '#4A6058',
+                color: '#666666',
                 fontFamily: "'IBM Plex Mono', monospace",
                 fontSize: 13,
                 fontWeight: 500,
@@ -365,7 +365,7 @@ export default function Login() {
             </button>
 
             {showNhsMessage && (
-              <p style={{ color: '#4A6058', fontSize: 13, textAlign: 'center', marginTop: 12 }}>
+              <p style={{ color: '#666666', fontSize: 13, textAlign: 'center', marginTop: 12 }}>
                 Contact hello@arion.industries to set this up for your Trust
               </p>
             )}
@@ -375,7 +375,7 @@ export default function Login() {
         {/* STEP 2: MFA Verify (returning user with MFA) */}
         {step === 'mfa-verify' && (
           <>
-            <p style={{ color: '#C8D0CC', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
+            <p style={{ color: '#333333', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
               Open your authenticator app and enter the 6-digit code
             </p>
 
@@ -407,8 +407,8 @@ export default function Login() {
                 width: '100%',
                 padding: 12,
                 background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.3)',
-                color: '#FFFFFF',
+                border: '1px solid rgba(0,0,0,0.15)',
+                color: '#1A1A1A',
                 fontFamily: "'IBM Plex Mono', monospace",
                 fontSize: 14,
                 fontWeight: 500,
@@ -428,7 +428,7 @@ export default function Login() {
                 padding: 8,
                 background: 'transparent',
                 border: 'none',
-                color: '#4A6058',
+                color: '#666666',
                 fontFamily: "'IBM Plex Mono', monospace",
                 fontSize: 12,
                 cursor: 'pointer',
@@ -442,10 +442,10 @@ export default function Login() {
         {/* STEP 3: MFA Enrollment (first time) */}
         {step === 'mfa-enroll' && (
           <>
-            <p style={{ color: '#C8D0CC', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
+            <p style={{ color: '#333333', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
               Scan this QR code with your authenticator app
             </p>
-            <p style={{ color: '#4A6058', fontSize: 12, textAlign: 'center', marginBottom: 20 }}>
+            <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', marginBottom: 20 }}>
               Google Authenticator, Authy, or Microsoft Authenticator
             </p>
 
@@ -461,16 +461,16 @@ export default function Login() {
 
             {mfaSecret && (
               <div style={{ marginBottom: 20 }}>
-                <p style={{ color: '#4A6058', fontSize: 11, letterSpacing: '0.15em', textAlign: 'center', marginBottom: 4 }}>
+                <p style={{ color: '#666666', fontSize: 11, letterSpacing: '0.15em', textAlign: 'center', marginBottom: 4 }}>
                   OR ENTER THIS CODE MANUALLY
                 </p>
                 <p style={{
-                  color: '#C8D0CC',
+                  color: '#333333',
                   fontSize: 13,
                   textAlign: 'center',
                   fontFamily: "'IBM Plex Mono', monospace",
-                  background: '#0D1117',
-                  border: '1px solid #0F1820',
+                  background: '#FFFFFF',
+                  border: '1px solid #E2E2DE',
                   padding: '8px 12px',
                   borderRadius: 3,
                   wordBreak: 'break-all',
@@ -513,8 +513,8 @@ export default function Login() {
                 width: '100%',
                 padding: 12,
                 background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.3)',
-                color: '#FFFFFF',
+                border: '1px solid rgba(0,0,0,0.15)',
+                color: '#1A1A1A',
                 fontFamily: "'IBM Plex Mono', monospace",
                 fontSize: 14,
                 fontWeight: 500,
@@ -534,7 +534,7 @@ export default function Login() {
                 padding: 8,
                 background: 'transparent',
                 border: 'none',
-                color: '#4A6058',
+                color: '#666666',
                 fontFamily: "'IBM Plex Mono', monospace",
                 fontSize: 12,
                 cursor: 'pointer',

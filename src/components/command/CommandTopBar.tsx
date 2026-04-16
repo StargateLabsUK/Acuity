@@ -61,14 +61,14 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
   );
 
   return (
-    <div className="flex-shrink-0 border-b border-border" style={{ background: 'var(--herald-command-bg)' }}>
+    <div className="flex-shrink-0 border-b border-border" style={{ background: 'var(--acuity-command-bg)' }}>
       <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-3">
         <div className="flex items-center gap-2 md:gap-3">
           <div className="flex flex-col">
-            <span className="font-heading text-lg md:text-2xl text-foreground tracking-[0.08em]">
-              HERALD
+            <span className="font-logo text-lg md:text-2xl text-foreground">
+              ACUITY
             </span>
-            <span className="text-sm md:text-sm tracking-wide hidden sm:block" style={{ color: '#4A6058' }}>
+            <span className="text-sm md:text-sm tracking-wide hidden sm:block" style={{ color: '#666666' }}>
               Real-time Field Intelligence
             </span>
           </div>

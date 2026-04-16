@@ -182,14 +182,14 @@ export default function Command() {
 
 
   if (!authChecked) {
-    return <div className="min-h-screen" style={{ background: 'var(--herald-command-bg)' }} />;
+    return <div className="min-h-screen" style={{ background: 'var(--acuity-command-bg)' }} />;
   }
 
   const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} />;
 
   if (opsReport) {
     return (
-      <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
+      <div className="flex flex-col h-screen" style={{ background: 'var(--acuity-command-bg)' }}>
         {topBar}
         <div className="flex-1 overflow-hidden p-3 relative">
           <button
@@ -211,7 +211,7 @@ export default function Command() {
     // Detail expand → report + map side-by-side (same as ops report view)
     if (expandedPanel === 'detail' && selectedReport) {
       return (
-        <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
+        <div className="flex flex-col h-screen" style={{ background: 'var(--acuity-command-bg)' }}>
           {topBar}
           <div className="flex-1 overflow-hidden p-3 relative">
             <button
@@ -229,7 +229,7 @@ export default function Command() {
     }
 
     return (
-      <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
+      <div className="flex flex-col h-screen" style={{ background: 'var(--acuity-command-bg)' }}>
         {topBar}
         <div className="flex-1 overflow-hidden p-3 relative">
           <ExpandButton expanded onClick={() => setExpandedPanel(null)} />
@@ -246,7 +246,7 @@ export default function Command() {
   // DESKTOP
   if (viewMode === 'desktop') {
     return (
-      <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
+      <div className="flex flex-col h-screen" style={{ background: 'var(--acuity-command-bg)' }}>
         {topBar}
 
         <div className={`flex flex-col p-3 gap-3 ${desktopUpperTab !== 'status' ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
@@ -296,7 +296,7 @@ export default function Command() {
   if (viewMode === 'tablet') {
     const tabletTab = desktopUpperTab;
     return (
-      <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
+      <div className="flex flex-col h-screen" style={{ background: 'var(--acuity-command-bg)' }}>
         {topBar}
 
         <div className={`flex flex-col p-2 gap-2 ${tabletTab !== 'status' ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
@@ -344,7 +344,7 @@ export default function Command() {
 
   // MOBILE (already full-page tabs, no expand needed)
   return (
-    <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
+    <div className="flex flex-col h-screen" style={{ background: 'var(--acuity-command-bg)' }}>
       {topBar}
 
       <div className="flex-1 overflow-hidden">

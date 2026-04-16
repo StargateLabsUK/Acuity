@@ -771,7 +771,7 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend }: LiveTabProps) {
             </p>
           )}
           {isProcessing && capturedDuration > 0 && (
-            <p style={{ color: '#C8D0CC', fontSize: 20, fontWeight: 700 }}>
+            <p style={{ color: '#333333', fontSize: 20, fontWeight: 700 }}>
               CAPTURED: {formatDuration(capturedDuration)}
             </p>
           )}
@@ -818,12 +818,12 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend }: LiveTabProps) {
         {/* Bottom area — helper text / discard button */}
         <div className="flex flex-col items-center justify-start" style={{ height: 'calc(50% - 150px)', paddingTop: 24 }}>
           {isProcessing ? (
-            <p style={{ color: '#C8D0CC', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700, textAlign: 'center' }}>
+            <p style={{ color: '#333333', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700, textAlign: 'center' }}>
               TRANSCRIBING & ASSESSING
             </p>
           ) : isRecording ? (
             <div className="flex flex-col items-center gap-4">
-              <p style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
+              <p style={{ color: '#1A1A1A', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
                 TAP TO STOP
               </p>
               <button
@@ -831,8 +831,8 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend }: LiveTabProps) {
                 style={{
                   padding: '10px 28px',
                   background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  color: 'rgba(255,255,255,0.5)',
+                  border: '1px solid rgba(0,0,0,0.15)',
+                  color: 'rgba(0,0,0,0.4)',
                   fontSize: 16,
                   letterSpacing: '0.15em',
                   fontWeight: 600,
@@ -845,7 +845,7 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend }: LiveTabProps) {
             </div>
           ) : (
             <>
-              <p style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
+              <p style={{ color: '#1A1A1A', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
                 TAP TO START
               </p>
               {error && (
@@ -911,8 +911,8 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend }: LiveTabProps) {
             style={{
               padding: '10px 28px',
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: 'rgba(255,255,255,0.5)',
+              border: '1px solid rgba(0,0,0,0.15)',
+              color: 'rgba(0,0,0,0.4)',
               fontSize: 16,
               letterSpacing: '0.15em',
               fontWeight: 600,
@@ -956,12 +956,12 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend }: LiveTabProps) {
             fontSize: 24,
             letterSpacing: '0.15em',
             padding: '20px 0',
-            background: 'rgba(61,255,140,0.06)',
-            border: '1px solid rgba(61,255,140,0.2)',
+            background: 'rgba(5,150,105,0.06)',
+            border: '1px solid rgba(5,150,105,0.2)',
             color: 'hsl(var(--primary))',
             maxWidth: 480,
           }}
-        >✓ HERALDED — RETURN TO LISTEN</button>
+        >✓ SENT — RETURN TO LISTEN</button>
       </div>
     );
   }

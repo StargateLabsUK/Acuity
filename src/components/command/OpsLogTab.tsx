@@ -185,7 +185,7 @@ function ClinicalSnapshotView({ snapshot }: { snapshot: Record<string, unknown> 
           <div className="border border-border rounded p-2 space-y-1">
             {visibleAtmist.map(([label, val]) => (
               <div key={label} className="text-sm">
-                <span style={{ color: '#4A6058' }}>{label}: </span>
+                <span style={{ color: '#666666' }}>{label}: </span>
                 <span className="text-foreground">{val}</span>
               </div>
             ))}
@@ -298,7 +298,7 @@ function TransmissionEntry({ tx, index }: { tx: OpsTransmission; index: number }
         <span className="text-sm font-bold" style={{ color: 'hsl(var(--primary))' }}>#{index + 1}</span>
         <span className="text-sm text-muted-foreground">{fmtTime(tx.timestamp)}</span>
         {tx.session_callsign && (
-          <span className="text-sm font-semibold" style={badgeStyle('#3DFF8C')}>{tx.session_callsign}</span>
+          <span className="text-sm font-semibold" style={badgeStyle('#059669')}>{tx.session_callsign}</span>
         )}
         {p && <span className="text-sm font-bold" style={badgeStyle(col)}>{p}</span>}
       </div>
@@ -318,7 +318,7 @@ function TransmissionEntry({ tx, index }: { tx: OpsTransmission; index: number }
         </Expandable>
 
         {tx.assessment && (
-          <Expandable label="HERALD ASSESSMENT" color="#34C759">
+          <Expandable label="ACUITY ASSESSMENT" color="#34C759">
             <div className="mt-2 flex flex-col gap-3">
               {(() => {
                 const a = tx.assessment as unknown as Record<string, unknown>;
@@ -338,7 +338,7 @@ function TransmissionEntry({ tx, index }: { tx: OpsTransmission; index: number }
                               <div className="ml-2 flex flex-col gap-0.5">
                                 {Object.entries(casVal as Record<string, unknown>).map(([field, fv]) => (
                                   <div key={field} className="text-sm">
-                                    <span style={{ color: '#4A6058' }}>{field}:</span>{' '}
+                                    <span style={{ color: '#666666' }}>{field}:</span>{' '}
                                     <span className="text-foreground">{String(fv ?? '—')}</span>
                                   </div>
                                 ))}
@@ -376,7 +376,7 @@ function TransmissionEntry({ tx, index }: { tx: OpsTransmission; index: number }
                         <div className="ml-2 flex flex-col gap-0.5">
                           {Object.entries(val as Record<string, unknown>).map(([sk, sv]) => (
                             <div key={sk} className="text-sm">
-                              <span style={{ color: '#4A6058' }}>{sk.replace(/_/g, ' ')}:</span>{' '}
+                              <span style={{ color: '#666666' }}>{sk.replace(/_/g, ' ')}:</span>{' '}
                               <span className="text-foreground">{String(sv ?? '—')}</span>
                             </div>
                           ))}
@@ -683,7 +683,7 @@ function IncidentDetail({
                           <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#FF9500' }}>ATMIST</div>
                           {atmistFields.map(([label, val]) => (
                             <div key={label} className="text-sm">
-                              <span style={{ color: '#4A6058' }}>{label}: </span>
+                              <span style={{ color: '#666666' }}>{label}: </span>
                               <span className="text-foreground">{String(val)}</span>
                             </div>
                           ))}
@@ -714,25 +714,25 @@ function IncidentDetail({
                           </div>
                           {disposition.disposition === 'conveyed' && (disposition.fields as Record<string, unknown>)?.receiving_hospital && (
                             <div className="text-sm">
-                              <span style={{ color: '#4A6058' }}>Hospital: </span>
+                              <span style={{ color: '#666666' }}>Hospital: </span>
                               <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).receiving_hospital)}</span>
                             </div>
                           )}
                           {disposition.disposition === 'see_and_refer' && (disposition.fields as Record<string, unknown>)?.referral_destination && (
                             <div className="text-sm">
-                              <span style={{ color: '#4A6058' }}>Referred to: </span>
+                              <span style={{ color: '#666666' }}>Referred to: </span>
                               <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).referral_destination)}</span>
                             </div>
                           )}
                           {disposition.disposition === 'refused_transport' && (disposition.fields as Record<string, unknown>)?.capacity_assessment && (
                             <div className="text-sm">
-                              <span style={{ color: '#4A6058' }}>Capacity: </span>
+                              <span style={{ color: '#666666' }}>Capacity: </span>
                               <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).capacity_assessment)}</span>
                             </div>
                           )}
                           {(disposition.fields as Record<string, unknown>)?.notes && (
                             <div className="text-sm">
-                              <span style={{ color: '#4A6058' }}>Notes: </span>
+                              <span style={{ color: '#666666' }}>Notes: </span>
                               <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).notes)}</span>
                             </div>
                           )}
@@ -876,7 +876,7 @@ function IncidentCard({ report, dispositions, transfers, onClick }: {
         {report.confirmed_at && <span>→ {fmtTime(report.confirmed_at)}</span>}
         {casCount > 0 && <span>{casCount} casualt{casCount === 1 ? 'y' : 'ies'}</span>}
         {report.session_callsign && (
-          <span className="font-semibold" style={{ color: '#3DFF8C' }}>{report.session_callsign}</span>
+          <span className="font-semibold" style={{ color: '#059669' }}>{report.session_callsign}</span>
         )}
       </div>
     </button>

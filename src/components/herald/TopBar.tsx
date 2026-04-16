@@ -77,11 +77,11 @@ export function TopBar({ micStatus, aiStatus, syncStatus, queuedCount, onEndShif
       </div>
 
       {confirmEnd && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6" style={{ background: '#1A1E24' }}>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6" style={{ background: '#F5F5F0' }}>
           <span style={{ color: '#FF3B30', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 8 }}>
             END SHIFT?
           </span>
-          <p style={{ color: '#4A6058', fontSize: 18, textAlign: 'center', marginBottom: 40 }}>
+          <p style={{ color: '#666666', fontSize: 18, textAlign: 'center', marginBottom: 40 }}>
             This will end your current shift.
           </p>
           <button
@@ -94,7 +94,7 @@ export function TopBar({ micStatus, aiStatus, syncStatus, queuedCount, onEndShif
           <button
             onClick={() => setConfirmEnd(false)}
             className="w-full max-w-xs"
-            style={{ padding: 16, background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: '#C8D0CC', fontSize: 18, letterSpacing: '0.15em', borderRadius: 3, cursor: 'pointer' }}
+            style={{ padding: 16, background: 'transparent', border: '1px solid rgba(0,0,0,0.12)', color: '#333333', fontSize: 18, letterSpacing: '0.15em', borderRadius: 3, cursor: 'pointer' }}
           >
             CANCEL
           </button>

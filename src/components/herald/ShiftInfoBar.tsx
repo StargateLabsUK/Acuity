@@ -38,11 +38,11 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
 
   return (
     <>
-      <div className="flex-shrink-0 flex flex-col items-center pb-3 pt-0 gap-1" style={{ background: '#1A1E24', marginBottom: 8 }}>
-        <span style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase' as const }}>
+      <div className="flex-shrink-0 flex flex-col items-center pb-3 pt-0 gap-1" style={{ background: '#F5F5F0', marginBottom: 8 }}>
+        <span style={{ color: '#1A1A1A', fontSize: 18, letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase' as const }}>
           {getVehicleLabel(session.vehicle_type) || (SERVICE_LABELS[session.service] ?? session.service.toUpperCase())}
         </span>
-        <span style={{ color: '#C8D0CC', fontSize: 18, fontWeight: 700 }}>
+        <span style={{ color: '#333333', fontSize: 18, fontWeight: 700 }}>
           {session.callsign}
           {session.operator_id ? ` · ${session.operator_id}` : ''}
           {session.can_transport === false && (
@@ -50,7 +50,7 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
           )}
         </span>
         {session.station && (
-          <span style={{ color: '#4A6058', fontSize: 18 }}>
+          <span style={{ color: '#666666', fontSize: 18 }}>
             {session.station}
           </span>
         )}
@@ -62,7 +62,7 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
               marginTop: 8,
               padding: '8px 24px',
               background: '#FF3B30',
-              color: '#FFFFFF',
+              color: '#1A1A1A',
               fontSize: 18,
               fontWeight: 700,
               letterSpacing: '0.1em',
@@ -79,7 +79,7 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
       {confirming && (
         <div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
-          style={{ background: '#1A1E24' }}
+          style={{ background: '#F5F5F0' }}
         >
           <span style={{
             color: isLinkedDevice ? '#FF9500' : '#FF3B30',
@@ -90,7 +90,7 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
           }}>
             {isLinkedDevice ? 'LEAVE SHIFT?' : 'END SHIFT?'}
           </span>
-          <p style={{ color: '#4A6058', fontSize: 18, textAlign: 'center', marginBottom: 40 }}>
+          <p style={{ color: '#666666', fontSize: 18, textAlign: 'center', marginBottom: 40 }}>
             {isLinkedDevice
               ? `This will disconnect your device from ${session.callsign}. The shift will continue for other crew members.`
               : `This will end your current shift as ${session.callsign}.`}
@@ -120,8 +120,8 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
             style={{
               padding: 16,
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.15)',
-              color: '#C8D0CC',
+              border: '1px solid rgba(0,0,0,0.12)',
+              color: '#333333',
               fontSize: 18,
               letterSpacing: '0.15em',
               borderRadius: 3,

@@ -29,9 +29,9 @@ const TIME_OPTIONS = [
 
 const selectStyle: React.CSSProperties = {
   width: '100%',
-  background: '#0D1117',
-  border: '1px solid #0F1820',
-  color: '#C8D0CC',
+  background: '#FFFFFF',
+  border: '1px solid #E2E2DE',
+  color: '#333333',
   padding: '14px 16px',
   borderRadius: 3,
   fontSize: 20,
@@ -41,7 +41,7 @@ const selectStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  color: '#4A6058',
+  color: '#666666',
   fontSize: 20,
   letterSpacing: '0.15em',
   marginBottom: 6,
@@ -86,9 +86,9 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 px-2 py-1 rounded-sm cursor-pointer transition-colors"
         style={{
-          color: hasActiveFilter ? '#3DFF8C' : 'hsl(var(--foreground))',
-          border: `1px solid ${hasActiveFilter ? 'rgba(61,255,140,0.4)' : 'hsl(var(--border))'}`,
-          background: hasActiveFilter ? 'rgba(61,255,140,0.08)' : 'transparent',
+          color: hasActiveFilter ? '#059669' : 'hsl(var(--foreground))',
+          border: `1px solid ${hasActiveFilter ? 'rgba(5,150,105,0.4)' : 'hsl(var(--border))'}`,
+          background: hasActiveFilter ? 'rgba(5,150,105,0.08)' : 'transparent',
         }}
       >
         <SlidersHorizontal size={18} />
@@ -99,8 +99,8 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
           className="fixed left-0 right-0 z-50 shadow-xl"
           style={{
             top: dropdownTop,
-            background: '#0D1117',
-            borderBottom: '1px solid #0F1820',
+            background: '#FFFFFF',
+            borderBottom: '1px solid #E2E2DE',
             padding: '28px 32px',
           }}
         >

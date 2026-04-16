@@ -210,7 +210,7 @@ const IncidentsPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#1A1E24' }}>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F5F5F0' }}>
       <TopBar micStatus="granted" aiStatus="ok" syncStatus={syncStatus} queuedCount={queuedCount} onEndShift={handleEndShift} />
       <ShiftLinkCode session={session} />
 
@@ -231,7 +231,7 @@ const IncidentsPage = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ background: 'rgba(0,0,0,0.7)' }}>
           <div className="mx-4 w-full max-w-md rounded-xl p-6"
-            style={{ background: '#1A1E24', border: '2px solid #1E90FF' }}>
+            style={{ background: '#F5F5F0', border: '2px solid #1E90FF' }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="rounded-full p-3" style={{ background: 'rgba(30,144,255,0.15)' }}>
                 <Hospital size={28} style={{ color: '#1E90FF' }} />
@@ -303,14 +303,14 @@ function CrewTab({ session }: { session: import('@/lib/herald-session').HeraldSe
 
   return (
     <div className="flex-1 overflow-auto p-4">
-      <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.2em', color: '#4A6058', marginBottom: 16 }}>
+      <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.2em', color: '#666666', marginBottom: 16 }}>
         CREW ON SHIFT ({crew.filter(c => !c.left_at).length})
       </p>
 
       {loading ? (
-        <p style={{ color: '#4A6058', fontSize: 14 }}>Loading...</p>
+        <p style={{ color: '#666666', fontSize: 14 }}>Loading...</p>
       ) : crew.length === 0 ? (
-        <p style={{ color: '#4A6058', fontSize: 14 }}>No crew members linked yet. Share the link code above.</p>
+        <p style={{ color: '#666666', fontSize: 14 }}>No crew members linked yet. Share the link code above.</p>
       ) : (
         <div className="flex flex-col gap-2">
           {crew.map((c, i) => {
@@ -318,14 +318,14 @@ function CrewTab({ session }: { session: import('@/lib/herald-session').HeraldSe
             return (
               <div key={i} className="flex items-center justify-between p-3 rounded-lg border"
                 style={{
-                  background: isActive ? 'rgba(61,255,140,0.04)' : 'rgba(136,136,136,0.04)',
-                  borderColor: isActive ? 'rgba(61,255,140,0.15)' : 'rgba(136,136,136,0.15)',
+                  background: isActive ? 'rgba(5,150,105,0.04)' : 'rgba(136,136,136,0.04)',
+                  borderColor: isActive ? 'rgba(5,150,105,0.15)' : 'rgba(136,136,136,0.15)',
                 }}>
                 <div>
                   <p style={{ fontSize: 16, fontWeight: 700, color: isActive ? '#FFFFFF' : '#888' }}>
                     {c.operator_id || 'Unknown'}
                   </p>
-                  <p style={{ fontSize: 12, color: '#4A6058' }}>
+                  <p style={{ fontSize: 12, color: '#666666' }}>
                     {isActive ? 'Active' : 'Left shift'}
                     {c.used_at ? ` · joined ${new Date(c.used_at).toLocaleTimeString()}` : ''}
                   </p>

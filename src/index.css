@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,46 +6,46 @@
 
 @layer base {
   :root {
-    --background: 216 33% 5%;
-    --foreground: 0 0% 100%;
+    --background: 40 10% 96%;
+    --foreground: 0 0% 10%;
 
-    --card: 215 30% 7%;
-    --card-foreground: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
 
-    --popover: 215 30% 7%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
 
-    --primary: 147 100% 62%;
-    --primary-foreground: 216 33% 5%;
+    --primary: 147 70% 32%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 15% 14%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 40 5% 92%;
+    --secondary-foreground: 0 0% 10%;
 
-    --muted: 160 15% 27%;
-    --muted-foreground: 0 0% 100%;
+    --muted: 40 5% 85%;
+    --muted-foreground: 0 0% 40%;
 
-    --accent: 160 15% 14%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 40 5% 92%;
+    --accent-foreground: 0 0% 10%;
 
-    --destructive: 0 100% 60%;
+    --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 25% 9%;
-    --input: 200 25% 9%;
-    --ring: 147 100% 62%;
+    --border: 40 5% 88%;
+    --input: 40 5% 88%;
+    --ring: 147 70% 32%;
 
     --radius: 4px;
 
-    --herald-bg: #1A1E24;
-    --herald-surface: #0D1117;
-    --herald-command-bg: #1A1E24;
-    --herald-border: #0F1820;
-    --herald-text: #FFFFFF;
-    --herald-muted: #FFFFFF;
-    --herald-dim: #FFFFFF;
-    --herald-green: #3DFF8C;
-    --herald-red: #FF3B30;
-    --herald-amber: #FF9500;
+    --acuity-bg: #F5F5F0;
+    --acuity-surface: #FFFFFF;
+    --acuity-command-bg: #F5F5F0;
+    --acuity-border: #E2E2DE;
+    --acuity-text: #1A1A1A;
+    --acuity-muted: #666666;
+    --acuity-dim: #999999;
+    --acuity-green: #059669;
+    --acuity-red: #DC2626;
+    --acuity-amber: #D97706;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -64,8 +64,8 @@
   }
 
   body {
-    background: var(--herald-bg);
-    color: var(--herald-text);
+    background: var(--acuity-bg);
+    color: var(--acuity-text);
     font-family: 'Inter', sans-serif;
     font-size: 18px;
     -webkit-font-smoothing: antialiased;
@@ -92,6 +92,13 @@
   .font-mono {
     font-family: 'Inter', sans-serif;
   }
+
+  .font-logo {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+  }
 }
 
 @keyframes breathe {
@@ -104,7 +111,7 @@
   100% { transform: scale(2); opacity: 0; }
 }
 
-@keyframes spin-herald {
+@keyframes spin-acuity {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
@@ -117,8 +124,8 @@
   animation: pulse-ring 1.2s ease-out infinite;
 }
 
-.animate-spin-herald {
-  animation: spin-herald 0.8s linear infinite;
+.animate-spin-acuity {
+  animation: spin-acuity 0.8s linear infinite;
 }
 
 @keyframes shimmer {

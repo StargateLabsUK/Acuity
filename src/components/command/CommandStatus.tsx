@@ -109,7 +109,7 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
                     <span className="text-lg text-foreground font-bold">{s.callsign ?? '—'}</span>
                     {vtBadge && (
                       <span className="text-lg font-bold rounded-sm px-1 py-0.5"
-                        style={{ color: s.can_transport ? '#3DFF8C' : '#FF9500', border: `1px solid ${s.can_transport ? 'rgba(61,255,140,0.2)' : 'rgba(255,149,0,0.3)'}` }}>
+                        style={{ color: s.can_transport ? '#059669' : '#FF9500', border: `1px solid ${s.can_transport ? 'rgba(5,150,105,0.2)' : 'rgba(255,149,0,0.3)'}` }}>
                         {vtBadge}
                       </span>
                     )}
@@ -191,7 +191,7 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
                     <span className="text-lg text-foreground font-bold">{s.callsign ?? '—'}</span>
                     {vtBadge && (
                       <span className="text-lg font-bold rounded-sm px-1 py-0.5"
-                        style={{ color: s.can_transport ? '#3DFF8C' : '#FF9500', border: `1px solid ${s.can_transport ? 'rgba(61,255,140,0.2)' : 'rgba(255,149,0,0.3)'}` }}>
+                        style={{ color: s.can_transport ? '#059669' : '#FF9500', border: `1px solid ${s.can_transport ? 'rgba(5,150,105,0.2)' : 'rgba(255,149,0,0.3)'}` }}>
                         {vtBadge}
                       </span>
                     )}

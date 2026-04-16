@@ -105,7 +105,7 @@ export function PendingTransfers({ session, onTransferAccepted }: Props) {
                   </div>
 
                   <div className="flex items-center gap-2 text-lg text-foreground opacity-70 mb-2">
-                    <span className="font-bold" style={{ color: '#3DFF8C' }}>{t.from_callsign}</span>
+                    <span className="font-bold" style={{ color: '#059669' }}>{t.from_callsign}</span>
                     <ArrowRight size={16} />
                     <span className="font-bold" style={{ color: '#1E90FF' }}>{session.callsign}</span>
                     <span className="ml-auto opacity-50">{getTime(t.initiated_at)}</span>

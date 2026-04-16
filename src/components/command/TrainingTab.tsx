@@ -17,7 +17,7 @@ function CopyBtn({ text }: { text: string }) {
         setTimeout(() => setCopied(false), 2000);
       }}
       className="text-lg tracking-[0.15em] font-bold px-3 py-1 rounded-sm bg-transparent cursor-pointer"
-      style={{ color: '#3DFF8C', border: '1px solid rgba(61,255,140,0.3)' }}
+      style={{ color: '#059669', border: '1px solid rgba(5,150,105,0.3)' }}
     >
       {copied ? 'COPIED' : 'COPY RECOMMENDATIONS'}
     </button>
@@ -80,7 +80,7 @@ export function TrainingTab({ reports }: Props) {
   return (
     <div className="flex flex-col h-full overflow-y-auto px-3 md:px-4 py-3" style={{ scrollbarWidth: 'thin' }}>
       {/* Section 1: Edit Summary */}
-      <p className="text-lg font-bold tracking-[0.25em] mb-3" style={{ color: '#3DFF8C' }}>
+      <p className="text-lg font-bold tracking-[0.25em] mb-3" style={{ color: '#059669' }}>
         EDIT SUMMARY
       </p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
@@ -89,7 +89,7 @@ export function TrainingTab({ reports }: Props) {
           <div className="text-lg tracking-[0.15em] text-foreground opacity-70 mt-1">CONFIRMED</div>
         </div>
         <div className="px-3 py-2.5 rounded border border-border bg-card text-center">
-          <div className="text-2xl font-bold" style={{ color: '#3DFF8C' }}>{noEditPct}%</div>
+          <div className="text-2xl font-bold" style={{ color: '#059669' }}>{noEditPct}%</div>
           <div className="text-lg tracking-[0.15em] text-foreground opacity-70 mt-1">AI CORRECT</div>
         </div>
         <div className="px-3 py-2.5 rounded border border-border bg-card text-center">
@@ -97,7 +97,7 @@ export function TrainingTab({ reports }: Props) {
           <div className="text-lg tracking-[0.15em] text-foreground opacity-70 mt-1">AI CORRECTED</div>
         </div>
         <div className="px-3 py-2.5 rounded border border-border bg-card text-center">
-          <div className="text-lg font-bold mt-1" style={{ color: '#C8D0CC' }}>{topField}</div>
+          <div className="text-lg font-bold mt-1" style={{ color: '#333333' }}>{topField}</div>
           <div className="text-lg tracking-[0.15em] text-foreground opacity-70 mt-1">MOST CORRECTED</div>
         </div>
       </div>
@@ -122,12 +122,12 @@ export function TrainingTab({ reports }: Props) {
               <div
                 key={r.id}
                 className="mb-2 rounded"
-                style={{ border: '1px solid #0F1820', padding: '14px' }}
+                style={{ border: '1px solid #E2E2DE', padding: '14px' }}
               >
                 {/* Top row */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{SERVICE_LABELS[service] ?? service}</span>
+                    <span className="text-lg uppercase font-bold" style={{ color: '#666666' }}>{SERVICE_LABELS[service] ?? service}</span>
                     <span className="text-lg font-bold text-foreground">{callsign}</span>
                   </div>
                   <span className="text-lg text-foreground opacity-70">{time}</span>
@@ -171,10 +171,10 @@ export function TrainingTab({ reports }: Props) {
                   <div key={c.field} className="mb-1.5">
                     <div className="flex gap-2">
                       <span className="text-lg tracking-[0.1em]" style={{ color: '#1E3028' }}>ORIGINAL</span>
-                      <span className="text-lg italic" style={{ color: '#4A6058' }}>{c.original || '—'}</span>
+                      <span className="text-lg italic" style={{ color: '#666666' }}>{c.original || '—'}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="text-lg tracking-[0.1em]" style={{ color: '#3DFF8C' }}>CORRECTED</span>
+                      <span className="text-lg tracking-[0.1em]" style={{ color: '#059669' }}>CORRECTED</span>
                       <span className="text-lg" style={{ color: '#8A9890' }}>{c.corrected || '—'}</span>
                     </div>
                   </div>
@@ -191,9 +191,9 @@ export function TrainingTab({ reports }: Props) {
           onClick={analyseWithAI}
           className="w-full text-left cursor-pointer mb-4"
           style={{
-            background: 'rgba(61,255,140,0.06)',
-            border: '1px solid #3DFF8C',
-            color: '#3DFF8C',
+            background: 'rgba(5,150,105,0.06)',
+            border: '1px solid #059669',
+            color: '#059669',
             padding: '14px',
             fontFamily: "'IBM Plex Mono', monospace",
             fontSize: '18px',
@@ -219,10 +219,10 @@ export function TrainingTab({ reports }: Props) {
       {analysis && (
         <div
           className="mb-4 rounded"
-          style={{ border: '1px solid rgba(61,255,140,0.2)', padding: '16px' }}
+          style={{ border: '1px solid rgba(5,150,105,0.2)', padding: '16px' }}
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-lg tracking-[0.25em] font-bold" style={{ color: '#3DFF8C' }}>
+            <span className="text-lg tracking-[0.25em] font-bold" style={{ color: '#059669' }}>
               AI TRAINING ANALYSIS
             </span>
             <CopyBtn text={analysis} />

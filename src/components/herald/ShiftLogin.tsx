@@ -12,9 +12,9 @@ interface Props {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: '#0D1117',
-  border: '1px solid #2A3A32',
-  color: '#C8D0CC',
+  background: '#FFFFFF',
+  border: '1px solid #E2E2DE',
+  color: '#333333',
   padding: '14px',
   borderRadius: 3,
   fontFamily: "'IBM Plex Mono', monospace",
@@ -123,18 +123,18 @@ export function ShiftLogin({ onShiftStarted }: Props) {
     return (
       <div
         className="flex flex-col items-center justify-center min-h-screen px-4"
-        style={{ background: '#1A1E24' }}
+        style={{ background: '#F5F5F0' }}
       >
         <div className="w-full" style={{ maxWidth: 400 }}>
           <h1
             className="text-2xl font-bold tracking-[0.08em] text-center mb-1"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, color: '#FFFFFF' }}
+            style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: '0.25em', textTransform: 'uppercase' as const, color: '#1A1A1A' }}
           >
-            HERALD
+            ACUITY
           </h1>
           <p
             style={{
-              color: '#4A6058',
+              color: '#666666',
               fontSize: 14,
               letterSpacing: '0.25em',
               textAlign: 'center',
@@ -160,9 +160,9 @@ export function ShiftLogin({ onShiftStarted }: Props) {
                 style={{
                   width: 52,
                   height: 64,
-                  background: '#0D1117',
-                  border: linkError ? '1px solid #FF3B30' : '1px solid #0F1820',
-                  color: '#FFFFFF',
+                  background: '#FFFFFF',
+                  border: linkError ? '1px solid #FF3B30' : '1px solid #E2E2DE',
+                  color: '#1A1A1A',
                   fontSize: 28,
                   fontFamily: "'IBM Plex Mono', monospace",
                   fontWeight: 700,
@@ -181,7 +181,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
           )}
 
           {linkSubmitting && (
-            <p style={{ color: '#4A6058', fontSize: 14, textAlign: 'center', letterSpacing: '0.15em' }}>
+            <p style={{ color: '#666666', fontSize: 14, textAlign: 'center', letterSpacing: '0.15em' }}>
               LINKING...
             </p>
           )}
@@ -192,7 +192,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
               display: 'block',
               margin: '24px auto 0',
               fontSize: 14,
-              color: '#4A6058',
+              color: '#666666',
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
@@ -210,13 +210,13 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen px-4"
-      style={{ background: '#1A1E24' }}
+      style={{ background: '#F5F5F0' }}
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
         <h1 className="font-heading text-4xl text-foreground tracking-[0.08em] text-center mb-1">
-          HERALD
+          ACUITY
         </h1>
-        <p style={{ color: '#4A6058', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
+        <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
           Real-time Field Intelligence
         </p>
         <p
@@ -242,7 +242,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
           }}
         >
           <span style={{ color: 'hsl(147, 100%, 62%)', fontSize: 14, fontWeight: 600 }}>✓</span>
-          <span style={{ color: '#C8D0CC', fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>
+          <span style={{ color: '#333333', fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>
             Trust: {trust.trust_name}
           </span>
         </div>
@@ -289,7 +289,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
             width: '100%',
             padding: 12,
             background: 'transparent',
-            border: canSubmit ? '1px solid rgba(255,255,255,0.3)' : '1px solid #2A3A32',
+            border: canSubmit ? '1px solid rgba(0,0,0,0.15)' : '1px solid #E2E2DE',
             color: canSubmit ? '#FFFFFF' : '#4A6058',
             fontFamily: "'IBM Plex Mono', monospace",
             fontSize: 14,

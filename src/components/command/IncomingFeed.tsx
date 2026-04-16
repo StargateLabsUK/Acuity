@@ -109,7 +109,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                   <span className="text-lg text-foreground flex-shrink-0" style={{ minWidth: 56 }}>
                     {getTime(r)}
                   </span>
-                  <span className="text-lg uppercase font-bold flex-shrink-0" style={{ color: '#4A6058' }}>
+                  <span className="text-lg uppercase font-bold flex-shrink-0" style={{ color: '#666666' }}>
                     {SERVICE_LABELS[getService(r)] ?? getService(r)}
                   </span>
                   {(r as any).status === 'closed' ? (
@@ -135,7 +135,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                   {(r.session_callsign || getCallsign(r)) && (
                     <span
                       className="text-lg font-semibold rounded-sm px-1.5 py-0.5 flex-shrink-0"
-                      style={{ color: '#3DFF8C', border: '1px solid rgba(61,255,140,0.2)' }}
+                      style={{ color: '#059669', border: '1px solid rgba(5,150,105,0.2)' }}
                     >
                       {r.session_callsign || getCallsign(r)}
                     </span>
@@ -144,7 +144,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                     const vtCode = (r as any).vehicle_type;
                     const vt = getVehicleType(vtCode);
                     if (!vt) return null;
-                    const badgeColor = vt.can_transport ? '#3DFF8C' : '#FF9500';
+                    const badgeColor = vt.can_transport ? '#059669' : '#FF9500';
                     return (
                       <span
                         className="text-lg font-bold rounded-sm px-1.5 py-0.5 flex-shrink-0"
@@ -226,7 +226,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                   <div className="flex items-center gap-2 flex-wrap">
                     {(r.session_callsign || getCallsign(r)) && (
                       <span className="text-lg font-semibold rounded-sm px-1.5 py-0.5 flex-shrink-0"
-                        style={{ color: '#3DFF8C', border: '1px solid rgba(61,255,140,0.2)' }}>
+                        style={{ color: '#059669', border: '1px solid rgba(5,150,105,0.2)' }}>
                         {r.session_callsign || getCallsign(r)}
                       </span>
                     )}

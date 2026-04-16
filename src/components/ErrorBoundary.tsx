@@ -29,15 +29,15 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div
           className="flex flex-col items-center justify-center min-h-screen px-4"
-          style={{ background: '#1A1E24' }}
+          style={{ background: '#F5F5F0' }}
         >
           <h1
             className="text-xl font-bold tracking-[0.08em] text-center mb-4"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", color: '#FFFFFF' }}
+            style={{ fontFamily: "'Manrope', sans-serif", color: '#1A1A1A' }}
           >
-            HERALD
+            ACUITY
           </h1>
-          <p style={{ color: '#4A6058', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
+          <p style={{ color: '#666666', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
             Something went wrong. Please refresh the page.
           </p>
           <button
@@ -45,8 +45,8 @@ export class ErrorBoundary extends Component<Props, State> {
             style={{
               padding: '10px 24px',
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.3)',
-              color: '#FFFFFF',
+              border: '1px solid rgba(0,0,0,0.15)',
+              color: '#1A1A1A',
               fontFamily: "'IBM Plex Mono', monospace",
               fontSize: 14,
               cursor: 'pointer',

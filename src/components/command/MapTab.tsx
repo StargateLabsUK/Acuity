@@ -123,7 +123,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       const callsignEl = document.createElement('span');
       callsignEl.textContent = String(r.session_callsign ?? '');
       callsignEl.style.fontWeight = '600';
-      callsignEl.style.color = '#3DFF8C';
+      callsignEl.style.color = '#059669';
 
       priorityRow.append(priorityBadge, timeEl, callsignEl);
 
@@ -244,7 +244,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
                       <span className="text-sm font-bold px-1.5 py-0.5 rounded" style={{ color, border: `1px solid ${color}66` }}>{p}</span>
                       <span className="text-sm text-foreground">{timeStr}</span>
                       {r.session_callsign && (
-                        <span className="text-sm font-semibold" style={{ color: '#3DFF8C' }}>{String(r.session_callsign)}</span>
+                        <span className="text-sm font-semibold" style={{ color: '#059669' }}>{String(r.session_callsign)}</span>
                       )}
                     </div>
                     <div className="text-sm text-foreground" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>

@@ -56,14 +56,14 @@ const tabStyle = (active: boolean): React.CSSProperties => ({
 
 const cellStyle: React.CSSProperties = {
   padding: '10px 14px',
-  borderBottom: '1px solid #0F1820',
+  borderBottom: '1px solid #E2E2DE',
   fontSize: 14,
-  color: '#C8D0CC',
+  color: '#333333',
 };
 
 const headerCellStyle: React.CSSProperties = {
   ...cellStyle,
-  color: '#4A6058',
+  color: '#666666',
   fontSize: 12,
   letterSpacing: '0.15em',
   fontWeight: 600,
@@ -73,7 +73,7 @@ const btnSmall: React.CSSProperties = {
   padding: '4px 12px',
   background: 'transparent',
   border: '1px solid #1E3028',
-  color: '#C8D0CC',
+  color: '#333333',
   fontSize: 12,
   borderRadius: 3,
   cursor: 'pointer',
@@ -81,9 +81,9 @@ const btnSmall: React.CSSProperties = {
 };
 
 const inputSmall: React.CSSProperties = {
-  background: '#0D1117',
-  border: '1px solid #0F1820',
-  color: '#C8D0CC',
+  background: '#FFFFFF',
+  border: '1px solid #E2E2DE',
+  color: '#333333',
   padding: '8px 12px',
   borderRadius: 3,
   fontFamily: "'IBM Plex Mono', monospace",
@@ -332,8 +332,8 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen" style={{ background: '#1A1E24' }}>
-        <p style={{ color: '#4A6058', letterSpacing: '0.15em' }}>LOADING...</p>
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#F5F5F0' }}>
+        <p style={{ color: '#666666', letterSpacing: '0.15em' }}>LOADING...</p>
       </div>
     );
   }
@@ -353,12 +353,12 @@ export default function Admin() {
   const adminTabs: AdminTab[] = ['my-trust', 'users', 'audit', 'devices'];
 
   return (
-    <div className="min-h-screen" style={{ background: '#1A1E24' }}>
+    <div className="min-h-screen" style={{ background: '#F5F5F0' }}>
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#2A3A32' }}>
         <div className="flex items-center gap-4">
-          <span style={{ color: '#FFFFFF', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, letterSpacing: '0.08em' }}>
-            HERALD
+          <span style={{ color: '#1A1A1A', fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: '0.25em', textTransform: 'uppercase' as const, fontSize: 28, letterSpacing: '0.08em' }}>
+            ACUITY
           </span>
           <span style={{ color: '#8A9B94', fontSize: 12, letterSpacing: '0.15em' }}>
             {role === 'owner' ? 'OWNER ADMIN' : 'TRUST ADMIN'}
@@ -393,11 +393,11 @@ export default function Admin() {
         {/* ═══════════════ OWNER: TRUSTS TAB ═══════════════ */}
         {role === 'owner' && ownerTab === 'trusts' && (
           <div>
-            <div className="mb-6 p-4 rounded" style={{ background: '#0D1117', border: '1px solid #0F1820' }}>
-              <p style={{ color: '#4A6058', fontSize: 12, letterSpacing: '0.15em', marginBottom: 12 }}>ADD NEW TRUST</p>
+            <div className="mb-6 p-4 rounded" style={{ background: '#FFFFFF', border: '1px solid #E2E2DE' }}>
+              <p style={{ color: '#666666', fontSize: 12, letterSpacing: '0.15em', marginBottom: 12 }}>ADD NEW TRUST</p>
               <div className="flex gap-3 items-end flex-wrap">
                 <div>
-                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>NAME</label>
+                  <label style={{ color: '#666666', fontSize: 11, display: 'block', marginBottom: 4 }}>NAME</label>
                   <input
                     value={newTrustName}
                     onChange={(e) => setNewTrustName(e.target.value)}
@@ -406,7 +406,7 @@ export default function Admin() {
                   />
                 </div>
                 <div>
-                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>SLUG</label>
+                  <label style={{ color: '#666666', fontSize: 11, display: 'block', marginBottom: 4 }}>SLUG</label>
                   <input
                     value={newTrustSlug}
                     onChange={(e) => setNewTrustSlug(e.target.value)}
@@ -473,13 +473,13 @@ export default function Admin() {
         {role === 'admin' && adminTab === 'my-trust' && (
           <div>
             {myTrust ? (
-              <div className="p-4 rounded" style={{ background: '#0D1117', border: '1px solid #0F1820' }}>
+              <div className="p-4 rounded" style={{ background: '#FFFFFF', border: '1px solid #E2E2DE' }}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <p style={{ color: '#4A6058', fontSize: 12, letterSpacing: '0.15em', marginBottom: 8 }}>TRUST DETAILS</p>
-                    <p style={{ color: '#FFFFFF', fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{myTrust.name}</p>
-                    <p style={{ color: '#4A6058', fontSize: 13 }}>Slug: {myTrust.slug}</p>
-                    <p style={{ color: '#4A6058', fontSize: 13 }}>Created: {new Date(myTrust.created_at).toLocaleDateString()}</p>
+                    <p style={{ color: '#666666', fontSize: 12, letterSpacing: '0.15em', marginBottom: 8 }}>TRUST DETAILS</p>
+                    <p style={{ color: '#1A1A1A', fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{myTrust.name}</p>
+                    <p style={{ color: '#666666', fontSize: 13 }}>Slug: {myTrust.slug}</p>
+                    <p style={{ color: '#666666', fontSize: 13 }}>Created: {new Date(myTrust.created_at).toLocaleDateString()}</p>
                     <p style={{ color: myTrust.active ? 'hsl(147, 100%, 62%)' : '#FF3B30', fontSize: 13, marginTop: 4 }}>
                       {myTrust.active ? 'ACTIVE' : 'INACTIVE'}
                     </p>
@@ -495,7 +495,7 @@ export default function Admin() {
                 </div>
               </div>
             ) : (
-              <p style={{ color: '#4A6058' }}>No trust assigned to your account.</p>
+              <p style={{ color: '#666666' }}>No trust assigned to your account.</p>
             )}
           </div>
         )}
@@ -503,13 +503,13 @@ export default function Admin() {
         {/* ═══════════════ USERS TAB (both roles) ═══════════════ */}
         {activeTab === 'users' && (
           <div>
-            <div className="mb-6 p-4 rounded" style={{ background: '#0D1117', border: '1px solid #0F1820' }}>
-              <p style={{ color: '#4A6058', fontSize: 12, letterSpacing: '0.15em', marginBottom: 12 }}>
+            <div className="mb-6 p-4 rounded" style={{ background: '#FFFFFF', border: '1px solid #E2E2DE' }}>
+              <p style={{ color: '#666666', fontSize: 12, letterSpacing: '0.15em', marginBottom: 12 }}>
                 {role === 'owner' ? 'ADD NEW USER' : 'ADD COMMAND USER'}
               </p>
               <div className="flex gap-3 items-end flex-wrap">
                 <div>
-                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>EMAIL</label>
+                  <label style={{ color: '#666666', fontSize: 11, display: 'block', marginBottom: 4 }}>EMAIL</label>
                   <input
                     value={newUserEmail}
                     onChange={(e) => setNewUserEmail(e.target.value)}
@@ -519,7 +519,7 @@ export default function Admin() {
                   />
                 </div>
                 <div>
-                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>PASSWORD</label>
+                  <label style={{ color: '#666666', fontSize: 11, display: 'block', marginBottom: 4 }}>PASSWORD</label>
                   <input
                     value={newUserPassword}
                     onChange={(e) => setNewUserPassword(e.target.value)}
@@ -529,7 +529,7 @@ export default function Admin() {
                   />
                 </div>
                 <div>
-                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>FULL NAME</label>
+                  <label style={{ color: '#666666', fontSize: 11, display: 'block', marginBottom: 4 }}>FULL NAME</label>
                   <input
                     value={newUserName}
                     onChange={(e) => setNewUserName(e.target.value)}
@@ -541,7 +541,7 @@ export default function Admin() {
                 {role === 'owner' && (
                   <>
                     <div>
-                      <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>TRUST</label>
+                      <label style={{ color: '#666666', fontSize: 11, display: 'block', marginBottom: 4 }}>TRUST</label>
                       <select
                         value={newUserTrust}
                         onChange={(e) => setNewUserTrust(e.target.value)}
@@ -554,7 +554,7 @@ export default function Admin() {
                       </select>
                     </div>
                     <div>
-                      <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>ROLE</label>
+                      <label style={{ color: '#666666', fontSize: 11, display: 'block', marginBottom: 4 }}>ROLE</label>
                       <select
                         value={newUserRole}
                         onChange={(e) => setNewUserRole(e.target.value as 'admin' | 'command')}
@@ -649,13 +649,13 @@ export default function Admin() {
                         <td style={cellStyle}>{new Date(a.created_at).toLocaleString()}</td>
                         <td style={cellStyle}>{a.user_email || '—'}</td>
                         <td style={cellStyle}>{a.action}</td>
-                        <td style={{ ...cellStyle, textAlign: 'center', fontSize: 12, color: '#4A6058' }}>
+                        <td style={{ ...cellStyle, textAlign: 'center', fontSize: 12, color: '#666666' }}>
                           {isExpanded ? '▲' : '▼'}
                         </td>
                       </tr>
                       {isExpanded && a.details && (
                         <tr>
-                          <td colSpan={4} style={{ padding: 0, borderBottom: '1px solid #0F1820' }}>
+                          <td colSpan={4} style={{ padding: 0, borderBottom: '1px solid #E2E2DE' }}>
                             <div style={{
                               padding: '16px 20px',
                               background: 'rgba(13, 17, 23, 0.6)',
@@ -665,15 +665,15 @@ export default function Admin() {
                             }}>
                               {Object.entries(a.details).map(([key, val]) => (
                                 <div key={key} style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
-                                  <div style={{ fontSize: 11, color: '#4A6058', letterSpacing: '0.1em', marginBottom: 2, textTransform: 'uppercase' }}>
+                                  <div style={{ fontSize: 11, color: '#666666', letterSpacing: '0.1em', marginBottom: 2, textTransform: 'uppercase' }}>
                                     {key.replace(/_/g, ' ')}
                                   </div>
                                   <div style={{
                                     fontSize: 13,
-                                    color: '#C8D0CC',
+                                    color: '#333333',
                                     wordBreak: 'break-all',
-                                    background: 'rgba(255,255,255,0.03)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
+                                    background: 'rgba(0,0,0,0.02)',
+                                    border: '1px solid rgba(0,0,0,0.06)',
                                     borderRadius: 3,
                                     padding: '6px 8px',
                                   }}>
@@ -691,7 +691,7 @@ export default function Admin() {
                       )}
                       {isExpanded && !a.details && (
                         <tr>
-                          <td colSpan={4} style={{ ...cellStyle, color: '#4A6058', fontStyle: 'italic' }}>
+                          <td colSpan={4} style={{ ...cellStyle, color: '#666666', fontStyle: 'italic' }}>
                             No details available
                           </td>
                         </tr>
@@ -701,7 +701,7 @@ export default function Admin() {
                 })}
                 {filteredAudit.length === 0 && (
                   <tr>
-                    <td colSpan={4} style={{ ...cellStyle, textAlign: 'center', color: '#4A6058' }}>
+                    <td colSpan={4} style={{ ...cellStyle, textAlign: 'center', color: '#666666' }}>
                       No audit entries found
                     </td>
                   </tr>
