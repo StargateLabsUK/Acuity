@@ -34,6 +34,20 @@ const IncidentsPage = () => {
   const [session, setSession] = useState<HeraldSession | null>(null);
 
   useEffect(() => {
+    // TEST BYPASS: ?bypass=true skips login and injects a test session
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('bypass') === 'true') {
+      setSession({
+        service: 'ambulance',
+        service_emoji: '🚑',
+        callsign: 'TEST-01',
+        operator_id: 'TEST',
+        station: null,
+        session_date: new Date().toISOString().slice(0, 10),
+        shift_started: new Date().toISOString(),
+      });
+      return;
+    }
     getSession().then(setSession);
   }, []);
   const [incidentRefresh, setIncidentRefresh] = useState(0);
