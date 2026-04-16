@@ -124,16 +124,25 @@ export async function redeemLinkCode(
   operator_id?: string,
 ): Promise<{ session_data: HeraldSession } | { error: string }> {
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/link-shift`, {
+    const url = `${SUPABASE_URL}/functions/v1/link-shift`;
+    const res = await fetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify({ action: 'redeem', code, operator_id: operator_id ?? null }),
     });
+    if (!res.ok) {
+      let errMsg = `Server error (${res.status})`;
+      try {
+        const data = await res.json();
+        errMsg = data.error ?? errMsg;
+      } catch { /* non-JSON response */ }
+      return { error: errMsg };
+    }
     const data = await res.json();
-    if (!res.ok) return { error: data.error ?? 'Invalid code' };
     return data;
-  } catch {
-    return { error: 'Network error' };
+  } catch (e: any) {
+    console.error('redeemLinkCode failed:', e);
+    return { error: e?.message ?? 'Network error — check your connection' };
   }
 }
 
