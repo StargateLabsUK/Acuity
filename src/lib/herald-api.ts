@@ -67,17 +67,13 @@ export async function fetchIncidentsRemote(params: {
   callsign: string;
   session_date: string;
 }): Promise<{ reports: Record<string, unknown>[]; dispositions: Record<string, unknown>[]; accepted_transfers?: Record<string, unknown>[] }> {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/fetch-incidents`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(params),
-    });
-    if (!res.ok) return { reports: [], dispositions: [] };
-    return res.json();
-  } catch {
-    return { reports: [], dispositions: [] };
-  }
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/fetch-incidents`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`fetch-incidents failed (${res.status})`);
+  return res.json();
 }
 
 export async function syncDisposition(disposition: Record<string, unknown>): Promise<boolean> {

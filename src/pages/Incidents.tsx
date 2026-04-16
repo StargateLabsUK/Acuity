@@ -31,6 +31,7 @@ const IncidentsPage = () => {
   const initialTab = (location.state as any)?.tab === 'reports' ? 'reports' : 'incidents';
   const [activeTab, setActiveTab] = useState<'live' | 'reports' | 'incidents' | 'crew'>(initialTab as any);
   const [reports, setReports] = useState<HeraldReport[]>([]);
+  const [fetchOk, setFetchOk] = useState(true);
   const [session, setSession] = useState<HeraldSession | null>(null);
 
   useEffect(() => {
@@ -86,6 +87,7 @@ const IncidentsPage = () => {
         callsign: session.callsign,
         session_date: session.session_date,
       });
+      setFetchOk(true);
 
       // Merge local + remote reports for ReportsTab rendering
       const mergedReports = new Map<string, HeraldReport>();
@@ -122,6 +124,7 @@ const IncidentsPage = () => {
         setClosedCasualties(localDisps);
       }
     } catch {
+      setFetchOk(false);
       setReports(localReports);
       setClosedCasualties(localDisps);
     }
@@ -211,7 +214,7 @@ const IncidentsPage = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F5F5F0' }}>
-      <TopBar micStatus="granted" aiStatus="ok" syncStatus={syncStatus} queuedCount={queuedCount} onEndShift={handleEndShift} />
+      <TopBar syncStatus={fetchOk ? syncStatus : 'offline'} queuedCount={queuedCount} onEndShift={handleEndShift} />
       <ShiftLinkCode session={session} />
 
       <div className="flex-1 flex flex-col overflow-hidden">

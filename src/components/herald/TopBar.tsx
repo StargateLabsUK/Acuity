@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 
 interface TopBarProps {
-  micStatus: 'pending' | 'granted' | 'denied';
-  aiStatus: 'ok' | 'error';
+  micStatus?: 'pending' | 'granted' | 'denied';
+  aiStatus?: 'ok' | 'error';
   syncStatus: 'ok' | 'error' | 'offline';
   queuedCount?: number;
   onEndShift?: () => void;
@@ -43,8 +43,8 @@ export function TopBar({ micStatus, aiStatus, syncStatus, queuedCount, onEndShif
       <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b border-border" style={{ minHeight: 48 }}>
         <div className="flex-1" />
         <div className="flex items-center gap-3">
-          {dot('MIC', micStatus === 'granted')}
-          {dot('AI', aiStatus === 'ok')}
+          {micStatus != null && dot('MIC', micStatus === 'granted')}
+          {aiStatus != null && dot('AI', aiStatus === 'ok')}
           {dot('SYNC', syncStatus === 'ok', syncStatus === 'offline')}
           {(queuedCount ?? 0) > 0 && (
             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,149,0,0.15)', border: '1px solid rgba(255,149,0,0.3)' }}>
