@@ -56,7 +56,7 @@ const Index = () => {
       <TopBar micStatus="granted" aiStatus={aiStatus} syncStatus={syncStatus} onRefresh={() => window.location.reload()} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <LiveTab onAiStatus={setAiStatus} onReportSaved={() => {}} />
+        <LiveTab onAiStatus={setAiStatus} onReportSaved={() => {}} autoSend />
       </div>
 
       <ShiftInfoBar session={session} onEndShift={handleEndShift} position="bottom" isLinkedDevice={true} />

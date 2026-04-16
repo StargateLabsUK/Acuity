@@ -95,9 +95,10 @@ async function getSessionFields() {
 interface LiveTabProps {
   onAiStatus: (s: 'ok' | 'error') => void;
   onReportSaved: () => void;
+  autoSend?: boolean;
 }
 
-export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
+export function LiveTab({ onAiStatus, onReportSaved, autoSend }: LiveTabProps) {
   const [state, setState] = useState<LiveState>('idle');
   const [transcript, setTranscript] = useState('');
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -106,6 +107,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [capturedDuration, setCapturedDuration] = useState(0);
   const [maxReached, setMaxReached] = useState(false);
+  const [sendCount, setSendCount] = useState(0);
 
   const [editHeadline, setEditHeadline] = useState('');
   const [editStructured, setEditStructured] = useState<Record<string, string>>({});
@@ -140,6 +142,65 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       // interval sync will retry
     }
   }, []);
+
+  /** Auto-send: save report immediately without user review, return to idle */
+  const autoSaveReport = useCallback(async (
+    reportTranscript: string,
+    reportAssessment: Assessment,
+    reportId: string,
+    loc: { lat?: number; lng?: number; location_accuracy?: number },
+    followUp?: { reportId: string; incidentNumber?: string | null },
+  ) => {
+    const clean = sanitizeAssessment(reportAssessment);
+    const sessionFields = await getSessionFields();
+
+    const report: HeraldReport = {
+      id: reportId,
+      timestamp: new Date().toISOString(),
+      transcript: reportTranscript,
+      assessment: clean as unknown as Assessment,
+      synced: false,
+      confirmed_at: new Date().toISOString(),
+      headline: clean.headline,
+      priority: clean.priority,
+      service: clean.service,
+      lat: loc.lat,
+      lng: loc.lng,
+      location_accuracy: loc.location_accuracy,
+      original_assessment: clean as any,
+      final_assessment: clean as any,
+      diff: { has_edits: false } as any,
+      edited: false,
+      incident_number: followUp?.incidentNumber ?? undefined,
+      status: 'active' as const,
+      ...sessionFields,
+    };
+
+    if (followUp?.reportId) {
+      await updateReport(followUp.reportId, {
+        assessment: clean as unknown as Assessment,
+        headline: clean.headline,
+        priority: clean.priority,
+        latest_transmission_at: report.timestamp,
+        transmission_count: undefined,
+      });
+    } else {
+      await saveReport(report);
+    }
+
+    try {
+      const payload = await toSyncPayload(report, followUp?.reportId);
+      const ok = await syncReport(payload);
+      if (ok) await markSynced(report.id);
+    } catch {
+      // interval sync will retry
+    }
+
+    onReportSaved();
+    setSendCount(c => c + 1);
+    setState('confirmed');
+    setTimeout(() => setState('idle'), 2000);
+  }, [onReportSaved]);
 
   useEffect(() => {
     if (assessment && state === 'ready') {
@@ -423,6 +484,11 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             ...loc,
           };
           lastSubmissionRef.current = { content: t, callsign: dedupCallsign, timestamp: Date.now() };
+          if (autoSend) {
+            await autoSaveReport(t, result, reportId, loc);
+            resolve();
+            return;
+          }
           setState('ready');
         } catch (err: any) {
           // Transcription or processing failed — retry once automatically
@@ -459,6 +525,11 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               setCurrentReportId(reportId);
               pendingReportRef.current = { id: reportId, transcript: retryT, assessment: retryResult, lat: loc?.lat, lng: loc?.lng, accuracy: loc?.accuracy };
               lastSubmissionRef.current = { content: retryT, callsign: sessionRetry?.callsign || '', timestamp: Date.now() };
+              if (autoSend) {
+                await autoSaveReport(retryT, retryResult, reportId, loc);
+                resolve();
+                return;
+              }
               setState('ready');
               resolve();
               return;
@@ -572,6 +643,10 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         ...loc,
       };
       lastSubmissionRef.current = { content: text, callsign: dedupCallsign, timestamp: Date.now() };
+      if (autoSend) {
+        await autoSaveReport(text, result, reportId, loc);
+        return;
+      }
       setState('ready');
     } catch (e) {
       onAiStatus('error');
@@ -776,6 +851,11 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               {error && (
                 <p className="mt-3" style={{ color: '#FF9500', fontSize: 18, letterSpacing: '0.2em' }}>{error}</p>
               )}
+              {autoSend && sendCount > 0 && !error && (
+                <p className="mt-3" style={{ color: 'hsl(var(--primary))', fontSize: 16, letterSpacing: '0.1em' }}>
+                  {sendCount} transmission{sendCount !== 1 ? 's' : ''} sent
+                </p>
+              )}
             </>
           )}
         </div>
@@ -849,6 +929,24 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
   // ─── STATE 5: CONFIRMED ───
   if (state === 'confirmed') {
+    if (autoSend) {
+      // Brief green flash — auto-returns to idle via setTimeout in autoSaveReport
+      return (
+        <div className="flex flex-col items-center justify-center flex-1 px-6">
+          <div className="flex items-center justify-center rounded-full"
+            style={{
+              width: 280, height: 280,
+              background: '#1B5E20',
+              boxShadow: '0 0 80px rgba(52,199,89,0.5), 0 0 160px rgba(52,199,89,0.2)',
+            }}>
+            <span style={{ color: '#FFFFFF', fontSize: 28, letterSpacing: '0.25em', fontWeight: 700 }}>SENT</span>
+          </div>
+          <p className="mt-6" style={{ color: 'hsl(var(--primary))', fontSize: 16, letterSpacing: '0.1em' }}>
+            {sendCount} transmission{sendCount !== 1 ? 's' : ''} this shift
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-6">
         <button

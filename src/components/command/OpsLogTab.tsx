@@ -593,29 +593,36 @@ function IncidentDetail({
           </div>
         )}
 
-        {/* 3. Casualty Outcomes — one row per casualty, regardless of disposition state */}
+        {/* 3. Patient Detail — full ATMIST + outcome per casualty */}
         {(() => {
           const atmistMap = (a?.atmist ?? {}) as Record<string, Record<string, unknown> | null>;
           const atmistKeys = Object.keys(atmistMap);
-          // Include any disposition keys that aren't in atmist (defensive)
           const dispOnlyKeys = reportDisps
             .map(d => d.casualty_key)
             .filter(k => !atmistKeys.includes(k));
           const allKeys = [...atmistKeys, ...dispOnlyKeys];
           if (allKeys.length === 0) return null;
 
-          // Strip any "-N" suffix to get the canonical priority code (P1/P2/P3/P4)
           const priorityFromKey = (k: string) => {
             const m = k.match(/^P\d+/);
             return m ? m[0] : k;
           };
 
+          const atmistLabels: Record<string, string> = {
+            A: 'Age / Sex',
+            T: 'Time of Injury',
+            M: 'Mechanism',
+            I: 'Injuries',
+            S: 'Signs / Vitals',
+            T_treatment: 'Treatment Given',
+          };
+
           return (
             <div>
               <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
-                CASUALTY OUTCOMES ({allKeys.length})
+                PATIENTS ({allKeys.length})
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {allKeys.map(key => {
                   const casVal = atmistMap[key] as Record<string, unknown> | null;
                   const disposition = reportDisps.find(d => d.casualty_key === key);
@@ -632,19 +639,26 @@ function IncidentDetail({
                     disposition.disposition === 'see_and_treat' ? '#1E90FF' :
                     disposition.disposition === 'see_and_refer' ? '#1E90FF' : '#888';
 
-                  // Patient label: prefer disposition label, otherwise build from atmist
                   const patientLabel = disposition?.casualty_label
                     ?? (casVal?.A ? `${key} — ${String(casVal.A)}` : key);
 
+                  // Build ATMIST fields that have values
+                  const atmistFields = casVal
+                    ? Object.entries(atmistLabels)
+                        .map(([field, label]) => [label, casVal[field]] as const)
+                        .filter(([, v]) => v != null && String(v) !== '' && String(v) !== '—')
+                    : [];
+
                   return (
-                    <div key={key} className="border border-border rounded-lg p-3">
-                      <div className="flex items-center gap-2 flex-wrap">
+                    <div key={key} className="border rounded-lg overflow-hidden" style={{ borderColor: `${dc}44` }}>
+                      {/* Patient header */}
+                      <div className="px-3 py-2 flex items-center gap-2 flex-wrap" style={{ background: `${dc}12`, borderBottom: `1px solid ${dc}33` }}>
                         <span className="text-sm font-bold" style={badgeStyle(dc)}>{priority}</span>
-                        <span className="text-sm text-foreground font-medium">{patientLabel}</span>
+                        <span className="text-sm text-foreground font-semibold">{patientLabel}</span>
                         {outcomeLabel ? (
                           <span className="text-sm" style={badgeStyle(outcomeColor)}>{outcomeLabel}</span>
                         ) : (
-                          <span className="text-sm text-muted-foreground">— On scene (no disposition)</span>
+                          <span className="text-sm text-muted-foreground">On scene</span>
                         )}
                         {transfer && transfer.status === 'accepted' && (
                           <span className="text-xs font-bold" style={badgeStyle('#8B5CF6')}>
@@ -662,19 +676,68 @@ function IncidentDetail({
                           </span>
                         )}
                       </div>
-                      {disposition ? (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Closed: {fmtDateTime(disposition.closed_at)}
+
+                      {/* ATMIST breakdown */}
+                      {atmistFields.length > 0 && (
+                        <div className="px-3 py-2 space-y-1 border-b border-border">
+                          <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#FF9500' }}>ATMIST</div>
+                          {atmistFields.map(([label, val]) => (
+                            <div key={label} className="text-sm">
+                              <span style={{ color: '#4A6058' }}>{label}: </span>
+                              <span className="text-foreground">{String(val)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Clinical findings if available */}
+                      {a?.clinical_findings && typeof a.clinical_findings === 'object' && (
+                        <div className="px-3 py-2 space-y-1 border-b border-border">
+                          <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#1E90FF' }}>CLINICAL FINDINGS (ABCDE)</div>
+                          {Object.entries(a.clinical_findings as Record<string, unknown>)
+                            .filter(([, v]) => v != null && String(v) !== '' && String(v) !== 'Not assessed')
+                            .map(([field, val]) => (
+                              <div key={field} className="text-sm">
+                                <span className="font-bold" style={{ color: '#1E90FF' }}>{field}: </span>
+                                <span className="text-foreground">{String(val)}</span>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+
+                      {/* Disposition detail */}
+                      {disposition && (
+                        <div className="px-3 py-2 space-y-0.5">
+                          <div className="text-xs font-bold tracking-widest mb-1" style={{ color: outcomeColor }}>OUTCOME</div>
+                          <div className="text-sm text-foreground">
+                            {outcomeLabel} — {fmtDateTime(disposition.closed_at)}
+                          </div>
                           {disposition.disposition === 'conveyed' && (disposition.fields as Record<string, unknown>)?.receiving_hospital && (
-                            <> · Hospital: {String((disposition.fields as Record<string, unknown>).receiving_hospital)}</>
+                            <div className="text-sm">
+                              <span style={{ color: '#4A6058' }}>Hospital: </span>
+                              <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).receiving_hospital)}</span>
+                            </div>
                           )}
                           {disposition.disposition === 'see_and_refer' && (disposition.fields as Record<string, unknown>)?.referral_destination && (
-                            <> · Referred to: {String((disposition.fields as Record<string, unknown>).referral_destination)}</>
+                            <div className="text-sm">
+                              <span style={{ color: '#4A6058' }}>Referred to: </span>
+                              <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).referral_destination)}</span>
+                            </div>
                           )}
-                        </p>
-                      ) : casVal?.A ? (
-                        <p className="text-xs text-muted-foreground mt-1">Age/Sex: {String(casVal.A)}</p>
-                      ) : null}
+                          {disposition.disposition === 'refused_transport' && (disposition.fields as Record<string, unknown>)?.capacity_assessment && (
+                            <div className="text-sm">
+                              <span style={{ color: '#4A6058' }}>Capacity: </span>
+                              <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).capacity_assessment)}</span>
+                            </div>
+                          )}
+                          {(disposition.fields as Record<string, unknown>)?.notes && (
+                            <div className="text-sm">
+                              <span style={{ color: '#4A6058' }}>Notes: </span>
+                              <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).notes)}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
