@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Herald ATMIST Assessment Tester</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Mono', monospace; background: #1A1E24; color: #E0E0E0; padding: 20px; }
+  h1 { color: #1E90FF; font-size: 18px; letter-spacing: 2px; margin-bottom: 20px; }
+  .tx-card { border: 1px solid #333; border-radius: 8px; padding: 16px; margin-bottom: 16px; background: #22272E; }
+  .tx-card h3 { color: #FF9500; font-size: 14px; letter-spacing: 1px; margin-bottom: 8px; }
+  .tx-card p { font-size: 13px; color: #AAA; margin-bottom: 12px; line-height: 1.5; }
+  button { background: rgba(30,144,255,0.12); border: 2px solid #1E90FF; color: #1E90FF; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; letter-spacing: 1px; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button:hover:not(:disabled) { background: rgba(30,144,255,0.25); }
+  .result { margin-top: 12px; padding: 12px; border-radius: 6px; font-size: 12px; white-space: pre-wrap; word-break: break-word; max-height: 600px; overflow-y: auto; display: none; }
+  .result.show { display: block; }
+  .result.ok { background: rgba(52,199,89,0.08); border: 1px solid rgba(52,199,89,0.3); }
+  .result.err { background: rgba(255,59,48,0.08); border: 1px solid rgba(255,59,48,0.3); color: #FF3B30; }
+  .field { margin-bottom: 6px; }
+  .field-label { color: #1E90FF; font-weight: bold; }
+  .field-ok { color: #34C759; }
+  .field-warn { color: #FF9500; }
+  .field-fail { color: #FF3B30; }
+  .atmist-card { border: 1px solid #444; border-radius: 6px; padding: 10px; margin: 8px 0; background: #1A1E24; }
+  .atmist-card h4 { color: #FF9500; margin-bottom: 6px; }
+  .section { margin-top: 16px; padding-top: 12px; border-top: 1px solid #333; }
+  .section h4 { color: #1E90FF; letter-spacing: 1px; margin-bottom: 8px; font-size: 13px; }
+  #raw-toggle { font-size: 12px; color: #666; cursor: pointer; text-decoration: underline; margin-top: 8px; display: inline-block; }
+</style>
+</head>
+<body>
+<h1>HERALD ATMIST ASSESSMENT TESTER</h1>
+<p style="color:#666; font-size:12px; margin-bottom:20px;">Sends test transcripts to the live assess edge function and validates the AI response fields.</p>
+
+<div id="cards"></div>
+
+<script>
+const SUPABASE_URL = 'https://ifibolavfiehirlxvaak.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmaWJvbGF2ZmllaGlybHh2YWFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNjY4NjUsImV4cCI6MjA4OTg0Mjg2NX0.wcGVR4YP3VXYZgOQyTraMJdlG1zKcpX7A5BRSYeIaAE';
+
+const TRANSMISSIONS = [
+  {
+    name: 'TX1 — Crew on scene, P1 trapped male (David Roberts)',
+    transcript: `Control, this is Delta Four. We are on scene at 14 Park Lane, Worksop, Nottinghamshire. RTC, two vehicle head-on collision. We have three casualties total. Starting with the most serious. P1 is a male approximately 40 years old, his name is David Roberts. He is trapped in the drivers seat of the first car. Time of injury approximately 14:20. Mechanism is head-on collision, significant front end deformity to both vehicles. Injuries found are suspected pelvic fracture, open fracture to the right femur, and a large laceration to the forehead with active bleeding. Signs are GCS 10, that is E2 V3 M5, heart rate 120, blood pressure 85 over 60, SpO2 92 percent on high flow oxygen, respiratory rate 24. Treatment so far, IV access obtained left antecubital fossa, 250ml bolus of Hartmanns running, pelvic binder applied, wound packed and dressed to the forehead laceration. Requesting HEMS please Control, can you confirm ETA. Also requesting fire service for extrication.`,
+    expect: {
+      priority: 'P1',
+      incident_type_contains: 'RTC',
+      scene_location_contains: '14 Park Lane',
+      atmist_keys: ['P1'],
+      atmist_P1: {
+        name: 'David Roberts',
+        A_contains: '40',
+        A_contains_sex: 'male',
+        T_contains: '14:20',
+        M_contains: 'head-on',
+        I_contains: ['pelvic', 'femur', 'laceration'],
+        S_contains: ['GCS 10', '120', '85', '92'],
+        T_treatment_contains: ['IV', 'Hartmann', 'pelvic binder'],
+      }
+    }
+  },
+  {
+    name: 'TX2 — P2 Sarah Thompson + P3 unnamed male',
+    transcript: `Control, Delta Four again with an update on the Worksop RTC at 14 Park Lane. Moving on to P2 now. P2 is a female, 35 years old, patients name is Sarah Thompson. She was the front seat passenger in the same vehicle as P1. Time of injury same, 14:20. Mechanism same head-on collision. Injuries are neck pain and right arm pain, query cervical spine injury. Signs are GCS 15, heart rate 88, BP 120 over 78, SpO2 98 percent on air. Vitals stable. Treatment given cervical collar applied, right arm splinted in a broad arm sling. She is ambulant and has been moved to the safe area. P3 is a male approximately 28, no name given. He was the driver of the second vehicle. Self-extricated from the vehicle. Complaining of chest pain and mild shortness of breath. GCS 15, heart rate 95, BP 130 over 82, SpO2 97 percent on air, respiratory rate 20. Treatment given oxygen via nasal cannulae at 4 litres per minute. Minor cuts and abrasions to both hands and forearms, dressed on scene.`,
+    expect: {
+      priority: 'P2',
+      scene_location_contains: '14 Park Lane',
+      atmist_keys: ['P2', 'P3'],
+      atmist_P2: {
+        name: 'Sarah Thompson',
+        A_contains: '35',
+        A_contains_sex: 'female',
+        I_contains: ['neck', 'arm', 'cervical'],
+        S_contains: ['GCS 15', '88', '120'],
+        T_treatment_contains: ['cervical collar', 'splint'],
+      },
+      atmist_P3: {
+        name: null,
+        A_contains: '28',
+        A_contains_sex: 'male',
+        I_contains: ['chest pain', 'shortness of breath'],
+        S_contains: ['GCS 15', '95', '130', '97'],
+        T_treatment_contains: ['oxygen', 'nasal cannulae'],
+      }
+    }
+  },
+  {
+    name: 'TX3 — Update: P1 status change, receiving hospital confirmed',
+    transcript: `Control, Delta Four. Update on the Worksop RTC. HEMS is now on scene and have taken over P1 David Roberts. His GCS has dropped to 6, E1 V1 M4. Airway is now compromised, HEMS have intubated and are ventilating. Heart rate now 135, BP 75 over 50, SpO2 88 percent. He is being extricated by fire service now, ETA to free him is about 10 minutes. HEMS will be conveying P1 direct to Queens Medical Centre Nottingham by air. P2 Sarah Thompson is stable, no change. We will be conveying P2 to Bassetlaw Hospital. P3 the 28 year old male, also stable, minor injuries only. He will be discharged on scene, see and treat. His name is actually James Wilson, he has told us.`,
+    expect: {
+      atmist_keys: ['P1', 'P2', 'P3'],
+      atmist_P1: {
+        S_contains: ['GCS 6', '135', '75', '88'],
+        T_treatment_contains: ['intubat'],
+      },
+      atmist_P3: {
+        name: 'James Wilson',
+      },
+      receiving_hospital_contains: ['Queens Medical Centre', 'Bassetlaw'],
+    }
+  }
+];
+
+function validate(data, expect) {
+  const results = [];
+  const check = (label, ok, detail) => results.push({ label, ok, detail });
+
+  if (expect.priority) check('Priority', data.priority === expect.priority, `Got "${data.priority}", expected "${expect.priority}"`);
+  if (expect.incident_type_contains) check('Incident type', (data.incident_type || '').toLowerCase().includes(expect.incident_type_contains.toLowerCase()), `Got "${data.incident_type}"`);
+  if (expect.scene_location_contains) check('Scene location', (data.scene_location || '').includes(expect.scene_location_contains), `Got "${data.scene_location}"`);
+  if (expect.receiving_hospital_contains) {
+    const hospitals = JSON.stringify(data.receiving_hospital || []);
+    expect.receiving_hospital_contains.forEach(h => check(`Hospital: ${h}`, hospitals.toLowerCase().includes(h.toLowerCase()), `Got ${hospitals}`));
+  }
+
+  if (expect.atmist_keys) {
+    const keys = Object.keys(data.atmist || {});
+    check('ATMIST keys', JSON.stringify(keys.sort()) === JSON.stringify(expect.atmist_keys.sort()), `Got [${keys.join(', ')}], expected [${expect.atmist_keys.join(', ')}]`);
+  }
+
+  for (const [pKey, checks] of Object.entries(expect).filter(([k]) => k.startsWith('atmist_P'))) {
+    const casualtyKey = pKey.replace('atmist_', '');
+    const cas = (data.atmist || {})[casualtyKey];
+    if (!cas) { check(`${casualtyKey} exists`, false, 'Missing from atmist'); continue; }
+
+    if (checks.name !== undefined) {
+      if (checks.name === null) check(`${casualtyKey}.name is null`, !cas.name, `Got "${cas.name}"`);
+      else check(`${casualtyKey}.name`, (cas.name || '').includes(checks.name), `Got "${cas.name}", expected "${checks.name}"`);
+    }
+    if (checks.A_contains) check(`${casualtyKey}.A contains age`, (cas.A || '').includes(checks.A_contains), `Got "${cas.A}"`);
+    if (checks.A_contains_sex) check(`${casualtyKey}.A contains sex`, (cas.A || '').toLowerCase().includes(checks.A_contains_sex), `Got "${cas.A}"`);
+    if (checks.T_contains) check(`${casualtyKey}.T contains time`, (cas.T || '').includes(checks.T_contains), `Got "${cas.T}"`);
+    if (checks.M_contains) check(`${casualtyKey}.M contains mechanism`, (cas.M || '').toLowerCase().includes(checks.M_contains.toLowerCase()), `Got "${cas.M}"`);
+    if (checks.I_contains) checks.I_contains.forEach(term => check(`${casualtyKey}.I: "${term}"`, (cas.I || '').toLowerCase().includes(term.toLowerCase()), `Got "${cas.I}"`));
+    if (checks.S_contains) checks.S_contains.forEach(term => check(`${casualtyKey}.S: "${term}"`, (cas.S || '').includes(term), `Got "${cas.S}"`));
+    if (checks.T_treatment_contains) checks.T_treatment_contains.forEach(term => check(`${casualtyKey}.T_treatment: "${term}"`, (cas.T_treatment || '').toLowerCase().includes(term.toLowerCase()), `Got "${cas.T_treatment}"`));
+  }
+
+  return results;
+}
+
+function renderResults(data, expect) {
+  const checks = validate(data, expect);
+  const passed = checks.filter(c => c.ok).length;
+  const total = checks.length;
+
+  let html = `<div class="field"><span class="field-label">Score: </span><span class="${passed === total ? 'field-ok' : 'field-warn'}">${passed}/${total} checks passed</span></div>`;
+
+  checks.forEach(c => {
+    const cls = c.ok ? 'field-ok' : 'field-fail';
+    html += `<div class="field"><span class="${cls}">${c.ok ? '✓' : '✗'} ${c.label}</span> <span style="color:#666">${c.detail}</span></div>`;
+  });
+
+  // Show ATMIST cards
+  if (data.atmist && Object.keys(data.atmist).length > 0) {
+    html += '<div class="section"><h4>ATMIST OUTPUT</h4>';
+    for (const [k, v] of Object.entries(data.atmist)) {
+      html += `<div class="atmist-card"><h4>${k}${v.name ? ' — ' + v.name : ''}</h4>`;
+      html += `<div class="field"><span class="field-label">A (Age/Sex): </span>${v.A || '—'}</div>`;
+      html += `<div class="field"><span class="field-label">T (Time): </span>${v.T || '—'}</div>`;
+      html += `<div class="field"><span class="field-label">M (Mechanism): </span>${v.M || '—'}</div>`;
+      html += `<div class="field"><span class="field-label">I (Injuries): </span>${v.I || '—'}</div>`;
+      html += `<div class="field"><span class="field-label">S (Signs): </span>${v.S || '—'}</div>`;
+      html += `<div class="field"><span class="field-label">T_treatment: </span>${v.T_treatment || '—'}</div>`;
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  html += `<div class="section"><h4>OTHER FIELDS</h4>`;
+  html += `<div class="field"><span class="field-label">headline: </span>${data.headline || '—'}</div>`;
+  html += `<div class="field"><span class="field-label">incident_type: </span>${data.incident_type || '—'}</div>`;
+  html += `<div class="field"><span class="field-label">scene_location: </span>${data.scene_location || '—'}</div>`;
+  html += `<div class="field"><span class="field-label">receiving_hospital: </span>${JSON.stringify(data.receiving_hospital || [])}</div>`;
+  html += `<div class="field"><span class="field-label">number_of_casualties: </span>${data.structured?.number_of_casualties || '—'}</div>`;
+  html += `<div class="field"><span class="field-label">patient_name: </span>${data.patient_name || 'null'}</div>`;
+  html += `<div class="field"><span class="field-label">safeguarding: </span>${JSON.stringify(data.safeguarding || {})}</div>`;
+  html += '</div>';
+
+  if (data.clinical_history) {
+    html += `<div class="section"><h4>CLINICAL HISTORY</h4><p style="font-size:12px;line-height:1.6;color:#CCC;">${data.clinical_history}</p></div>`;
+  }
+  if (data.formatted_report) {
+    html += `<div class="section"><h4>FORMATTED REPORT (ePRF)</h4><p style="font-size:12px;line-height:1.6;color:#CCC;white-space:pre-wrap;">${data.formatted_report}</p></div>`;
+  }
+
+  return html;
+}
+
+const container = document.getElementById('cards');
+TRANSMISSIONS.forEach((tx, idx) => {
+  const card = document.createElement('div');
+  card.className = 'tx-card';
+  card.innerHTML = `
+    <h3>${tx.name}</h3>
+    <p>${tx.transcript.substring(0, 200)}...</p>
+    <button id="btn-${idx}">SEND TO ASSESS</button>
+    <span id="status-${idx}" style="margin-left:12px;font-size:12px;color:#666;"></span>
+    <div id="result-${idx}" class="result"></div>
+    <a id="raw-${idx}" style="display:none;font-size:11px;color:#666;cursor:pointer;margin-top:8px;">Show raw JSON</a>
+    <pre id="rawjson-${idx}" style="display:none;font-size:11px;color:#555;margin-top:8px;max-height:300px;overflow:auto;"></pre>
+  `;
+  container.appendChild(card);
+
+  document.getElementById(`btn-${idx}`).onclick = async () => {
+    const btn = document.getElementById(`btn-${idx}`);
+    const status = document.getElementById(`status-${idx}`);
+    const resultDiv = document.getElementById(`result-${idx}`);
+    const rawLink = document.getElementById(`raw-${idx}`);
+    const rawJson = document.getElementById(`rawjson-${idx}`);
+
+    btn.disabled = true;
+    status.textContent = 'Sending to assess function...';
+    resultDiv.className = 'result';
+    resultDiv.style.display = 'none';
+
+    try {
+      const res = await fetch(SUPABASE_URL + '/functions/v1/assess', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+        },
+        body: JSON.stringify({ transcript: tx.transcript, vehicle_type: 'DSA' }),
+      });
+
+      const data = await res.json();
+      status.textContent = `Response received (${res.status})`;
+
+      if (data.error) {
+        resultDiv.className = 'result show err';
+        resultDiv.textContent = 'Error: ' + data.error;
+      } else {
+        resultDiv.className = 'result show ok';
+        resultDiv.innerHTML = renderResults(data, tx.expect);
+        rawLink.style.display = 'inline-block';
+        rawJson.textContent = JSON.stringify(data, null, 2);
+        rawLink.onclick = () => {
+          rawJson.style.display = rawJson.style.display === 'none' ? 'block' : 'none';
+          rawLink.textContent = rawJson.style.display === 'none' ? 'Show raw JSON' : 'Hide raw JSON';
+        };
+      }
+    } catch (err) {
+      status.textContent = '';
+      resultDiv.className = 'result show err';
+      resultDiv.textContent = 'Network error: ' + err.message;
+    }
+    btn.disabled = false;
+  };
+});
+</script>
+</body>
+</html>
