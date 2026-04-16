@@ -180,12 +180,12 @@ const IncidentsPage = () => {
     }
     clearSession();
     setSession(null);
-    navigate('/');
+    navigate('/fieldapp');
   }, [navigate, session]);
 
   const handleTabChange = useCallback((tab: 'live' | 'reports' | 'incidents' | 'crew') => {
     if (tab === 'live') {
-      navigate('/');
+      navigate('/fieldapp');
     } else {
       setActiveTab(tab);
     }

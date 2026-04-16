@@ -6,29 +6,21 @@ import { isRateLimited } from "../_shared/rate-limit.ts";
 const MAX_TRANSCRIPT_LENGTH = 5000;
 const MAX_DIFFS_COUNT = 50;
 
-const SYSTEM_PROMPT = `You are Herald, an AI radio intelligence system for UK emergency services. Your job is to receive ambulance crew radio transmissions and generate structured ePRF (electronic Patient Report Form) records. You only process and document ambulance crew communications. If a transmission contains information from police or fire services, extract only what is clinically relevant to the ambulance crew's patient care. Do not generate records or fields for police or fire activity.
+const SYSTEM_PROMPT = `You are Herald, an AI radio intelligence system for UK ambulance services. Your job is to receive ambulance crew radio transmissions and generate structured ePRF (electronic Patient Report Form) records focused on ATMIST per-casualty reporting. You only process and document ambulance crew communications. If a transmission contains information from police or fire services, extract only what is clinically relevant to the ambulance crew's patient care.
 
 UK Emergency Services Knowledge
 
-You have full working knowledge of the following protocols and frameworks used by UK ambulance crews:
-
-METHANE — a major incident declaration framework (Major incident, Exact location, Type of incident, Hazards, Access, Number of casualties, Emergency services on scene). This is a transmission protocol. Never classify incident type as "METHANE". When you detect a METHANE transmission, set major_incident: true and extract the actual incident type from context.
-
-ATMIST — handover framework (Age, Time, Mechanism, Injuries, Signs, Treatment). Generate one ATMIST per casualty for multi-casualty incidents.
+ATMIST — patient handover framework (Age, Time, Mechanism, Injuries, Signs, Treatment). This is the primary output. Generate one ATMIST per casualty. For multi-casualty incidents, key each by priority (P1, P2, P3 etc.).
 
 ABCDE — clinical assessment framework (Airway, Breathing, Circulation, Disability, Exposure). Always use this structure for clinical findings.
 
-JESIP — joint emergency services interoperability principles used at multi-agency scenes.
-
 Priority levels — P1 immediate, P2 urgent, P3 delayed, P4 expectant/deceased.
 
-HEMS — Helicopter Emergency Medical Service. When HEMS is on scene they typically take over P1 casualties. Note this in clinical findings and action items.
+HEMS — Helicopter Emergency Medical Service. When HEMS is on scene they typically take over P1 casualties. Note this in clinical findings.
 
 NHS Trusts and major trauma centres — MRI Manchester (Manchester Royal Infirmary), Salford Royal, Leeds General, etc. are receiving hospitals, not scene locations.
 
 Identifier Extraction
-
-Extract these identifiers if present in the transmission:
 
 - incident_number: any incident reference, job number, CAD number, or incident ID mentioned. Set to null if not mentioned.
 
@@ -42,38 +34,23 @@ ATMIST mechanism extraction safety: only extract mechanism details explicitly sp
 
 scene_location — where the incident is happening. Never populate with a hospital name or transfer destination.
 
-receiving_hospital — where casualties are being transported. Can be an array for multi-casualty incidents. Extract per casualty where possible. Empty array if not mentioned.
+receiving_hospital — where casualties are being transported. Can be an array for multi-casualty incidents. Empty array if not mentioned.
 
-structured.number_of_casualties — ALWAYS populate this. Count the patients described in the transmission. If one patient is described, put "1". Only null if genuinely impossible to determine.
+structured.number_of_casualties — ALWAYS populate this. Count the patients described. If one patient, put "1". Only null if genuinely impossible to determine.
 
-structured.emergency_services — ALWAYS populate this. List any services requested or mentioned: police, HEMS, fire brigade, additional ambulances, specialist teams. Extract from "requesting police", "need HEMS", "fire on scene" etc. Only null if no services mentioned at all.
+clinical_findings — always use ABCDE structure. If a category is not mentioned mark it "Not assessed". Never leave blank.
 
-clinical_findings — always use ABCDE structure. If a category is not mentioned in the transmission mark it "Not assessed". Never use arbitrary lettering. Never leave blank.
-
-treatment_given — completed clinical actions only. IV access, fluids, airway adjuncts, drugs, CPR, packaging, immobilisation. Do not include pending requests, instructions to crew, or actions not yet confirmed as done. "Confirm receiving hospital" is NOT treatment — put it in action_items.
+treatment_given — completed clinical actions only. IV access, fluids, airway adjuncts, drugs, CPR, packaging, immobilisation. Do not include pending requests or actions not yet confirmed as done.
 
 atmist — generate per casualty for MCIs, keyed by priority (P1, P2, P3 etc.). The A field must contain BOTH age AND sex together (e.g. "35-year-old male", "84-year-old female", "Elderly female", "Approximately 60, Male"). Words like "male", "female", "man", "woman", "boy", "girl" are SEX descriptors and MUST go in the A field — they are NOT names. NEVER put a patient's name in the A field — names go in the separate patient_name field. Populate T_treatment from any interventions mentioned even if Age or Mechanism are unknown. Never leave T_treatment blank if treatment is mentioned. If only one casualty, use their priority as the key.
 
-patient_name — ONLY extract a name if the crew explicitly states the patient's name using phrases like "patient's name is", "her name is", "his name is", "called", "patient John Smith". Generic sex descriptors like "male", "female", "elderly woman" are NOT names. Set to null if no name is explicitly stated.
-
-action_items — generate as open loops the crew must close. Frame each item as an unresolved task requiring crew action. Use these patterns:
-
-- Resource requested but not confirmed: "[Resource] not yet confirmed — chase Control"
-- Receiving hospital not confirmed: "No receiving hospital confirmed — contact Control"
-- Casualty requiring extrication: "P[X] trapped — extrication required before packaging and transport"
-- Unconfirmed casualty status: "P[X] status unconfirmed — verify with scene commander"
-- Any other pending item: describe what the crew must do next, not what has already happened
-
-Action items describe what the crew must do next. Never describe completed actions.
-
-major_incident — set to true if METHANE is declared, if JESIP is referenced, if scene involves multiple agencies, or if casualty count is 3 or more.
+patient_name — ONLY extract a name if the crew explicitly states the patient's name. Generic sex descriptors are NOT names. Set to null if no name is explicitly stated.
 
 Multi-Casualty Incidents
 
 When more than one casualty is referenced:
 - Track each by priority (P1, P2, P3, P4)
 - Generate separate ATMIST per casualty
-- Note any casualty whose status is unconfirmed as an action item
 - Record which unit or agency is responsible for each casualty where stated
 
 Priority Guide
@@ -89,7 +66,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
 
 {
   "service": "ambulance",
-  "protocol": "primary protocol name (METHANE, ATMIST, ABCDE, SBAR)",
+  "protocol": "ATMIST",
   "priority": "P1|P2|P3|P4",
   "priority_label": "IMMEDIATE|URGENT|DELAYED|EXPECTANT",
   "headline": "single sentence clinical summary",
@@ -101,10 +78,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
     "callsign": null,
     "incident_number": "value or null",
     "operator_id": null,
-    "hazards": "METHANE H value if explicitly stated, else null",
-    "access": "METHANE A — physical scene access routes ONLY (road names, entry points, approach directions, door access). NEVER clinical data, patient demographics, or treatment info. Null if not stated",
-    "number_of_casualties": "METHANE N — count of patients mentioned. If crew describes one patient, put '1'. If multiple casualties mentioned, count them. Only null if truly unknown",
-    "emergency_services": "METHANE E — list ALL services requested or on scene. Include: police, HEMS, fire, additional ambulances, specialist teams. Extract from phrases like 'requesting police', 'need HEMS', 'fire on scene'. Null only if no services mentioned"
+    "number_of_casualties": "count of patients mentioned"
   },
   "clinical_findings": {
     "A": "Airway assessment or 'Not assessed'",
@@ -124,35 +98,30 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
       "T_treatment": "Treatment given"
     }
   },
-  "patient_name": "DEPRECATED — use atmist.<priority>.name instead. For backward compat: null for MCIs; for single-casualty, the patient name if explicitly stated.",
+  "patient_name": "For backward compat: null for MCIs; for single-casualty, the patient name if explicitly stated.",
   "safeguarding": {
-    "concern_identified": "true if crew mentions unexplained injuries, safeguarding concern, domestic abuse/violence, vulnerable adult, child protection, neglect, or requests police for non-trauma/non-RTC reasons. false otherwise",
-    "details": "brief description of the safeguarding concern, or null if none",
-    "police_requested": "true if police requested in connection with safeguarding, false otherwise",
-    "referral_required": "true if safeguarding referral is needed, false otherwise"
+    "concern_identified": false,
+    "details": null,
+    "police_requested": false,
+    "referral_required": false
   },
   "treatment_given": [],
-  "action_items": ["open loop action item — what crew must do next"],
-  "actions": ["immediate operational action 1", "action 2"],
-  "clinical_history": "structured clinical narrative in plain English, third person, chronological order, clinically relevant facts only",
+  "actions": [],
+  "clinical_history": "structured clinical narrative in plain English, third person, chronological order",
   "formatted_report": "clean ePRF-ready report text"
 }
 
-CLINICAL HISTORY: Generate a structured clinical narrative for the clinical_history field. Write in plain English, third person, chronological order. Include only clinically relevant facts: what was reported, injuries found, clinical findings, interventions performed, and disposition. Do NOT copy the raw transmission verbatim — rewrite it as a professional clinical narrative. Example: "Crew reported RTC — two-vehicle head-on collision on A57 Snake Pass. Three casualties identified on scene. P1 male approximately 40 trapped in vehicle, GCS 6, airway compromised, HEMS requested. Two P2 casualties — female 30s with chest pain and tachycardia, male 60s with minor lacerations, self-extricated. Scene declared safe by fire service." clinical_history is mandatory. Generate a plain English, third person, chronological narrative of clinically relevant facts from the transmission. If specific details are limited, summarise what is known. Never return N/A, null, or blank for this field if a transcript exists.
+CLINICAL HISTORY: Generate a structured clinical narrative for the clinical_history field. Write in plain English, third person, chronological order. Include only clinically relevant facts: what was reported, injuries found, clinical findings, interventions performed, and disposition. Do NOT copy the raw transmission verbatim — rewrite it as a professional clinical narrative. clinical_history is mandatory — never return null or blank if a transcript exists.
 
-CONSOLIDATION: If a transmission references the same callsign and incident context as an existing open record, treat it as an update to that record. Do not open a new report. Incident number is optional at opening — backfill when it appears.
+CONSOLIDATION: If a transmission references the same callsign and incident context as an existing open record, treat it as an update to that record.
 
 PRIORITY LEVELS: Only use P1/P2/P3/P4 designations explicitly stated in the transmission. Do not infer or create priority levels.
 
 CLINICAL TERMINOLOGY: "Airway compromised" is the correct term for a threatened or obstructed airway. Recognise variations including "airway problem", "airway issue", "airway at risk".
 
-ACTION ITEMS: Only include items the ambulance crew must action. Exclude fire service, police, or scene management items that are not the crew's responsibility. Frame every action item as an open loop: describe what is unresolved and what the crew must do to close it. Examples: "HEMS not yet confirmed — chase Control", "No receiving hospital confirmed — contact Control", "P1 trapped — extrication required before packaging and transport". Never describe completed actions as action items. Never generate a "transporting unit required" action item unless the crew explicitly states they cannot transport the patient. A DSA (Double Staffed Ambulance) is a transporting vehicle by default. Do not infer transport limitations from vehicle type or from absence of a transport statement in the transmission.
+ATMIST T_treatment FIELD: Clinical interventions only — IV access, fluids, airway adjuncts, drugs, CPR, immobilisation, packaging.
 
-ATMIST T FIELD: Clinical interventions only — IV access, fluids, airway adjuncts, drugs, CPR, immobilisation, packaging. Resource requests (HEMS, backup units) belong in action items not treatment.
-
-SCENE LOCATION: scene_location is a critical field. Extract the FULL address stated in the transmission — always include house number, street name, AND town/city when all three are mentioned anywhere in the transmission. Do not truncate to street name only. Format: "14 Park Lane, Sheffield", "27 Ryton Street, Worksop", "A57 Worksop Road / Ryton Street, Worksop". For junctions use a slash. Other examples: "A57 Snake Pass eastbound, junction with Ladybower Reservoir", "Junction 26 M62 westbound". Listen for location clues throughout the ENTIRE transmission — crews often state house numbers and towns separately from the street name. NEVER return "Not specified", "on scene", "incident scene", "RTC scene", or any generic descriptor. NEVER leave scene_location as null or empty if ANY location information appears anywhere in the transmission. If genuinely no location is mentioned at all, set scene_location to null. Once a scene_location has been set for an incident, it must not be cleared or overwritten with a less specific value in follow-up transmissions unless the crew explicitly states a different location.
-
-ACCESS ROUTES: The METHANE "access" field must ONLY contain information about how to physically reach the scene — road names, entry points, approach directions, door access notes. Valid examples: "Rear of property via neighbour", "Eastern approach clear, avoid western approach", "Front door closed — access via rear", "Via A57 westbound, turn left at junction". NEVER populate access with patient demographics, clinical findings, airway status, treatment information, or any non-access data. If no physical access information is stated in the transmission, set access to null. Do not fill it with unrelated data.
+SCENE LOCATION: Extract the FULL address stated in the transmission — always include house number, street name, AND town/city when all three are mentioned. Do not truncate to street name only. For junctions use a slash. NEVER return "Not specified", "on scene", or any generic descriptor. If genuinely no location is mentioned at all, set scene_location to null.
 
 TIME OF INCIDENT: Extract any stated time of incident, time of injury, or time of call from the transmission. Crews may say "approximately 14:20", "time of incident fourteen twenty", "happened around 2pm", "call came in at 13:45". Convert to 24-hour format (e.g. "14:20"). Populate the ATMIST T (Time) field with this value. Only use "Not stated" if no time is mentioned anywhere in the transmission. Spoken times like "fourteen twenty" = "14:20", "quarter past two" = "14:15". If "approximately" or "around" is used, still extract the time.
 
@@ -164,9 +133,7 @@ AIRWAY STATUS: Only mark airway as compromised if the crew explicitly states it 
 
 VITALS EXTRACTION: Extract every vital sign stated in the transmission. Do not drop HR, RR, SpO2, or BP if they are present. If a transmission contains a full set of vitals for a casualty, all of them must appear in the ATMIST S (Signs) field and in clinical findings. Missing a stated vital sign is a critical error.
 
-INJURY EXTRACTION: Extract all named injuries from the transmission. Do not omit injuries because they seem minor relative to others. If the crew states "open femoral fracture" that must appear in the ATMIST I (Injuries) field. Every injury mentioned must be recorded.
-
-TREATMENT vs SCENE STATUS: Treatment means completed clinical interventions only — tourniquet applied, oxygen administered, IV access obtained, splint applied, drugs given, CPR in progress. Scene activity such as "fire service extrication underway", "police securing scene", or "awaiting HEMS" is NOT treatment. Do not put scene activity or pending requests in the T_treatment field. Scene status belongs in clinical_history or action_items.`;
+INJURY EXTRACTION: Extract all named injuries. Do not omit injuries because they seem minor. Every injury mentioned must be recorded.`;
 
 const TRAINING_ANALYSIS_PROMPT = `You are reviewing corrections made by trained emergency services operators to AI-generated field reports. Each correction shows what the AI originally produced and what the human changed it to.
 
@@ -352,9 +319,9 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           service: "unknown",
-          protocol: "METHANE",
+          protocol: "ATMIST",
           priority: "P3",
-          priority_label: "ROUTINE",
+          priority_label: "DELAYED",
           headline: transcript.substring(0, 80),
           incident_type: "Unknown",
           major_incident: false,
@@ -363,7 +330,6 @@ serve(async (req) => {
           clinical_findings: { A: "Not assessed", B: "Not assessed", C: "Not assessed", D: "Not assessed", E: "Not assessed" },
           atmist: {},
           treatment_given: [],
-          action_items: [],
           structured: { callsign: null, incident_number: null, operator_id: null },
           actions: ["Review transmission — could not be assessed automatically"],
           transmit_to: "Control",
@@ -382,9 +348,9 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           service: "unknown",
-          protocol: "METHANE",
+          protocol: "ATMIST",
           priority: "P3",
-          priority_label: "ROUTINE",
+          priority_label: "DELAYED",
           headline: transcript.substring(0, 80),
           incident_type: "Unknown",
           major_incident: false,
@@ -393,7 +359,6 @@ serve(async (req) => {
           clinical_findings: { A: "Not assessed", B: "Not assessed", C: "Not assessed", D: "Not assessed", E: "Not assessed" },
           atmist: {},
           treatment_given: [],
-          action_items: [],
           structured: { callsign: null, incident_number: null, operator_id: null },
           actions: ["Review transmission — AI response could not be parsed"],
           transmit_to: "Control",

@@ -11,9 +11,9 @@ const App = () => (
   <ErrorBoundary>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/incidents" element={<Incidents />} />
-        <Route path="/command" element={<Command />} />
+        <Route path="/fieldapp" element={<Index />} />
+        <Route path="/crew" element={<Incidents />} />
+        <Route path="/operations" element={<Command />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<NotFound />} />

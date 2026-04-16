@@ -7,13 +7,10 @@ import { useHeraldCommand } from '@/hooks/useHeraldCommand';
 import { CommandTopBar } from '@/components/command/CommandTopBar';
 import { ReportDetail } from '@/components/command/ReportDetail';
 import { CommandStatus } from '@/components/command/CommandStatus';
-import { MapTab } from '@/components/command/MapTab';
-import { TrainingTab } from '@/components/command/TrainingTab';
 import { OpsLogTab } from '@/components/command/OpsLogTab';
 import { UptimeTab } from '@/components/command/UptimeTab';
-import type { MapTabHandle } from '@/components/command/MapTab';
 
-type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training' | 'ops' | 'sla';
+type MobileTab = 'ops' | 'sla';
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
 type ExpandedPanel = 'feed' | 'detail' | 'ops' | null;
 
@@ -77,13 +74,12 @@ export default function Command() {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mobileTab, setMobileTab] = useState<MobileTab>('map');
+  const [mobileTab, setMobileTab] = useState<MobileTab>('ops');
   const [filters] = useState({ service: '', callsign: '', timeRange: 'today' as const });
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
-  const [desktopUpperTab, setDesktopUpperTab] = useState<'map' | 'ops' | 'sla'>('map');
+  const [desktopUpperTab, setDesktopUpperTab] = useState<'ops' | 'sla'>('ops');
   const [opsReportId, setOpsReportId] = useState<string | null>(null);
   const viewMode = useViewMode();
-  const mapRef = useRef<MapTabHandle>(null);
 
   const {
     reports,
@@ -163,15 +159,6 @@ export default function Command() {
     return counts;
   }, [filteredReports]);
 
-  const handleMapSelect = useCallback((id: string) => {
-    setSelectedId(id);
-    setOpsReportId(id);
-    setDesktopUpperTab('ops');
-    if (viewMode === 'mobile') {
-      setMobileTab('ops');
-    }
-  }, [viewMode]);
-
   const toggleExpand = useCallback((panel: ExpandedPanel) => {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
   }, []);
@@ -201,7 +188,6 @@ export default function Command() {
   const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} />;
 
   if (opsReport) {
-    const singleReports = [opsReport];
     return (
       <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         {topBar}
@@ -212,13 +198,8 @@ export default function Command() {
           >
             <Minimize2 size={16} /> BACK TO OPS LOG
           </button>
-          <div className="flex h-full gap-3">
-            <div className="flex-1 rounded-lg border border-border bg-card shadow-sm overflow-y-auto">
-              <ReportDetail report={opsReport} dispositions={dispositions} transfers={transfers} />
-            </div>
-            <div className="w-2/5 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-              <MapTab reports={singleReports} onSelectReport={() => {}} />
-            </div>
+          <div className="h-full rounded-lg border border-border bg-card shadow-sm overflow-y-auto">
+            <ReportDetail report={opsReport} dispositions={dispositions} transfers={transfers} />
           </div>
         </div>
       </div>
@@ -229,7 +210,6 @@ export default function Command() {
   if (expandedPanel && viewMode !== 'mobile') {
     // Detail expand → report + map side-by-side (same as ops report view)
     if (expandedPanel === 'detail' && selectedReport) {
-      const singleReports = [selectedReport];
       return (
         <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
           {topBar}
@@ -240,13 +220,8 @@ export default function Command() {
             >
               <Minimize2 size={16} /> BACK
             </button>
-            <div className="flex h-full gap-3">
-              <div className="flex-1 rounded-lg border border-border bg-card shadow-sm overflow-y-auto">
-                <ReportDetail report={selectedReport} dispositions={dispositions} transfers={transfers} />
-              </div>
-              <div className="w-2/5 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-                <MapTab reports={singleReports} onSelectReport={() => {}} />
-              </div>
+            <div className="h-full rounded-lg border border-border bg-card shadow-sm overflow-y-auto">
+              <ReportDetail report={selectedReport} dispositions={dispositions} transfers={transfers} />
             </div>
           </div>
         </div>
@@ -277,7 +252,7 @@ export default function Command() {
         <div className={`flex flex-col p-3 gap-3 ${desktopUpperTab !== 'status' ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
           <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab !== 'status' ? 'flex-1 flex flex-col min-h-0' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
-              {(['map', 'ops', 'sla'] as const).map((tab) => (
+              {(['ops', 'sla'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setDesktopUpperTab(tab)}
@@ -292,11 +267,7 @@ export default function Command() {
                 </button>
               ))}
             </div>
-            {desktopUpperTab === 'map' ? (
-              <div className="flex-1 overflow-hidden h-full min-h-0">
-                <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
-              </div>
-            ) : desktopUpperTab === 'ops' ? (
+            {desktopUpperTab === 'ops' ? (
               <div className="flex-1 flex flex-col overflow-hidden">
                 <CommandStatus
                   todayReports={filteredReports}
@@ -331,7 +302,7 @@ export default function Command() {
         <div className={`flex flex-col p-2 gap-2 ${tabletTab !== 'status' ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
           <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${tabletTab !== 'status' ? 'flex-1 flex flex-col min-h-0' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
-              {(['map', 'ops', 'sla'] as const).map((tab) => (
+              {(['ops', 'sla'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setDesktopUpperTab(tab)}
@@ -346,11 +317,7 @@ export default function Command() {
                 </button>
               ))}
             </div>
-            {tabletTab === 'map' ? (
-              <div className="flex-1 overflow-hidden h-full min-h-0">
-                <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
-              </div>
-            ) : tabletTab === 'ops' ? (
+            {tabletTab === 'ops' ? (
               <div className="flex-1 flex flex-col overflow-hidden">
                 <CommandStatus
                   todayReports={filteredReports}
@@ -381,16 +348,6 @@ export default function Command() {
       {topBar}
 
       <div className="flex-1 overflow-hidden">
-        {mobileTab === 'map' && (
-          <div className="h-full">
-            <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
-          </div>
-        )}
-        {mobileTab === 'training' && (
-          <div className="h-full">
-            <TrainingTab reports={filteredReports} />
-          </div>
-        )}
         {mobileTab === 'ops' && (
           <div className="h-full flex flex-col">
             <CommandStatus
@@ -413,7 +370,6 @@ export default function Command() {
         )}
       </div>
       <div className="flex flex-shrink-0 border-t border-border bg-card">
-        {mobileTabBtn('map', 'MAP')}
         {mobileTabBtn('ops', 'OPS')}
         {mobileTabBtn('sla', 'SLA')}
       </div>
