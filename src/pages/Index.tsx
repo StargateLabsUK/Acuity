@@ -35,7 +35,7 @@ const Index = () => {
       }
     });
   }, []);
-  const syncStatus = useHeraldSync();
+  const { syncStatus } = useHeraldSync();
 
   const handleShiftLinked = useCallback((s: HeraldSession) => {
     setSession(s);

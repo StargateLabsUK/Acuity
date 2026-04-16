@@ -5,11 +5,12 @@ interface TopBarProps {
   micStatus: 'pending' | 'granted' | 'denied';
   aiStatus: 'ok' | 'error';
   syncStatus: 'ok' | 'error' | 'offline';
+  queuedCount?: number;
   onEndShift?: () => void;
   onRefresh?: () => void;
 }
 
-export function TopBar({ micStatus, aiStatus, syncStatus, onEndShift, onRefresh }: TopBarProps) {
+export function TopBar({ micStatus, aiStatus, syncStatus, queuedCount, onEndShift, onRefresh }: TopBarProps) {
   const [utc, setUtc] = useState('');
   const [confirmEnd, setConfirmEnd] = useState(false);
 
@@ -45,6 +46,12 @@ export function TopBar({ micStatus, aiStatus, syncStatus, onEndShift, onRefresh 
           {dot('MIC', micStatus === 'granted')}
           {dot('AI', aiStatus === 'ok')}
           {dot('SYNC', syncStatus === 'ok', syncStatus === 'offline')}
+          {(queuedCount ?? 0) > 0 && (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,149,0,0.15)', border: '1px solid rgba(255,149,0,0.3)' }}>
+              <span className="text-lg font-bold" style={{ color: '#FF9500' }}>{queuedCount}</span>
+              <span className="text-lg" style={{ color: '#FF9500' }}>queued</span>
+            </div>
+          )}
           {onRefresh && (
             <button
               onClick={onRefresh}

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Assessment, LiveState, Mismatch, ActionItem } from '@/lib/herald-types';
 import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS, detectMismatches } from '@/lib/herald-types';
 import { transcribeAudio, assessTranscript, syncReport } from '@/lib/herald-api';
+import { enqueue } from '@/lib/offline-queue';
 import { getReports, markSynced, saveReport, updateReport } from '@/lib/herald-storage';
 import { computeDiff } from '@/lib/herald-diff';
 import { getSession } from '@/lib/herald-session';
@@ -463,6 +464,27 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               return;
             }
           } catch { /* retry also failed */ }
+
+          // If offline, queue audio for later processing instead of showing error
+          if (!navigator.onLine) {
+            try {
+              const offlineBlob = new Blob(chunksRef.current, { type: mimeTypeRef.current || 'audio/webm' });
+              const offlineBase64 = await blobToBase64(offlineBlob);
+              const offlineSession = await getSession();
+              await enqueue('transcribe', {
+                audio_base64: offlineBase64,
+                mime_type: mimeTypeRef.current || 'audio/webm',
+                report_id: crypto.randomUUID(),
+                session_data: offlineSession ? { callsign: offlineSession.callsign, operator_id: offlineSession.operator_id, service: offlineSession.service, station: offlineSession.station } : null,
+                vehicle_type: offlineSession?.vehicle_type ?? null,
+                can_transport: offlineSession?.can_transport ?? true,
+              });
+              setError('Offline — recording queued, will process when back online');
+              setTimeout(() => { setError(''); setState('idle'); }, 4000);
+              resolve();
+              return;
+            } catch { /* queue failed too */ }
+          }
 
           onAiStatus('error');
           setError('Processing failed — tap RECORD to try again');

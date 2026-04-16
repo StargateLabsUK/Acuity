@@ -54,7 +54,7 @@ const IncidentsPage = () => {
   const [closedCasualties, setClosedCasualties] = useState<CasualtyDisposition[]>([]);
   const [hospitalAlert, setHospitalAlert] = useState<HospitalAlert | null>(null);
   const knownHospitalsRef = useRef<Map<string, string>>(new Map());
-  const syncStatus = useHeraldSync();
+  const { syncStatus, queuedCount } = useHeraldSync();
   const navigate = useNavigate();
 
   // Seed known hospitals from initial data so we don't alert on load
@@ -211,7 +211,7 @@ const IncidentsPage = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#1A1E24' }}>
-      <TopBar micStatus="granted" aiStatus="ok" syncStatus={syncStatus} onEndShift={handleEndShift} />
+      <TopBar micStatus="granted" aiStatus="ok" syncStatus={syncStatus} queuedCount={queuedCount} onEndShift={handleEndShift} />
       <ShiftLinkCode session={session} />
 
       <div className="flex-1 flex flex-col overflow-hidden">

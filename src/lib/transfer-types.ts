@@ -1,4 +1,5 @@
 /** Types and API helpers for crew-to-crew patient transfers */
+import { enqueue } from './offline-queue';
 
 export interface PatientTransfer {
   id: string;
@@ -53,7 +54,8 @@ export async function initiateTransfer(payload: {
     });
     return await res.json();
   } catch {
-    return { ok: false, error: 'Network error' };
+    await enqueue('transfer', { action: 'initiate', ...payload });
+    return { ok: false, error: 'Queued for retry — you are offline' };
   }
 }
 
@@ -69,7 +71,8 @@ export async function acceptTransfer(
     });
     return await res.json();
   } catch {
-    return { ok: false, error: 'Network error' };
+    await enqueue('transfer', { action: 'accept', transfer_id: transferId, accepting_callsign: acceptingCallsign });
+    return { ok: false, error: 'Queued for retry — you are offline' };
   }
 }
 
@@ -86,6 +89,7 @@ export async function declineTransfer(
     });
     return await res.json();
   } catch {
-    return { ok: false, error: 'Network error' };
+    await enqueue('transfer', { action: 'decline', transfer_id: transferId, declining_callsign: decliningCallsign, reason });
+    return { ok: false, error: 'Queued for retry — you are offline' };
   }
 }

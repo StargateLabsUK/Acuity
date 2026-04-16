@@ -600,9 +600,9 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
 
     // Sync to Supabase BEFORE triggering navigation (onHandover unmounts this component)
     try {
-      const { syncDisposition } = await import('@/lib/herald-api');
+      const { syncDispositionOrQueue } = await import('@/lib/herald-api');
       const session = await (await import('@/lib/herald-session')).getSession();
-      const syncOk = await syncDisposition({
+      const syncOk = await syncDispositionOrQueue({
         report_id: inc.id,
         casualty_key: cas.key,
         casualty_label: cas.label,

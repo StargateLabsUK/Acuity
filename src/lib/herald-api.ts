@@ -1,4 +1,5 @@
 import { getSession } from './herald-session';
+import { enqueue } from './offline-queue';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -44,6 +45,22 @@ export async function syncReport(report: Record<string, unknown>): Promise<boole
   return res.status === 201;
 }
 
+/** Sync report with automatic offline queueing */
+export async function syncReportOrQueue(report: Record<string, unknown>): Promise<boolean> {
+  if (!navigator.onLine) {
+    await enqueue('sync-report', report);
+    return false;
+  }
+  try {
+    const ok = await syncReport(report);
+    if (!ok) await enqueue('sync-report', report);
+    return ok;
+  } catch {
+    await enqueue('sync-report', report);
+    return false;
+  }
+}
+
 export async function fetchIncidentsRemote(params: {
   shift_id?: string;
   trust_id?: string;
@@ -87,4 +104,19 @@ export async function syncDisposition(disposition: Record<string, unknown>): Pro
     console.error('Sync disposition failed:', e);
     return false;
   }
+}
+
+/** Sync disposition with automatic offline queueing */
+export async function syncDispositionOrQueue(disposition: Record<string, unknown>): Promise<boolean> {
+  if (!navigator.onLine) {
+    const payload = { ...disposition, trust_id: (disposition as any)?.trust_id ?? await getTrustId() };
+    await enqueue('sync-disposition', payload);
+    return false;
+  }
+  const ok = await syncDisposition(disposition);
+  if (!ok) {
+    const payload = { ...disposition, trust_id: (disposition as any)?.trust_id ?? await getTrustId() };
+    await enqueue('sync-disposition', payload);
+  }
+  return ok;
 }
