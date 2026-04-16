@@ -290,7 +290,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
             padding: 12,
             background: 'transparent',
             border: canSubmit ? '1px solid rgba(0,0,0,0.15)' : '1px solid #E2E2DE',
-            color: canSubmit ? '#FFFFFF' : '#4A6058',
+            color: canSubmit ? '#1A1A1A' : '#999999',
             fontFamily: "'IBM Plex Mono', monospace",
             fontSize: 14,
             fontWeight: 500,

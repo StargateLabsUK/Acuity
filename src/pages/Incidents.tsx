@@ -8,6 +8,7 @@ import { ReportsTab } from '@/components/herald/ReportsTab';
 import { IncidentsTab } from '@/components/herald/IncidentsTab';
 import { ShiftLogin } from '@/components/herald/ShiftLogin';
 import { clearSession, endShiftRemote, leaveShiftRemote } from '@/lib/herald-session';
+import { clearCachedTrust } from '@/lib/trust-cache';
 import { supabase } from '@/integrations/supabase/client';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
 import { useShiftPresence } from '@/hooks/useShiftPresence';
@@ -197,6 +198,7 @@ const IncidentsPage = () => {
       await endShiftRemote(session.shift_id);
     }
     clearSession();
+    clearCachedTrust();
     setSession(null);
     navigate('/');
   }, [navigate, session]);
@@ -215,7 +217,7 @@ const IncidentsPage = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F5F5F0' }}>
-      <TopBar syncStatus={!fetchOk ? 'offline' : !fieldOnline ? 'offline' : syncStatus} queuedCount={queuedCount} onEndShift={handleEndShift} />
+      <TopBar syncStatus={!fetchOk ? 'offline' : !fieldOnline ? 'offline' : syncStatus} queuedCount={queuedCount} onEndShift={handleEndShift} onRefresh={() => { void refreshReports(); }} />
       <ShiftLinkCode session={session} />
 
       <div className="flex-1 flex flex-col overflow-hidden">

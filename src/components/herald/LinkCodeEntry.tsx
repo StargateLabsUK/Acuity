@@ -139,7 +139,7 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
               border: collarNumber.trim()
                 ? '1px solid rgba(0,0,0,0.15)'
                 : '1px solid #1E3028',
-              color: collarNumber.trim() ? '#FFFFFF' : '#1E3028',
+              color: collarNumber.trim() ? '#1A1A1A' : '#999999',
               fontFamily: "'IBM Plex Mono', monospace",
               fontSize: 14,
               fontWeight: 500,
