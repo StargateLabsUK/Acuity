@@ -388,7 +388,7 @@ function IncidentDetailView({ inc, onBack, onSelectCasualty, closedKeys, transfe
       </button>
 
       <div className="flex-1 overflow-auto px-3 md:px-6 py-3 md:py-5">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto">
         {/* Incident header */}
         <div className="rounded-lg border border-border bg-card shadow-sm p-3 mb-4">
           <div className="flex items-center gap-3 mb-2">
@@ -662,7 +662,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
       </button>
 
       <div className="flex-1 overflow-auto px-3 md:px-6 py-3 md:py-5 pb-32">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto">
         {/* 1. Priority + headline */}
         <div className="rounded-lg p-3 mb-4" style={{ background: `${col}1A`, borderLeft: `4px solid ${col}` }}>
           <div className="flex items-baseline gap-2 mb-1">
@@ -984,7 +984,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
 
       {/* Fixed bottom: Handover button */}
       <div className="px-3 md:px-6 py-3 border-t border-border" style={{ background: '#F5F5F0' }}>
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto">
         {confirming ? (
           <div className="p-3 rounded-lg" style={{ border: '2px solid #FF9500', background: 'rgba(255,149,0,0.08)' }}>
             <p className="text-lg font-bold mb-2" style={{ color: '#FF9500' }}>Hand over this patient?</p>
@@ -1297,7 +1297,7 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
   // List view
   return (
     <div className="flex-1 overflow-auto px-3 md:px-6 py-3 md:py-5">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <PendingTransfers session={session} onTransferAccepted={fetchIncidents} />
 
         {/* Shift details */}
