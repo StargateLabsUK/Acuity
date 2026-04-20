@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { Search, ArrowLeft } from 'lucide-react';
+import { Search, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useOpsLog, type OpsReport, type OpsTransmission, type OpsDisposition, type OpsFilters } from '@/hooks/useOpsLog';
 import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
 import type { Assessment, DispositionType } from '@/lib/herald-types';
@@ -402,18 +402,42 @@ function PatientListCard({ casualty, onOpen }: { casualty: CasualtySummary; onOp
   const outcomeLabel = casualty.disposition
     ? (DISPOSITION_LABELS[casualty.disposition.disposition as DispositionType] ?? casualty.disposition.disposition)
     : 'Open';
+  const outcomeColor = !casualty.disposition
+    ? '#6B7280'
+    : casualty.disposition.disposition === 'conveyed'
+      ? '#34C759'
+      : casualty.disposition.disposition === 'refused_transport'
+        ? '#FF9500'
+        : casualty.disposition.disposition === 'role'
+          ? '#EF4444'
+          : casualty.disposition.disposition === 'transferred'
+            ? '#8B5CF6'
+            : '#1E90FF';
+  const injurySummary = casualty.atmist ? safeString(casualty.atmist.I) : '';
 
   return (
     <button
       onClick={onOpen}
-      className="w-full text-left rounded-lg border border-border bg-card p-3 hover:bg-muted/30 transition-colors cursor-pointer"
+      className="w-full text-left rounded-xl border border-border bg-card px-4 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer shadow-sm"
     >
-      <div className="flex items-center gap-2 flex-wrap mb-1">
-        <span className="text-sm font-bold" style={badgeStyle(priorityColor)}>{casualty.priority}</span>
-        <span className="text-sm text-foreground font-semibold">{casualty.label}</span>
-      </div>
-      <div className="text-xs text-muted-foreground">
-        Outcome: {outcomeLabel}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+            <span className="text-sm font-bold" style={badgeStyle(priorityColor)}>{casualty.priority}</span>
+            <span className="text-base text-foreground font-semibold break-words">{casualty.label}</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold" style={badgeStyle(outcomeColor)}>
+              {outcomeLabel}
+            </span>
+          </div>
+          {injurySummary && (
+            <p className="text-xs text-muted-foreground mt-2 leading-5 line-clamp-2">
+              {injurySummary}
+            </p>
+          )}
+        </div>
+        <ChevronRight size={18} className="text-muted-foreground mt-1 flex-shrink-0" />
       </div>
     </button>
   );
@@ -445,99 +469,108 @@ function PatientDetailView({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className="rounded-lg p-4 border border-border">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="text-sm font-bold" style={badgeStyle(PRIORITY_COLORS[casualty.priority] ?? '#888')}>{casualty.priority}</span>
-            <span className="text-lg font-bold text-foreground">{casualty.label}</span>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {incidentTitle(report)} • {fmtDateTime(report.latest_transmission_at ?? report.created_at ?? report.timestamp)}
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="sticky top-0 z-10 -mx-4 px-4 py-3 border-b border-border bg-background/95 backdrop-blur">
+          <div className="rounded-lg p-3 border border-border bg-card shadow-sm">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className="text-sm font-bold" style={badgeStyle(PRIORITY_COLORS[casualty.priority] ?? '#888')}>{casualty.priority}</span>
+              <span className="text-lg font-bold text-foreground">{casualty.label}</span>
+            </div>
+            <div className="text-xs text-muted-foreground tracking-wide">
+              {incidentTitle(report)} • {fmtDateTime(report.latest_transmission_at ?? report.created_at ?? report.timestamp)}
+            </div>
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] mt-4">
           <div className="space-y-4">
             <div className="rounded-lg border border-border p-3">
-              <h3 className="text-xs font-bold tracking-widest text-muted-foreground mb-2">ATMIST</h3>
+              <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">ATMIST</h3>
               {atmist ? (
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {Object.entries(ATMIST_FIELD_LABELS).map(([field, label]) => (
-                    <div key={field} className="text-sm">
-                      <span style={{ color: '#666666' }}>{label}: </span>
-                      <span className="text-foreground">{safeString(atmist[field]) || '—'}</span>
+                    <div key={field} className="grid grid-cols-[130px_minmax(0,1fr)] items-start gap-2 text-[13px] leading-5">
+                      <span className="font-semibold text-muted-foreground">{label}</span>
+                      <span className="text-foreground break-words">{safeString(atmist[field]) || '—'}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No ATMIST data recorded for this patient.</p>
+                <p className="text-[13px] text-muted-foreground">No ATMIST data recorded for this patient.</p>
               )}
             </div>
 
             <div className="rounded-lg border border-border p-3">
-              <h3 className="text-xs font-bold tracking-widest text-muted-foreground mb-2">ABCDE (LATEST)</h3>
+              <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">ABCDE (LATEST)</h3>
               {hasClinicalFindings(latestAbcde) ? (
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {(Object.keys(ABCDE_LABELS) as AbcdeKey[]).map((key) => (
-                    <div key={key} className="text-sm">
-                      <span className="font-bold" style={{ color: '#1E90FF' }}>{key} — {ABCDE_LABELS[key]}: </span>
-                      <span className="text-foreground">{latestAbcde[key] ?? '—'}</span>
+                    <div key={key} className="grid grid-cols-[130px_minmax(0,1fr)] items-start gap-2 text-[13px] leading-5">
+                      <span className="font-semibold" style={{ color: '#1E90FF' }}>{key} — {ABCDE_LABELS[key]}</span>
+                      <span className="text-foreground break-words">{latestAbcde[key] ?? '—'}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No clinical findings recorded yet.</p>
+                <p className="text-[13px] text-muted-foreground">No clinical findings recorded yet.</p>
               )}
             </div>
           </div>
 
           <div className="rounded-lg border border-border p-3">
-            <h3 className="text-xs font-bold tracking-widest text-muted-foreground mb-2">CLINICAL TIMELINE</h3>
+            <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">CLINICAL TIMELINE</h3>
             {timeline.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No timestamped clinical updates recorded for this patient yet.</p>
+              <p className="text-[13px] text-muted-foreground">No timestamped clinical updates recorded for this patient yet.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="relative pl-6">
+                <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border" />
+                <div className="space-y-3">
                 {timeline.map((entry, index) => (
-                  <div key={entry.id} className="rounded border border-border p-2.5">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-xs font-bold" style={badgeStyle(entry.source === 'transfer' ? '#8B5CF6' : '#1E90FF')}>
+                  <div key={entry.id} className="relative rounded-lg border border-border p-3 bg-card">
+                    <span
+                      className="absolute -left-[22px] top-4 h-3 w-3 rounded-full border-2 bg-background"
+                      style={{ borderColor: entry.source === 'transfer' ? '#8B5CF6' : '#1E90FF' }}
+                    />
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                      <span className="text-[11px] font-bold" style={badgeStyle(entry.source === 'transfer' ? '#8B5CF6' : '#1E90FF')}>
                         {entry.source === 'transfer' ? 'TRANSFER' : `UPDATE #${index + 1}`}
                       </span>
-                      <span className="text-xs text-muted-foreground">{fmtDateTime(entry.timestamp)}</span>
+                      <span className="text-[11px] text-muted-foreground tracking-wide">{fmtDateTime(entry.timestamp)}</span>
                     </div>
-                    <p className="text-sm font-semibold text-foreground mb-1">{entry.headline}</p>
+                    <p className="text-[13px] font-semibold text-foreground mb-1.5 leading-5">{entry.headline}</p>
 
                     {hasClinicalFindings(entry.clinicalFindings) && (
-                      <div className="space-y-0.5 mb-1">
+                      <div className="space-y-1 mb-1.5">
                         {(Object.keys(ABCDE_LABELS) as AbcdeKey[]).map((key) => (
-                          <div key={key} className="text-xs">
-                            <span className="font-bold" style={{ color: '#1E90FF' }}>{key}: </span>
-                            <span className="text-foreground">{entry.clinicalFindings[key] ?? '—'}</span>
+                          <div key={key} className="grid grid-cols-[18px_minmax(0,1fr)] gap-1.5 text-[12px] leading-4.5">
+                            <span className="font-bold" style={{ color: '#1E90FF' }}>{key}</span>
+                            <span className="text-foreground break-words">{entry.clinicalFindings[key] ?? '—'}</span>
                           </div>
                         ))}
                       </div>
                     )}
 
                     {entry.atmist && (
-                      <div className="text-xs text-foreground">
-                        <span style={{ color: '#666666' }}>ATMIST snapshot:</span>{' '}
+                      <div className="text-[12px] text-foreground leading-4.5">
+                        <span className="font-semibold text-muted-foreground">ATMIST snapshot:</span>{' '}
                         {[entry.atmist.A, entry.atmist.M, entry.atmist.I].map(safeString).filter(Boolean).join(' • ') || '—'}
                       </div>
                     )}
 
-                    {entry.note && <p className="text-xs text-foreground mt-1">Note: {entry.note}</p>}
-                    {entry.transcript && <p className="text-xs text-muted-foreground mt-1 italic">"{entry.transcript}"</p>}
+                    {entry.note && <p className="text-[12px] text-foreground mt-1.5 leading-4.5"><span className="font-semibold text-muted-foreground">Note:</span> {entry.note}</p>}
+                    {entry.transcript && <p className="text-[12px] text-muted-foreground mt-1 italic leading-4.5">"{entry.transcript}"</p>}
                   </div>
                 ))}
+              </div>
               </div>
             )}
           </div>
         </div>
 
         <div className="rounded-lg border border-border p-3">
-          <h3 className="text-xs font-bold tracking-widest text-muted-foreground mb-2">OUTCOME</h3>
+          <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">OUTCOME</h3>
           {outcome ? (
-            <div className="space-y-1 text-sm">
+            <div className="space-y-1.5 text-[13px]">
               <div className="text-foreground font-semibold">
                 {DISPOSITION_LABELS[outcome.disposition as DispositionType] ?? outcome.disposition}
               </div>
@@ -547,7 +580,7 @@ function PatientDetailView({
               )}
             </div>
           ) : transfer ? (
-            <div className="space-y-1 text-sm">
+            <div className="space-y-1.5 text-[13px]">
               <div className="text-foreground font-semibold">
                 Transfer {transfer.status}: {transfer.from_callsign} {'->'} {transfer.to_callsign}
               </div>
@@ -558,7 +591,7 @@ function PatientDetailView({
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Patient still open — no final outcome recorded.</p>
+            <p className="text-[13px] text-muted-foreground">Patient still open — no final outcome recorded.</p>
           )}
         </div>
       </div>
