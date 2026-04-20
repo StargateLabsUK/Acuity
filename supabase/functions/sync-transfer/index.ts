@@ -2,6 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { isRateLimited } from "../_shared/rate-limit.ts";
+import {
+  markReceivingShiftHandoverOnlyIfIdle,
+  recomputeCrewStatus,
+  evaluateAndCloseReportIfFinalized,
+} from "../_shared/lifecycle.ts";
 
 function asText(v: unknown, max = 500): string | null {
   if (typeof v !== "string") return null;
@@ -225,6 +230,44 @@ serve(async (req) => {
         },
         trust_id: transfer.trust_id,
       });
+
+      // Sender-side auto disposition for transfer lifecycle.
+      // This marks custody transfer explicitly and removes this casualty
+      // from the sender's open-patient workload.
+      await supabase.from("casualty_dispositions").upsert(
+        {
+          report_id: transfer.report_id,
+          casualty_key: transfer.casualty_key,
+          casualty_label: transfer.casualty_label,
+          priority: transfer.priority,
+          disposition: "transferred",
+          fields: {
+            from_callsign: transfer.from_callsign,
+            to_callsign: transfer.to_callsign,
+            transfer_id: transfer.id,
+            accepted_at: acceptedAt,
+            note: `Transferred from ${transfer.from_callsign} to ${transfer.to_callsign}`,
+          },
+          incident_number: null,
+          closed_at: acceptedAt,
+          session_callsign: transfer.from_callsign,
+          trust_id: transfer.trust_id,
+        },
+        { onConflict: "report_id,casualty_key" },
+      );
+
+      // Receiving crew now has accepted work but no owned incident.
+      await markReceivingShiftHandoverOnlyIfIdle(supabase, transfer.to_shift_id);
+
+      // Recompute sender + receiver statuses from strict lifecycle state.
+      await recomputeCrewStatus(supabase, transfer.from_shift_id);
+      await recomputeCrewStatus(supabase, transfer.to_shift_id);
+
+      // Close report only when all casualties have FINAL outcomes.
+      const closeEval = await evaluateAndCloseReportIfFinalized(supabase, transfer.report_id);
+      if (closeEval.closed && closeEval.reportShiftId) {
+        await recomputeCrewStatus(supabase, closeEval.reportShiftId);
+      }
 
       // NOTE: Do NOT update session_callsign on the report — the original
       // crew retains ownership of the incident. The receiving crew sees

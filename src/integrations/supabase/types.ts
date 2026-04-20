@@ -519,8 +519,10 @@ export type Database = {
       }
       shifts: {
         Row: {
+          active_report_id: string | null
           callsign: string | null
           can_transport: boolean | null
+          crew_status: string
           created_at: string | null
           critical_care: boolean | null
           device_id: string | null
@@ -534,8 +536,10 @@ export type Database = {
           vehicle_type: string | null
         }
         Insert: {
+          active_report_id?: string | null
           callsign?: string | null
           can_transport?: boolean | null
+          crew_status?: string
           created_at?: string | null
           critical_care?: boolean | null
           device_id?: string | null
@@ -549,8 +553,10 @@ export type Database = {
           vehicle_type?: string | null
         }
         Update: {
+          active_report_id?: string | null
           callsign?: string | null
           can_transport?: boolean | null
+          crew_status?: string
           created_at?: string | null
           critical_care?: boolean | null
           device_id?: string | null
@@ -564,6 +570,13 @@ export type Database = {
           vehicle_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "shifts_active_report_id_fkey"
+            columns: ["active_report_id"]
+            isOneToOne: false
+            referencedRelation: "herald_reports"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shifts_trust_id_fkey"
             columns: ["trust_id"]
