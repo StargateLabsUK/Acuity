@@ -84,7 +84,7 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
         <div className="w-full" style={{ maxWidth: 400 }}>
           <div className="flex justify-center mb-6">
             <img
-              src="/favicon.png"
+              src="/Acuity.png"
               alt="Acuity"
               style={{ width: 56, height: 56, objectFit: 'contain' }}
             />
@@ -162,7 +162,7 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
       <div className="w-full" style={{ maxWidth: 400 }}>
         <div className="flex justify-center mb-6">
           <img
-            src="/favicon.png"
+            src="/Acuity.png"
             alt="Acuity"
             style={{ width: 56, height: 56, objectFit: 'contain' }}
           />

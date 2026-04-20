@@ -127,7 +127,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       >
         <div className="w-full" style={{ maxWidth: 400 }}>
           <img
-            src="/placeholder.svg"
+            src="/Acuity.png"
             alt="Acuity"
             className="mx-auto mb-6"
             style={{ width: 180, maxWidth: '100%', height: 'auto' }}
@@ -214,7 +214,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
         <img
-          src="/placeholder.svg"
+          src="/Acuity.png"
           alt="Acuity"
           className="mx-auto mb-6"
           style={{ width: 220, maxWidth: '100%', height: 'auto' }}

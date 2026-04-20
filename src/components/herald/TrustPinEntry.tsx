@@ -66,10 +66,10 @@ export function TrustPinEntry({ onValidated }: Props) {
     >
       <div className="w-full" style={{ maxWidth: 400 }}>
         <img
-          src="/favicon.png"
+          src="/Acuity.png"
           alt="Acuity"
           className="mx-auto mb-6"
-          style={{ width: 52, height: 52 }}
+          style={{ width: 180, maxWidth: '100%', height: 'auto' }}
         />
         <p
           style={{

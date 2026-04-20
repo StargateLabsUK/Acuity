@@ -9,7 +9,7 @@ export default function Home() {
       style={{ background: '#F5F5F0' }}
     >
       <img
-        src="/placeholder.svg"
+        src="/Acuity.png"
         alt="Acuity"
         className="mb-12 w-full"
         style={{ maxWidth: 240, height: 'auto' }}

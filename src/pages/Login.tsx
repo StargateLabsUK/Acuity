@@ -272,7 +272,7 @@ export default function Login() {
           className="text-center mb-8"
         >
           <img
-            src="/placeholder.svg"
+            src="/Acuity.png"
             alt="Acuity"
             style={{ height: 48, margin: '0 auto', objectFit: 'contain' }}
           />
