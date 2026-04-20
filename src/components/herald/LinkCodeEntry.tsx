@@ -86,7 +86,7 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
             <img
               src="/Acuity.png"
               alt="Acuity"
-              style={{ width: 56, height: 56, objectFit: 'contain' }}
+              style={{ width: 180, maxWidth: '100%', height: 'auto', objectFit: 'contain' }}
             />
           </div>
           <p
@@ -164,7 +164,7 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
           <img
             src="/Acuity.png"
             alt="Acuity"
-            style={{ width: 56, height: 56, objectFit: 'contain' }}
+            style={{ width: 180, maxWidth: '100%', height: 'auto', objectFit: 'contain' }}
           />
         </div>
         <p

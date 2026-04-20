@@ -274,7 +274,7 @@ export default function Login() {
           <img
             src="/Acuity.png"
             alt="Acuity"
-            style={{ height: 48, margin: '0 auto', objectFit: 'contain' }}
+            style={{ width: 220, maxWidth: '100%', height: 'auto', margin: '0 auto', objectFit: 'contain' }}
           />
         </h1>
         <p

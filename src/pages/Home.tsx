@@ -12,7 +12,7 @@ export default function Home() {
         src="/Acuity.png"
         alt="Acuity"
         className="mb-12 w-full"
-        style={{ maxWidth: 240, height: 'auto' }}
+        style={{ maxWidth: 220, height: 'auto' }}
       />
 
       <div className="w-full flex flex-col gap-4" style={{ maxWidth: 320 }}>
