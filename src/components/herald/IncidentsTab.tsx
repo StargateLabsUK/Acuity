@@ -757,7 +757,9 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
         <div className="mb-4">
           <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: col }}>DISPOSITION</p>
           <div className="flex flex-col gap-1.5 mb-3">
-            {(Object.entries(DISPOSITION_LABELS) as [DispositionType, string][]).map(([key, label]) => (
+            {(Object.entries(DISPOSITION_LABELS) as [DispositionType, string][])
+              .filter(([key]) => key !== 'transferred')
+              .map(([key, label]) => (
               <button key={key} onClick={() => setDisposition(key)}
                 className="text-left text-lg px-3 py-2.5 rounded-lg border transition-colors"
                 style={{

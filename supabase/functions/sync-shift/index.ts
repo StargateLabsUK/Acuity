@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { isRateLimited } from "../_shared/rate-limit.ts";
+import { recomputeCrewStatus } from "../_shared/lifecycle.ts";
 
 const MAX_STRING_LENGTH = 200;
 
@@ -73,6 +74,8 @@ serve(async (req) => {
         vehicle_type: vehicle_type || null,
         can_transport: can_transport ?? true,
         critical_care: critical_care ?? false,
+        crew_status: "available",
+        active_report_id: null,
         trust_id: trust_id || null,
       }).select("id").single();
 
@@ -108,7 +111,7 @@ serve(async (req) => {
       // Verify shift exists before ending
       const { data: shift } = await supabase
         .from("shifts")
-        .select("id")
+        .select("id, trust_id")
         .eq("id", shift_id)
         .maybeSingle();
 
@@ -121,6 +124,8 @@ serve(async (req) => {
 
       const { error } = await supabase.from("shifts").update({
         ended_at: new Date().toISOString(),
+        active_report_id: null,
+        crew_status: "available",
       }).eq("id", shift_id);
 
       if (error) {
@@ -133,6 +138,7 @@ serve(async (req) => {
 
       await supabase.from("audit_log").insert({
         action: "shift_ended",
+        trust_id: shift.trust_id ?? null,
         details: { shift_id },
       });
 
@@ -142,8 +148,31 @@ serve(async (req) => {
       );
     }
 
+    if (action === "status") {
+      const { shift_id } = body;
+      if (!shift_id || typeof shift_id !== "string") {
+        return new Response(
+          JSON.stringify({ error: "Missing shift_id" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const status = await recomputeCrewStatus(supabase, shift_id);
+      if (!status) {
+        return new Response(
+          JSON.stringify({ error: "Shift not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ ok: true, crew_status: status }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ error: "Unknown action. Use 'start' or 'end'" }),
+      JSON.stringify({ error: "Unknown action. Use 'start', 'end', or 'status'" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

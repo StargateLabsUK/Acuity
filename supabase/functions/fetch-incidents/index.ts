@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { isRateLimited } from "../_shared/rate-limit.ts";
+import { recomputeCrewStatus } from "../_shared/lifecycle.ts";
 
 Deno.serve(async (req) => {
   const preflight = handleCors(req);
@@ -29,6 +30,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Resolve lifecycle guard for this shift first.
+    if (shift_id) {
+      await recomputeCrewStatus(supabase, shift_id);
+    }
+
     // Build query for reports
     let query = supabase
       .from("herald_reports")
@@ -52,7 +58,7 @@ Deno.serve(async (req) => {
       query = query.eq("trust_id", trust_id);
     }
 
-    const { data: reports, error: reportsErr } = await query;
+    let { data: reports, error: reportsErr } = await query;
 
     if (reportsErr) {
       console.error("Reports fetch error:", reportsErr);
@@ -62,8 +68,18 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Fetch accepted transfers for this crew (used for filtering + per-casualty scope)
+    let acceptedTransfersForCrew: any[] = [];
+    if (callsign) {
+      const { data: transfers } = await supabase
+        .from("patient_transfers")
+        .select("id, report_id, casualty_key, casualty_label, priority, from_callsign, to_callsign, clinical_snapshot, handover_notes, accepted_at, status")
+        .eq("to_callsign", callsign)
+        .eq("status", "accepted");
+      acceptedTransfersForCrew = transfers ?? [];
+    }
+
     // Also fetch incidents where this crew has accepted patient transfers
-    let transferredReportIds: string[] = [];
     if (callsign) {
       const { data: acceptedTransfers } = await supabase
         .from("patient_transfers")
@@ -88,6 +104,28 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Strict lifecycle: if the shift already owns an active incident, do not
+    // leak additional non-owned active incidents into the crew workflow.
+    if (shift_id) {
+      const { data: shift } = await supabase
+        .from("shifts")
+        .select("active_report_id")
+        .eq("id", shift_id)
+        .maybeSingle();
+
+      const ownedReportId = shift?.active_report_id ?? null;
+      if (ownedReportId) {
+        const ownSet = new Set([ownedReportId]);
+        const acceptedSet = new Set(
+          (acceptedTransfersForCrew ?? []).map((t: any) => t.report_id).filter(Boolean),
+        );
+        const allowed = new Set<string>([...ownSet, ...acceptedSet]);
+        if ((reports ?? []).length > 0) {
+          reports = (reports ?? []).filter((r: any) => allowed.has(r.id));
+        }
+      }
+    }
+
     // Fetch dispositions for same scope
     let dispQuery = supabase
       .from("casualty_dispositions")
@@ -107,17 +145,6 @@ Deno.serve(async (req) => {
     }
 
     const { data: dispositions } = await dispQuery;
-
-    // Fetch accepted transfers for this crew (so frontend can filter to transferred casualties only)
-    let acceptedTransfersForCrew: any[] = [];
-    if (callsign) {
-      const { data: transfers } = await supabase
-        .from("patient_transfers")
-        .select("id, report_id, casualty_key, casualty_label, priority, from_callsign, to_callsign, clinical_snapshot, handover_notes, accepted_at, status")
-        .eq("to_callsign", callsign)
-        .eq("status", "accepted");
-      acceptedTransfersForCrew = transfers ?? [];
-    }
 
     await supabase.from("audit_log").insert({
       action: "incidents_fetched",

@@ -2,6 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { isRateLimited } from "../_shared/rate-limit.ts";
+import {
+  evaluateAndCloseReportIfFinalized,
+  recomputeCrewStatus,
+} from "../_shared/lifecycle.ts";
 
 const ALLOWED_DISPOSITIONS = new Set([
   "conveyed",
@@ -9,6 +13,7 @@ const ALLOWED_DISPOSITIONS = new Set([
   "see_and_refer",
   "refused_transport",
   "role",
+  "transferred",
 ]);
 
 function asText(value: unknown, max = 500): string | null {
@@ -147,27 +152,10 @@ serve(async (req) => {
       reportUpdate.receiving_hospital = conveyedHospital;
     }
 
-    // Check if all casualties for this report now have dispositions
-    // by comparing disposed count against the report's casualty count from assessment
-    const { data: reportRow } = await supabase
-      .from("herald_reports")
-      .select("assessment, status")
-      .eq("id", reportId)
-      .maybeSingle();
-
-    if (reportRow) {
-      const assessment = reportRow.assessment as Record<string, unknown> | null;
-      const atmist = (assessment?.atmist ?? {}) as Record<string, unknown>;
-      const casualtyCount = Math.max(1, Object.keys(atmist).length);
-
-      const { count: disposedCount } = await supabase
-        .from("casualty_dispositions")
-        .select("id", { count: "exact", head: true })
-        .eq("report_id", reportId);
-
-      if (disposedCount != null && disposedCount >= casualtyCount && reportRow.status !== "closed") {
-        reportUpdate.status = "closed";
-      }
+    const closeEval = await evaluateAndCloseReportIfFinalized(supabase, reportId);
+    if (closeEval.closed) {
+      reportUpdate.status = "closed";
+      reportUpdate.confirmed_at = closedAt;
     }
 
     if (Object.keys(reportUpdate).length > 0) {
@@ -179,6 +167,11 @@ serve(async (req) => {
       if (reportUpdateError) {
         console.error("sync-disposition report update error", reportUpdateError);
       }
+    }
+
+    // Any final handover/disposition may free the owning crew for new incidents.
+    if (closeEval.reportShiftId) {
+      await recomputeCrewStatus(supabase, closeEval.reportShiftId);
     }
 
     return new Response(

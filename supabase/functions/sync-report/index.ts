@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { isRateLimited } from "../_shared/rate-limit.ts";
+import { setShiftOnIncident } from "../_shared/lifecycle.ts";
 
 const MAX_TRANSCRIPT_LENGTH = 10000;
 const MAX_HEADLINE_LENGTH = 500;
@@ -93,6 +94,16 @@ serve(async (req) => {
     if (!parentId) {
       parentId = await findMatchingIncident(supabase, report);
     }
+
+    // Enforce one active incident per shift and prevent cross-shift contamination.
+    const enforced = await enforceSingleActiveIncidentForShift(supabase, report, parentId);
+    if (enforced.error) {
+      return new Response(
+        JSON.stringify({ error: enforced.error }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    parentId = enforced.parentId;
 
     if (parentId) {
       // --- FOLLOW-UP: append transmission to existing incident ---
@@ -335,6 +346,10 @@ serve(async (req) => {
         details: { report_id: parentId, callsign: report.session_callsign },
       });
 
+      if (report.shift_id && typeof report.shift_id === "string") {
+        await setShiftOnIncident(supabase, report.shift_id, parentId);
+      }
+
       return new Response(
         JSON.stringify({ ok: true, follow_up: true, parent_id: parentId }),
         { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -348,6 +363,7 @@ serve(async (req) => {
       reportData.assessment = normalizeAssessmentForMerge(reportData.assessment as Record<string, unknown>);
     }
 
+    reportData.status = "active";
     reportData.latest_transmission_at = reportData.latest_transmission_at || report.timestamp;
     reportData.transmission_count = reportData.transmission_count || 1;
 
@@ -380,6 +396,10 @@ serve(async (req) => {
       trust_id: report.trust_id || null,
       details: { report_id: report.id, callsign: report.session_callsign },
     });
+
+    if (reportData.shift_id && typeof reportData.shift_id === "string" && typeof reportData.id === "string") {
+      await setShiftOnIncident(supabase, reportData.shift_id, reportData.id);
+    }
 
     return new Response(
       JSON.stringify({ ok: true }),
@@ -453,13 +473,58 @@ async function findMatchingIncident(
         }
       }
 
-      if (data.length === 1) {
-        return data[0].id;
-      }
+      // Intentionally no "single candidate fallback" here.
+      // A lone active incident in the time window is not enough signal and can
+      // incorrectly merge the next callout into an existing incident.
     }
   }
 
   return null;
+}
+
+async function enforceSingleActiveIncidentForShift(
+  supabase: ReturnType<typeof createClient>,
+  report: Record<string, unknown>,
+  candidateParentId: string | null,
+): Promise<{ parentId: string | null; error?: string }> {
+  const shiftId = (report.shift_id as string) || null;
+  if (!shiftId) {
+    return { parentId: candidateParentId };
+  }
+
+  const { data: shift } = await supabase
+    .from("shifts")
+    .select("id, ended_at, active_report_id")
+    .eq("id", shiftId)
+    .maybeSingle();
+
+  if (!shift || shift.ended_at) {
+    return { parentId: null, error: "Shift not found or ended" };
+  }
+
+  if (shift.active_report_id) {
+    const { data: activeReport } = await supabase
+      .from("herald_reports")
+      .select("id, status")
+      .eq("id", shift.active_report_id)
+      .maybeSingle();
+    if (activeReport?.status === "active") {
+      // Active assignment on the shift is authoritative.
+      return { parentId: shift.active_report_id };
+    }
+
+    // Shift had stale pointer -> clear and allow fresh incident assignment.
+    await supabase
+      .from("shifts")
+      .update({ active_report_id: null, crew_status: "available" })
+      .eq("id", shiftId)
+      .is("ended_at", null);
+  }
+
+  // No active assignment for this shift, so force a NEW incident.
+  // This prevents an old still-open report (e.g. transferred-out patient)
+  // from absorbing a new call just because callsign/time matched.
+  return { parentId: null };
 }
 
 function actionItemCategory(text: string): string {

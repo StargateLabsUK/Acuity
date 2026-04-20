@@ -96,7 +96,8 @@ export type DispositionType =
   | 'see_and_treat'
   | 'see_and_refer'
   | 'refused_transport'
-  | 'role';
+  | 'role'
+  | 'transferred';
 
 export interface DispositionFields {
   // Conveyed
@@ -135,6 +136,12 @@ export interface DispositionFields {
   police_notified?: boolean;
   coroner_referral?: boolean;
   nok_notified?: boolean;
+  // Transfer lifecycle marker
+  from_callsign?: string;
+  to_callsign?: string;
+  transfer_id?: string;
+  accepted_at?: string;
+  note?: string;
 }
 
 export interface CasualtyDisposition {
@@ -155,6 +162,7 @@ export const DISPOSITION_LABELS: Record<DispositionType, string> = {
   see_and_refer: 'See and Refer',
   refused_transport: 'Refused transport / DAA',
   role: 'Recognition of Life Extinct (ROLE)',
+  transferred: 'Transferred to another crew',
 };
 
 export type LiveState = 'idle' | 'recording' | 'processing' | 'ready' | 'confirmed' | 'queued';
