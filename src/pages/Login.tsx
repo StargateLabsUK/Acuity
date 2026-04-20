@@ -269,21 +269,21 @@ export default function Login() {
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
         <h1
-          className="font-logo text-4xl text-center mb-1"
-          style={{ color: '#1A1A1A' }}
+          className="text-center mb-8"
         >
-          ACUITY
+          <img
+            src="/Acuity.png"
+            alt="Acuity"
+            style={{ height: 48, margin: '0 auto', objectFit: 'contain' }}
+          />
         </h1>
-        <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
-          Real-time Field Intelligence
-        </p>
         <p
           style={{
             color: '#8A9B94',
             fontSize: 14,
             letterSpacing: '0.25em',
             textAlign: 'center',
-            marginBottom: 48,
+            marginBottom: 40,
           }}
         >
           {step === 'credentials' && 'COMMAND LOGIN'}
