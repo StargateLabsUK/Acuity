@@ -65,22 +65,19 @@ export function TrustPinEntry({ onValidated }: Props) {
       style={{ background: '#F5F5F0' }}
     >
       <div className="w-full" style={{ maxWidth: 400 }}>
-        <h1
-          className="font-logo text-4xl text-center mb-1"
-          style={{ color: '#1A1A1A' }}
-        >
-          ACUITY
-        </h1>
-        <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
-          Real-time Field Intelligence
-        </p>
+        <img
+          src="/favicon.png"
+          alt="Acuity"
+          className="mx-auto mb-6"
+          style={{ width: 52, height: 52 }}
+        />
         <p
           style={{
             color: '#8A9B94',
             fontSize: 14,
             letterSpacing: '0.25em',
             textAlign: 'center',
-            marginBottom: 48,
+            marginBottom: 42,
           }}
         >
           ENTER YOUR TRUST CODE

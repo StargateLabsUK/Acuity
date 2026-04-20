@@ -34,7 +34,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const service = 'ambulance';
   const [callsign, setCallsign] = useState('');
   const [vehicleType, setVehicleType] = useState('');
-  
+
   const [trust, setTrust] = useState<CachedTrust | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -126,12 +126,12 @@ export function ShiftLogin({ onShiftStarted }: Props) {
         style={{ background: '#F5F5F0' }}
       >
         <div className="w-full" style={{ maxWidth: 400 }}>
-          <h1
-            className="font-logo text-2xl text-center mb-1"
-            style={{ color: '#1A1A1A' }}
-          >
-            ACUITY
-          </h1>
+          <img
+            src="/placeholder.svg"
+            alt="Acuity"
+            className="mx-auto mb-6"
+            style={{ width: 180, maxWidth: '100%', height: 'auto' }}
+          />
           <p
             style={{
               color: '#666666',
@@ -213,12 +213,12 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       style={{ background: '#F5F5F0' }}
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
-        <h1 className="font-logo text-4xl text-foreground text-center mb-1">
-          ACUITY
-        </h1>
-        <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
-          Real-time Field Intelligence
-        </p>
+        <img
+          src="/placeholder.svg"
+          alt="Acuity"
+          className="mx-auto mb-6"
+          style={{ width: 220, maxWidth: '100%', height: 'auto' }}
+        />
         <p
           style={{
             color: '#8A9B94',
