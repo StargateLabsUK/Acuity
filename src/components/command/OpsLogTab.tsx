@@ -549,7 +549,7 @@ function PatientDetailView({
           ) : transfer ? (
             <div className="space-y-1 text-sm">
               <div className="text-foreground font-semibold">
-                Transfer {transfer.status}: {transfer.from_callsign} -> {transfer.to_callsign}
+                Transfer {transfer.status}: {transfer.from_callsign} {'->'} {transfer.to_callsign}
               </div>
               <div className="text-muted-foreground">
                 {transfer.accepted_at
