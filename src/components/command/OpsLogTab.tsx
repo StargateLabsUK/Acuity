@@ -1,136 +1,34 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Search, ChevronDown, ChevronRight, Download, ArrowLeft, FileText, ArrowRightLeft } from 'lucide-react';
-import { useOpsLog, type OpsReport, type OpsTransmission, type OpsDisposition, type OpsFilters, type Shift } from '@/hooks/useOpsLog';
+import { useMemo, useState, type CSSProperties } from 'react';
+import { Search, ArrowLeft, ChevronRight } from 'lucide-react';
+import { useOpsLog, type OpsReport, type OpsTransmission, type OpsDisposition, type OpsFilters } from '@/hooks/useOpsLog';
 import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
-import type { DispositionType, Assessment } from '@/lib/herald-types';
+import type { Assessment, DispositionType } from '@/lib/herald-types';
 import type { PatientTransfer } from '@/lib/transfer-types';
-import { sanitizeAssessment } from '@/lib/sanitize-assessment';
 
-// ── Helpers ──
+type AbcdeKey = 'A' | 'B' | 'C' | 'D' | 'E';
+type ClinicalFindings = Partial<Record<AbcdeKey, string>>;
 
-function fmtTime(iso: string | null) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  const date = d.toISOString().slice(0, 10);
-  const time = d.getUTCHours().toString().padStart(2, '0') + ':' + d.getUTCMinutes().toString().padStart(2, '0') + 'Z';
-  return `${date} ${time}`;
+interface CasualtySummary {
+  key: string;
+  label: string;
+  priority: string;
+  atmist: Record<string, unknown> | null;
+  disposition: OpsDisposition | null;
+  transfer: PatientTransfer | null;
 }
 
-function fmtDate(iso: string | null) {
-  if (!iso) return '—';
-  return new Date(iso).toISOString().slice(0, 10);
+interface ClinicalTimelineEntry {
+  id: string;
+  timestamp: string;
+  source: 'transmission' | 'transfer';
+  headline: string;
+  transcript?: string | null;
+  note?: string | null;
+  atmist: Record<string, unknown> | null;
+  clinicalFindings: ClinicalFindings;
 }
 
-function fmtDateTime(iso: string | null) {
-  if (!iso) return '—';
-  return fmtDate(iso) + ' ' + fmtTime(iso);
-}
-
-function getCasualtyCount(report: OpsReport): number {
-  const a = report.assessment;
-  if (!a?.atmist || typeof a.atmist !== 'object') return 0;
-  return Object.keys(a.atmist).length;
-}
-
-function getLocation(report: OpsReport): string {
-  const a = report.assessment;
-  const structured = a?.structured as Record<string, unknown> | undefined;
-  const candidates = [
-    a?.scene_location,
-    structured?.location,
-    structured?.scene_location,
-    structured?.address,
-  ];
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
-  }
-  return 'Location not specified';
-}
-
-function incidentTitle(report: OpsReport): string {
-  if (report.incident_number && report.incident_number.trim()) {
-    return report.incident_number.trim();
-  }
-  return `INCIDENT-${report.id.slice(0, 8).toUpperCase()}`;
-}
-
-function getIncidentType(report: OpsReport): string {
-  const a = report.assessment;
-  if (a?.headline && typeof a.headline === 'string') return a.headline;
-  if (report.headline && typeof report.headline === 'string') return report.headline;
-  return 'Unknown';
-}
-
-function matchesSearch(text: string | null | undefined, q: string): boolean {
-  if (!text || !q) return !q;
-  return text.toLowerCase().includes(q.toLowerCase());
-}
-
-// ── Filter logic ──
-
-function applyFilters(reports: OpsReport[], dispositions: OpsDisposition[], filters: OpsFilters): OpsReport[] {
-  let filtered = [...reports];
-  const q = filters.search.trim().toLowerCase();
-
-  if (q) {
-    filtered = filtered.filter(r =>
-      matchesSearch(r.session_callsign, q) ||
-      matchesSearch(r.headline, q) ||
-      matchesSearch(r.assessment?.headline, q) ||
-      matchesSearch(r.incident_number, q) ||
-      matchesSearch(r.session_operator_id, q) ||
-      matchesSearch(getLocation(r), q) ||
-      matchesSearch(getIncidentType(r), q) ||
-      matchesSearch(r.transcript, q) ||
-      (q === 'safeguarding' && (r.assessment as any)?.safeguarding?.concern_identified === true) ||
-      matchesSearch((r.assessment as any)?.safeguarding?.details, q)
-    );
-  }
-
-  if (filters.callsign) {
-    filtered = filtered.filter(r => r.session_callsign === filters.callsign);
-  }
-
-  if (filters.operatorId) {
-    filtered = filtered.filter(r => r.session_operator_id === filters.operatorId);
-  }
-
-  if (filters.dateFrom) {
-    const from = new Date(filters.dateFrom).getTime();
-    filtered = filtered.filter(r => new Date(r.created_at ?? r.timestamp).getTime() >= from);
-  }
-  if (filters.dateTo) {
-    const to = new Date(filters.dateTo).getTime() + 86400000;
-    filtered = filtered.filter(r => new Date(r.created_at ?? r.timestamp).getTime() < to);
-  }
-
-  if (filters.outcome) {
-    const reportIdsWithOutcome = new Set(
-      dispositions.filter(d => d.disposition === filters.outcome).map(d => d.report_id)
-    );
-    filtered = filtered.filter(r => reportIdsWithOutcome.has(r.id));
-  }
-
-  if (filters.incidentType) {
-    const typeQ = filters.incidentType.toLowerCase();
-    filtered = filtered.filter(r => {
-      const type = getIncidentType(r).toLowerCase();
-      return type.includes(typeQ);
-    });
-  }
-
-  if (filters.safeguarding === 'yes') {
-    filtered = filtered.filter(r => (r.assessment as any)?.safeguarding?.concern_identified === true);
-  } else if (filters.safeguarding === 'no') {
-    filtered = filtered.filter(r => !(r.assessment as any)?.safeguarding?.concern_identified);
-  }
-
-  return filtered;
-}
-
-// ── Styles ──
-
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   background: 'hsl(var(--background))',
   border: '1px solid hsl(var(--border))',
   color: 'hsl(var(--foreground))',
@@ -141,7 +39,7 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
 };
 
-const selectStyle: React.CSSProperties = {
+const selectStyle: CSSProperties = {
   ...inputStyle,
   appearance: 'none' as const,
   WebkitAppearance: 'none' as const,
@@ -158,739 +56,22 @@ const badgeStyle = (color: string) => ({
   whiteSpace: 'nowrap' as const,
 });
 
-// ── Clinical Snapshot (formatted) ──
+const ATMIST_FIELD_LABELS: Record<string, string> = {
+  A: 'Age / Sex',
+  T: 'Time of Injury',
+  M: 'Mechanism',
+  I: 'Injuries',
+  S: 'Signs / Vitals',
+  T_treatment: 'Treatment Given',
+};
 
-function ClinicalSnapshotView({ snapshot }: { snapshot: Record<string, unknown> }) {
-  const atmist = (snapshot.atmist ?? {}) as Record<string, string | undefined>;
-  const actionItems = (snapshot.action_items ?? []) as Array<string | { text?: string }>;
-  const timestamp = snapshot.snapshot_timestamp as string | undefined;
-  const assessmentSnapshot = snapshot.assessment_snapshot as Record<string, unknown> | undefined;
-  const patientName = (assessmentSnapshot?.patient_name ?? null) as string | null;
-
-  const atmistFields: Array<[string, string | undefined]> = [
-    ['Age / Sex', atmist.A],
-    ['Time of Injury', atmist.T],
-    ['Mechanism', atmist.M],
-    ['Injuries', atmist.I],
-    ['Signs / Vitals', atmist.S],
-    ['Treatment Given', atmist.T_treatment],
-  ];
-  const visibleAtmist = atmistFields.filter(([, v]) => v && v !== '—');
-
-  return (
-    <div className="mt-2 space-y-3">
-      {timestamp && (
-        <div className="text-xs text-muted-foreground">
-          Captured at {fmtDateTime(timestamp)}
-        </div>
-      )}
-
-      {patientName && (
-        <div>
-          <span className="text-xs font-bold tracking-widest" style={{ color: '#8B5CF6' }}>PATIENT NAME: </span>
-          <span className="text-sm text-foreground font-medium">{patientName}</span>
-        </div>
-      )}
-
-      {visibleAtmist.length > 0 && (
-        <div>
-          <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#8B5CF6' }}>ATMIST</div>
-          <div className="border border-border rounded p-2 space-y-1">
-            {visibleAtmist.map(([label, val]) => (
-              <div key={label} className="text-sm">
-                <span style={{ color: '#666666' }}>{label}: </span>
-                <span className="text-foreground">{val}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {actionItems.length > 0 && (
-        <div>
-          <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#8B5CF6' }}>ACTION ITEMS</div>
-          <div className="border border-border rounded p-2 space-y-1">
-            {actionItems.map((item, i) => {
-              const text = typeof item === 'string' ? item : (item?.text ?? '');
-              return text ? (
-                <div key={i} className="text-sm text-foreground">• {text}</div>
-              ) : null;
-            })}
-          </div>
-        </div>
-      )}
-
-      <Expandable label="RAW SNAPSHOT JSON" color="#4A6058">
-        <pre className="text-xs text-foreground whitespace-pre-wrap break-words mt-2 font-mono leading-relaxed">
-          {JSON.stringify(snapshot, null, 2)}
-        </pre>
-      </Expandable>
-    </div>
-  );
-}
-
-// ── Expandable Section ──
-
-function Expandable({ label, color, children }: { label: string; color?: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left bg-transparent cursor-pointer hover:bg-muted/30 transition-colors">
-        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        <span className="text-sm font-bold tracking-wide" style={{ color: color ?? 'hsl(var(--foreground))' }}>{label}</span>
-      </button>
-      {open && <div className="px-3 pb-3 border-t border-border">{children}</div>}
-    </div>
-  );
-}
-
-// ── Transfer Event Entry ──
-
-function TransferEventEntry({ tx, index }: { tx: OpsTransmission; index: number }) {
-  const a = tx.assessment as any;
-  return (
-    <div className="border rounded-lg p-3 space-y-2" style={{ borderColor: '#3B82F644', background: '#3B82F608' }}>
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold" style={{ color: 'hsl(var(--primary))' }}>#{index + 1}</span>
-        <span className="text-sm text-muted-foreground">{fmtTime(tx.timestamp)}</span>
-        <span className="text-xs font-bold px-2 py-0.5 rounded" style={badgeStyle('#3B82F6')}>SYSTEM</span>
-        <span className="text-xs font-bold px-2 py-0.5 rounded" style={badgeStyle('#8B5CF6')}>TRANSFER</span>
-      </div>
-      <p className="text-sm text-foreground font-semibold">{tx.headline ?? 'Patient Transfer'}</p>
-
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-1">
-        {a?.from_callsign && (
-          <>
-            <span className="text-muted-foreground">From</span>
-            <span className="text-foreground font-semibold">{a.from_callsign}</span>
-          </>
-        )}
-        {a?.to_callsign && (
-          <>
-            <span className="text-muted-foreground">To</span>
-            <span className="text-foreground font-semibold">{a.to_callsign}</span>
-          </>
-        )}
-        {a?.initiated_at && (
-          <>
-            <span className="text-muted-foreground">Initiated</span>
-            <span className="text-foreground">{fmtTime(a.initiated_at)}</span>
-          </>
-        )}
-        {a?.accepted_at && (
-          <>
-            <span className="text-muted-foreground">Accepted</span>
-            <span className="text-foreground">{fmtTime(a.accepted_at)}</span>
-          </>
-        )}
-      </div>
-
-      <Expandable label="FULL SYSTEM TRANSCRIPT" color="#3B82F6">
-        <pre className="text-sm text-foreground whitespace-pre-wrap break-words mt-2 font-mono leading-relaxed">
-          {tx.transcript ?? '—'}
-        </pre>
-      </Expandable>
-    </div>
-  );
-}
-
-// ── Transmission Entry ──
-
-function TransmissionEntry({ tx, index }: { tx: OpsTransmission; index: number }) {
-  // Detect system transfer event
-  const isSystemEvent = tx.transcript?.startsWith('[SYSTEM EVENT') || (tx.assessment as any)?.system_event;
-  if (isSystemEvent) return <TransferEventEntry tx={tx} index={index} />;
-
-  const p = tx.priority ?? tx.assessment?.priority;
-  const col = p ? PRIORITY_COLORS[p] ?? 'hsl(var(--muted-foreground))' : 'hsl(var(--muted-foreground))';
-
-  return (
-    <div className="border border-border rounded-lg p-3 space-y-2">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-bold" style={{ color: 'hsl(var(--primary))' }}>#{index + 1}</span>
-        <span className="text-sm text-muted-foreground">{fmtTime(tx.timestamp)}</span>
-        {tx.session_callsign && (
-          <span className="text-sm font-semibold" style={badgeStyle('#059669')}>{tx.session_callsign}</span>
-        )}
-        {p && <span className="text-sm font-bold" style={badgeStyle(col)}>{p}</span>}
-      </div>
-      <p className="text-sm text-foreground">{String(tx.headline ?? tx.assessment?.headline ?? '—')}</p>
-
-      <div className="space-y-1.5">
-        <Expandable label="VERBATIM TRANSCRIPT" color="#1E90FF">
-          <pre className="text-sm text-foreground whitespace-pre-wrap break-words mt-2 font-mono leading-relaxed">
-            {tx.transcript ?? 'No transcript available'}
-          </pre>
-        </Expandable>
-
-        <Expandable label="RAW WHISPER OUTPUT" color="#FF9500">
-          <pre className="text-sm text-foreground whitespace-pre-wrap break-words mt-2 font-mono leading-relaxed">
-            {tx.transcript ?? 'No raw output available'}
-          </pre>
-        </Expandable>
-
-        {tx.assessment && (
-          <Expandable label="ACUITY ASSESSMENT" color="#34C759">
-            <div className="mt-2 flex flex-col gap-3">
-              {(() => {
-                const a = tx.assessment as unknown as Record<string, unknown>;
-                return Object.entries(a).map(([key, val]) => {
-                  if (val == null || val === '') return null;
-                  const label = key.replace(/_/g, ' ').toUpperCase();
-
-                  // ATMIST object with nested casualty keys
-                  if (key === 'atmist' && typeof val === 'object' && !Array.isArray(val)) {
-                    return (
-                      <div key={key}>
-                        <div className="text-sm font-bold tracking-[0.15em] mb-1" style={{ color: '#34C759' }}>{label}</div>
-                        {Object.entries(val as Record<string, unknown>).map(([casKey, casVal]) => (
-                          <div key={casKey} className="ml-2 mb-2">
-                            <div className="text-sm font-bold text-foreground mb-0.5">{casKey}</div>
-                            {typeof casVal === 'object' && casVal !== null ? (
-                              <div className="ml-2 flex flex-col gap-0.5">
-                                {Object.entries(casVal as Record<string, unknown>).map(([field, fv]) => (
-                                  <div key={field} className="text-sm">
-                                    <span style={{ color: '#666666' }}>{field}:</span>{' '}
-                                    <span className="text-foreground">{String(fv ?? '—')}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="text-sm text-foreground ml-2">{String(casVal ?? '—')}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-
-                  // Arrays (actions, action_items, clinical_findings)
-                  if (Array.isArray(val)) {
-                    return (
-                      <div key={key}>
-                        <div className="text-sm font-bold tracking-[0.15em] mb-1" style={{ color: '#34C759' }}>{label}</div>
-                        <div className="ml-2 flex flex-col gap-0.5">
-                          {(val as unknown[]).map((item, i) => (
-                            <div key={i} className="text-sm text-foreground">
-                              {'• '}{typeof item === 'object' && item !== null ? (typeof (item as any).text === 'string' ? (item as any).text : JSON.stringify(item)) : String(item ?? '')}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // Nested objects (structured)
-                  if (typeof val === 'object') {
-                    return (
-                      <div key={key}>
-                        <div className="text-sm font-bold tracking-[0.15em] mb-1" style={{ color: '#34C759' }}>{label}</div>
-                        <div className="ml-2 flex flex-col gap-0.5">
-                          {Object.entries(val as Record<string, unknown>).map(([sk, sv]) => (
-                            <div key={sk} className="text-sm">
-                              <span style={{ color: '#666666' }}>{sk.replace(/_/g, ' ')}:</span>{' '}
-                              <span className="text-foreground">{String(sv ?? '—')}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // Simple string values
-                  return (
-                    <div key={key}>
-                      <span className="text-sm font-bold tracking-[0.1em]" style={{ color: '#34C759' }}>{label}: </span>
-                      <span className="text-sm text-foreground">{String(val)}</span>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </Expandable>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Expanded Incident View ──
-
-function IncidentDetail({
-  report,
-  transmissions,
-  dispositions,
-  transfers,
-  onBack,
-}: {
-  report: OpsReport;
-  transmissions: OpsTransmission[];
-  dispositions: OpsDisposition[];
-  transfers: PatientTransfer[];
-  onBack: () => void;
-}) {
-  const p = String(report.assessment?.priority ?? report.priority ?? '—');
-  const col = PRIORITY_COLORS[p] ?? '#888';
-  let a: ReturnType<typeof sanitizeAssessment> | null = null;
-  try { a = report.assessment ? sanitizeAssessment(report.assessment) : null; } catch { a = null; }
-  const reportDisps = dispositions.filter(d => d.report_id === report.id);
-  const reportTransfers = transfers.filter(t => t.report_id === report.id);
-  const reportTx = transmissions
-    .filter(t => t.report_id === report.id)
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-  // Split transmissions into pre-transfer and post-transfer sections
-  const transferTxIndex = reportTx.findIndex(tx =>
-    tx.transcript?.startsWith('[SYSTEM EVENT') || (tx.assessment as any)?.system_event
-  );
-  const hasTransferEvent = transferTxIndex >= 0;
-  const preTransferTx = hasTransferEvent ? reportTx.slice(0, transferTxIndex) : reportTx;
-  const transferEventTx = hasTransferEvent ? [reportTx[transferTxIndex]] : [];
-  const postTransferTx = hasTransferEvent ? reportTx.slice(transferTxIndex + 1) : [];
-
-  const exportJSON = useCallback(() => {
-    const payload = {
-      incident: report,
-      transmissions: reportTx,
-      dispositions: reportDisps,
-      transfers: reportTransfers,
-      exported_at: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `incident-${report.incident_number ?? report.id.slice(0, 8)}-${fmtDate(report.created_at)}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [report, reportTx, reportDisps, reportTransfers]);
-
-  return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border flex-shrink-0">
-        <button onClick={onBack} className="flex items-center gap-1 text-sm text-primary bg-transparent cursor-pointer">
-          <ArrowLeft size={16} /> Back
-        </button>
-        <div className="flex-1" />
-        <button onClick={exportJSON}
-          className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded border cursor-pointer"
-          style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--primary))' }}>
-          <Download size={14} /> EXPORT JSON
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 select-text">
-        {/* Header */}
-        <div className="rounded-lg p-4" style={{ background: `${col}12`, borderLeft: `4px solid ${col}` }}>
-          <div className="flex items-center gap-3 flex-wrap mb-2">
-            <span className="text-xl font-bold" style={{ color: col }}>{p}</span>
-            <span className="text-sm font-bold px-2 py-0.5 rounded" style={{ border: '1px solid hsl(var(--border))', color: 'hsl(var(--foreground))' }}>
-              Incident
-            </span>
-            <span className="text-sm font-bold" style={badgeStyle(report.status === 'closed' ? '#888' : '#FF9500')}>
-              {report.status === 'closed' ? 'CLOSED' : 'ACTIVE'}
-            </span>
-            {reportTransfers.length > 0 && (
-              <span className="text-sm font-bold" style={badgeStyle('#8B5CF6')}>
-                <ArrowRightLeft size={12} className="inline mr-1" />TRANSFERRED
-              </span>
-            )}
-          </div>
-          <p className="text-lg text-foreground font-bold">{incidentTitle(report)}</p>
-          <p className="text-base text-muted-foreground">{getIncidentType(report)}</p>
-          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground flex-wrap">
-            <span>📍 {getLocation(report)}</span>
-            {report.session_callsign && <span>🚑 {report.session_callsign}</span>}
-            <span>{fmtDateTime(report.latest_transmission_at ?? report.created_at ?? report.timestamp)}</span>
-            {report.confirmed_at && <span>Closed: {fmtTime(report.confirmed_at)}</span>}
-          </div>
-        </div>
-
-        {/* Safeguarding alert */}
-        {a?.safeguarding?.concern_identified && (
-          <div className="rounded-lg p-3 border" style={{ background: 'rgba(255,59,48,0.08)', borderColor: '#FF3B30' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-bold tracking-widest" style={{ color: '#FF3B30' }}>⚠ SAFEGUARDING CONCERN</span>
-              {a.safeguarding.police_requested && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded" style={badgeStyle('#FF9500')}>POLICE REQUESTED</span>
-              )}
-              {a.safeguarding.referral_required && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded" style={badgeStyle('#FF3B30')}>REFERRAL REQUIRED</span>
-              )}
-            </div>
-            {a.safeguarding.details && (
-              <p className="text-sm text-foreground">{String(a.safeguarding.details)}</p>
-            )}
-          </div>
-        )}
-
-        {/* 1. Incident Summary */}
-        <div>
-          <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">INCIDENT SUMMARY</h3>
-          {a?.formatted_report ? (
-            <div className="border border-border rounded-lg p-3 text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
-              {String(a.formatted_report)}
-            </div>
-          ) : (
-            <div className="border border-border rounded-lg p-3 text-sm text-muted-foreground">
-              No consolidated report available
-            </div>
-          )}
-        </div>
-
-        {/* 2. Transfer History */}
-        {reportTransfers.length > 0 && (
-          <div>
-            <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
-              <ArrowRightLeft size={14} className="inline mr-1.5" />
-              TRANSFER HISTORY ({reportTransfers.length})
-            </h3>
-            <div className="space-y-2">
-              {reportTransfers.map(t => {
-                const tc = t.status === 'accepted' ? '#34C759' : t.status === 'declined' ? '#FF3B30' : '#FF9500';
-                const statusLabel = t.status === 'accepted' ? 'ACCEPTED' : t.status === 'declined' ? 'DECLINED' : 'PENDING';
-                return (
-                  <div key={t.id} className="border rounded-lg p-3" style={{ borderColor: `${tc}44`, background: `${tc}08` }}>
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-sm font-bold" style={badgeStyle(PRIORITY_COLORS[t.priority] ?? '#888')}>{t.priority}</span>
-                      <span className="text-sm text-foreground font-medium">{t.casualty_label}</span>
-                      <span className="text-sm font-bold" style={badgeStyle(tc)}>{statusLabel}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm mt-1">
-                      <span className="text-muted-foreground">From</span>
-                      <span className="text-foreground font-semibold">{t.from_callsign}</span>
-                      <span className="text-muted-foreground">To</span>
-                      <span className="text-foreground font-semibold">{t.to_callsign}</span>
-                      <span className="text-muted-foreground">Initiated</span>
-                      <span className="text-foreground">{fmtTime(t.initiated_at)}</span>
-                      {t.accepted_at && (
-                        <>
-                          <span className="text-muted-foreground">Accepted</span>
-                          <span className="text-foreground">{fmtTime(t.accepted_at)}</span>
-                        </>
-                      )}
-                      {t.declined_at && (
-                        <>
-                          <span className="text-muted-foreground">Declined</span>
-                          <span className="text-foreground">{fmtTime(t.declined_at)}</span>
-                        </>
-                      )}
-                      {t.declined_reason && (
-                        <>
-                          <span className="text-muted-foreground">Reason</span>
-                          <span className="text-foreground">{t.declined_reason}</span>
-                        </>
-                      )}
-                    </div>
-                    {/* Handover notes from sending crew (optional freetext) */}
-                    {t.handover_notes && (
-                      <div className="mt-2 border border-border rounded p-2">
-                        <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#8B5CF6' }}>HANDOVER NOTES</div>
-                        <p className="text-sm text-foreground whitespace-pre-wrap break-words">{t.handover_notes}</p>
-                      </div>
-                    )}
-                    {/* Clinical snapshot — formatted */}
-                    {t.clinical_snapshot && Object.keys(t.clinical_snapshot).length > 0 && (
-                      <div className="mt-2">
-                        <Expandable label="CLINICAL SNAPSHOT (PRE-TRANSFER)" color="#8B5CF6">
-                          <ClinicalSnapshotView snapshot={t.clinical_snapshot} />
-                        </Expandable>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* 3. Patient Detail — full ATMIST + outcome per casualty */}
-        {(() => {
-          const atmistMap = (a?.atmist ?? {}) as Record<string, Record<string, unknown> | null>;
-          const atmistKeys = Object.keys(atmistMap);
-          const dispOnlyKeys = reportDisps
-            .map(d => d.casualty_key)
-            .filter(k => !atmistKeys.includes(k));
-          const allKeys = [...atmistKeys, ...dispOnlyKeys];
-          if (allKeys.length === 0) return null;
-
-          const priorityFromKey = (k: string) => {
-            const m = k.match(/^P\d+/);
-            return m ? m[0] : k;
-          };
-
-          const atmistLabels: Record<string, string> = {
-            A: 'Age / Sex',
-            T: 'Time of Injury',
-            M: 'Mechanism',
-            I: 'Injuries',
-            S: 'Signs / Vitals',
-            T_treatment: 'Treatment Given',
-          };
-
-          return (
-            <div>
-              <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
-                PATIENTS ({allKeys.length})
-              </h3>
-              <div className="space-y-3">
-                {allKeys.map(key => {
-                  const casVal = atmistMap[key] as Record<string, unknown> | null;
-                  const disposition = reportDisps.find(d => d.casualty_key === key);
-                  const transfer = reportTransfers.find(t => t.casualty_key === key);
-                  const priority = disposition?.priority ?? priorityFromKey(key);
-                  const dc = PRIORITY_COLORS[priority] ?? '#888';
-                  const outcomeLabel = disposition
-                    ? (DISPOSITION_LABELS[disposition.disposition as DispositionType] ?? disposition.disposition)
-                    : null;
-                  const outcomeColor = !disposition ? '#888' :
-                    disposition.disposition === 'conveyed' ? '#34C759' :
-                    disposition.disposition === 'refused_transport' ? '#FF9500' :
-                    disposition.disposition === 'role' ? '#FF3B30' :
-                    disposition.disposition === 'see_and_treat' ? '#1E90FF' :
-                    disposition.disposition === 'see_and_refer' ? '#1E90FF' : '#888';
-
-                  const patientLabel = disposition?.casualty_label
-                    ?? (casVal?.A ? `${key} — ${String(casVal.A)}` : key);
-
-                  // Build ATMIST fields that have values
-                  const atmistFields = casVal
-                    ? Object.entries(atmistLabels)
-                        .map(([field, label]) => [label, casVal[field]] as const)
-                        .filter(([, v]) => v != null && String(v) !== '' && String(v) !== '—')
-                    : [];
-
-                  return (
-                    <div key={key} className="border rounded-lg overflow-hidden" style={{ borderColor: `${dc}44` }}>
-                      {/* Patient header */}
-                      <div className="px-3 py-2 flex items-center gap-2 flex-wrap" style={{ background: `${dc}12`, borderBottom: `1px solid ${dc}33` }}>
-                        <span className="text-sm font-bold" style={badgeStyle(dc)}>{priority}</span>
-                        <span className="text-sm text-foreground font-semibold">{patientLabel}</span>
-                        {outcomeLabel ? (
-                          <span className="text-sm" style={badgeStyle(outcomeColor)}>{outcomeLabel}</span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">On scene</span>
-                        )}
-                        {transfer && transfer.status === 'accepted' && (
-                          <span className="text-xs font-bold" style={badgeStyle('#8B5CF6')}>
-                            TRANSFERRED {transfer.from_callsign} → {transfer.to_callsign}
-                          </span>
-                        )}
-                        {transfer && transfer.status === 'pending' && (
-                          <span className="text-xs font-bold" style={badgeStyle('#FF9500')}>
-                            PENDING TRANSFER → {transfer.to_callsign}
-                          </span>
-                        )}
-                        {transfer && transfer.status === 'declined' && (
-                          <span className="text-xs font-bold" style={badgeStyle('#888')}>
-                            TRANSFER DECLINED
-                          </span>
-                        )}
-                      </div>
-
-                      {/* ATMIST breakdown */}
-                      {atmistFields.length > 0 && (
-                        <div className="px-3 py-2 space-y-1 border-b border-border">
-                          <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#FF9500' }}>ATMIST</div>
-                          {atmistFields.map(([label, val]) => (
-                            <div key={label} className="text-sm">
-                              <span style={{ color: '#666666' }}>{label}: </span>
-                              <span className="text-foreground">{String(val)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Clinical findings if available */}
-                      {a?.clinical_findings && typeof a.clinical_findings === 'object' && (
-                        <div className="px-3 py-2 space-y-1 border-b border-border">
-                          <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#1E90FF' }}>CLINICAL FINDINGS (ABCDE)</div>
-                          {Object.entries(a.clinical_findings as Record<string, unknown>)
-                            .filter(([, v]) => v != null && String(v) !== '' && String(v) !== 'Not assessed')
-                            .map(([field, val]) => (
-                              <div key={field} className="text-sm">
-                                <span className="font-bold" style={{ color: '#1E90FF' }}>{field}: </span>
-                                <span className="text-foreground">{String(val)}</span>
-                              </div>
-                            ))}
-                        </div>
-                      )}
-
-                      {/* Disposition detail */}
-                      {disposition && (
-                        <div className="px-3 py-2 space-y-0.5">
-                          <div className="text-xs font-bold tracking-widest mb-1" style={{ color: outcomeColor }}>OUTCOME</div>
-                          <div className="text-sm text-foreground">
-                            {outcomeLabel} — {fmtDateTime(disposition.closed_at)}
-                          </div>
-                          {disposition.disposition === 'conveyed' && (disposition.fields as Record<string, unknown>)?.receiving_hospital && (
-                            <div className="text-sm">
-                              <span style={{ color: '#666666' }}>Hospital: </span>
-                              <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).receiving_hospital)}</span>
-                            </div>
-                          )}
-                          {disposition.disposition === 'see_and_refer' && (disposition.fields as Record<string, unknown>)?.referral_destination && (
-                            <div className="text-sm">
-                              <span style={{ color: '#666666' }}>Referred to: </span>
-                              <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).referral_destination)}</span>
-                            </div>
-                          )}
-                          {disposition.disposition === 'refused_transport' && (disposition.fields as Record<string, unknown>)?.capacity_assessment && (
-                            <div className="text-sm">
-                              <span style={{ color: '#666666' }}>Capacity: </span>
-                              <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).capacity_assessment)}</span>
-                            </div>
-                          )}
-                          {(disposition.fields as Record<string, unknown>)?.notes && (
-                            <div className="text-sm">
-                              <span style={{ color: '#666666' }}>Notes: </span>
-                              <span className="text-foreground">{String((disposition.fields as Record<string, unknown>).notes)}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* 4. Transmission Log — split by transfer event */}
-        <div>
-          {hasTransferEvent ? (
-            <>
-              {/* Pre-transfer transmissions */}
-              <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
-                PRE-TRANSFER TRANSMISSIONS ({preTransferTx.length})
-              </h3>
-              {preTransferTx.length > 0 ? (
-                <div className="space-y-2 mb-4">
-                  {preTransferTx.map((tx, i) => (
-                    <TransmissionEntry key={tx.id} tx={tx} index={i} />
-                  ))}
-                </div>
-              ) : (
-                <div className="border border-border rounded-lg p-3 text-sm text-muted-foreground mb-4">
-                  No pre-transfer transmissions
-                </div>
-              )}
-
-              {/* Transfer event divider */}
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t" style={{ borderColor: '#8B5CF644' }} />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="px-3 text-xs font-bold tracking-widest" style={{
-                    background: 'hsl(var(--background))',
-                    color: '#8B5CF6',
-                  }}>
-                    ← TRANSFER EVENT →
-                  </span>
-                </div>
-              </div>
-
-              {transferEventTx.map((tx, i) => (
-                <div key={tx.id} className="mb-4">
-                  <TransmissionEntry tx={tx} index={preTransferTx.length + i} />
-                </div>
-              ))}
-
-              {/* Post-transfer transmissions */}
-              {postTransferTx.length > 0 && (
-                <>
-                  <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
-                    POST-TRANSFER TRANSMISSIONS ({postTransferTx.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {postTransferTx.map((tx, i) => (
-                      <TransmissionEntry key={tx.id} tx={tx} index={preTransferTx.length + transferEventTx.length + i} />
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
-                TRANSMISSION LOG ({reportTx.length})
-              </h3>
-              {reportTx.length > 0 ? (
-                <div className="space-y-2">
-                  {reportTx.map((tx, i) => (
-                    <TransmissionEntry key={tx.id} tx={tx} index={i} />
-                  ))}
-                </div>
-              ) : (
-                <div className="border border-border rounded-lg p-3 text-sm text-muted-foreground">
-                  No individual transmissions recorded — single transmission incident
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Incident Card (list item) ──
-
-function IncidentCard({ report, dispositions, transfers, onClick }: {
-  report: OpsReport;
-  dispositions: OpsDisposition[];
-  transfers: PatientTransfer[];
-  onClick: () => void;
-}) {
-  const p = String(report.assessment?.priority ?? report.priority ?? '—');
-  const col = PRIORITY_COLORS[p] ?? '#888';
-  const casCount = Math.max(getCasualtyCount(report), dispositions.filter(d => d.report_id === report.id).length);
-  const isClosed = report.status === 'closed';
-  const hasTransfer = transfers.some(t => t.report_id === report.id);
-
-  return (
-    <button
-      onClick={onClick}
-      className="w-full text-left rounded-lg border border-border bg-card shadow-sm p-3 cursor-pointer hover:bg-muted/30 transition-colors mb-2 block"
-    >
-      <div className="flex items-center gap-2 mb-1 flex-wrap">
-        <span className="text-sm font-bold" style={badgeStyle(col)}>{p}</span>
-        <span className="text-sm" style={badgeStyle(isClosed ? '#888' : '#FF9500')}>
-          {isClosed ? 'CLOSED' : 'ACTIVE'}
-        </span>
-        {(report.transmission_count ?? 1) > 1 && (
-          <span className="text-sm" style={badgeStyle('#1E90FF')}>
-            {report.transmission_count} TX
-          </span>
-        )}
-        {hasTransfer && (
-          <span className="text-sm" style={badgeStyle('#8B5CF6')}>XFER</span>
-        )}
-        {(report.assessment as any)?.safeguarding?.concern_identified && (
-          <span className="text-sm" style={badgeStyle('#FF3B30')}>⚠ SAFEGUARDING</span>
-        )}
-      </div>
-
-      <p className="text-base text-foreground font-bold truncate mb-0.5">{incidentTitle(report)}</p>
-      <p className="text-sm text-muted-foreground truncate mb-1">{getIncidentType(report)}</p>
-
-      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-        <span>📍 {getLocation(report)}</span>
-        <span>{fmtDateTime(report.latest_transmission_at ?? report.created_at ?? report.timestamp)}</span>
-        {report.confirmed_at && <span>→ {fmtTime(report.confirmed_at)}</span>}
-        {casCount > 0 && <span>{casCount} casualt{casCount === 1 ? 'y' : 'ies'}</span>}
-        {report.session_callsign && (
-          <span className="font-semibold" style={{ color: '#059669' }}>{report.session_callsign}</span>
-        )}
-      </div>
-    </button>
-  );
-}
-
-// ── Incident Type Filter Options ──
+const ABCDE_LABELS: Record<AbcdeKey, string> = {
+  A: 'Airway',
+  B: 'Breathing',
+  C: 'Circulation',
+  D: 'Disability',
+  E: 'Exposure',
+};
 
 const INCIDENT_TYPE_OPTIONS = [
   'cardiac arrest',
@@ -905,11 +86,524 @@ const INCIDENT_TYPE_OPTIONS = [
   'maternity',
 ];
 
-// ── Main Component ──
+function fmtTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return `${d.getUTCHours().toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}Z`;
+}
+
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return new Date(iso).toISOString().slice(0, 10);
+}
+
+function fmtDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return `${fmtDate(iso)} ${fmtTime(iso)}`;
+}
+
+function safeString(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return '';
+}
+
+function hasMeaningfulText(value: unknown): boolean {
+  const text = safeString(value).trim();
+  if (!text) return false;
+  return !['not assessed', 'unknown', 'n/a', '—'].includes(text.toLowerCase());
+}
+
+function matchesSearch(text: string | null | undefined, query: string): boolean {
+  if (!query) return true;
+  if (!text) return false;
+  return text.toLowerCase().includes(query.toLowerCase());
+}
+
+function getIncidentType(report: OpsReport): string {
+  if (typeof report.assessment?.headline === 'string' && report.assessment.headline.trim()) return report.assessment.headline;
+  if (typeof report.headline === 'string' && report.headline.trim()) return report.headline;
+  return 'Unknown';
+}
+
+function getLocation(report: OpsReport): string {
+  const structured = report.assessment?.structured as Record<string, unknown> | undefined;
+  const candidates = [
+    report.assessment?.scene_location,
+    structured?.location,
+    structured?.scene_location,
+    structured?.address,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+  }
+  return 'Location not specified';
+}
+
+function incidentTitle(report: OpsReport): string {
+  if (report.incident_number && report.incident_number.trim()) return report.incident_number.trim();
+  return `INCIDENT-${report.id.slice(0, 8).toUpperCase()}`;
+}
+
+function getCasualtyCount(report: OpsReport): number {
+  const atmist = report.assessment?.atmist;
+  if (!atmist || typeof atmist !== 'object') return 0;
+  return Object.keys(atmist).length;
+}
+
+function normalizeClinicalFindings(value: unknown): ClinicalFindings {
+  if (!value || typeof value !== 'object') return {};
+  const findings = value as Record<string, unknown>;
+  const normalized: ClinicalFindings = {};
+  (['A', 'B', 'C', 'D', 'E'] as AbcdeKey[]).forEach((key) => {
+    const raw = findings[key];
+    if (hasMeaningfulText(raw)) normalized[key] = safeString(raw).trim();
+  });
+  return normalized;
+}
+
+function hasClinicalFindings(findings: ClinicalFindings): boolean {
+  return (['A', 'B', 'C', 'D', 'E'] as AbcdeKey[]).some((key) => hasMeaningfulText(findings[key]));
+}
+
+function priorityFromCasualtyKey(casualtyKey: string): string {
+  const priority = casualtyKey.match(/^P\d+/)?.[0];
+  return priority ?? casualtyKey;
+}
+
+function extractAtmistForCasualty(assessment: Assessment | null | undefined, casualtyKey: string): Record<string, unknown> | null {
+  const atmist = assessment?.atmist;
+  if (!atmist || typeof atmist !== 'object') return null;
+
+  const asMap = atmist as Record<string, unknown>;
+  if (typeof asMap[casualtyKey] === 'object' && asMap[casualtyKey] !== null) {
+    return asMap[casualtyKey] as Record<string, unknown>;
+  }
+
+  const base = casualtyKey.replace(/-\d+$/, '');
+  if (typeof asMap[base] === 'object' && asMap[base] !== null) {
+    return asMap[base] as Record<string, unknown>;
+  }
+
+  const related = Object.entries(asMap).filter(([key, value]) => {
+    if (typeof value !== 'object' || value === null) return false;
+    return key === base || key.startsWith(`${base}-`);
+  });
+
+  if (related.length === 1) return related[0][1] as Record<string, unknown>;
+  return null;
+}
+
+function buildCasualties(report: OpsReport, dispositions: OpsDisposition[], transfers: PatientTransfer[]): CasualtySummary[] {
+  const atmistMap = (report.assessment?.atmist ?? {}) as Record<string, Record<string, unknown> | null>;
+  const atmistKeys = Object.keys(atmistMap);
+  const dispositionKeys = dispositions
+    .filter((d) => d.report_id === report.id)
+    .map((d) => d.casualty_key);
+  const allKeys = Array.from(new Set([...atmistKeys, ...dispositionKeys]));
+
+  return allKeys.map((key) => {
+    const disposition = dispositions.find((d) => d.report_id === report.id && d.casualty_key === key) ?? null;
+    const transfer = transfers.find((t) => t.report_id === report.id && t.casualty_key === key) ?? null;
+    const atmist = atmistMap[key] ?? null;
+    const priority = disposition?.priority ?? priorityFromCasualtyKey(key);
+    const label = disposition?.casualty_label ?? (hasMeaningfulText(atmist?.A) ? `${key} — ${String(atmist?.A)}` : key);
+    return { key, label, priority, atmist, disposition, transfer };
+  });
+}
+
+function buildClinicalTimeline(
+  report: OpsReport,
+  transmissions: OpsTransmission[],
+  transfers: PatientTransfer[],
+  casualty: CasualtySummary,
+  totalCasualties: number,
+): ClinicalTimelineEntry[] {
+  const timeline: ClinicalTimelineEntry[] = [];
+
+  transmissions
+    .filter((tx) => tx.report_id === report.id)
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    .forEach((tx) => {
+      const assessment = tx.assessment as Assessment | null;
+      const atmist = extractAtmistForCasualty(assessment, casualty.key);
+      const clinicalFindings = normalizeClinicalFindings(assessment?.clinical_findings);
+      const includeClinical = hasClinicalFindings(clinicalFindings);
+      const includeAtmist = !!atmist;
+
+      if (!includeClinical && !includeAtmist) return;
+
+      // If multi-casualty and no casualty-specific ATMIST data, avoid mixing shared updates
+      if (!includeAtmist && totalCasualties > 1) return;
+
+      timeline.push({
+        id: `tx-${tx.id}`,
+        timestamp: tx.timestamp,
+        source: 'transmission',
+        headline: tx.headline ?? 'Clinical update',
+        transcript: tx.transcript,
+        atmist,
+        clinicalFindings,
+      });
+    });
+
+  transfers
+    .filter((t) => t.report_id === report.id && t.casualty_key === casualty.key)
+    .forEach((transfer) => {
+      const snapshot = transfer.clinical_snapshot;
+      if (!snapshot || typeof snapshot !== 'object') return;
+
+      const snapshotRecord = snapshot as Record<string, unknown>;
+      const snapshotAtmistRaw = snapshotRecord.atmist;
+      const snapshotAtmistMap = (snapshotAtmistRaw && typeof snapshotAtmistRaw === 'object')
+        ? (snapshotAtmistRaw as Record<string, unknown>)
+        : null;
+
+      let atmist: Record<string, unknown> | null = null;
+      if (snapshotAtmistMap) {
+        const exact = snapshotAtmistMap[casualty.key];
+        if (exact && typeof exact === 'object') atmist = exact as Record<string, unknown>;
+        else if (['A', 'T', 'M', 'I', 'S', 'T_treatment'].some((field) => field in snapshotAtmistMap)) {
+          atmist = snapshotAtmistMap;
+        }
+      }
+
+      const assessmentSnapshot = (snapshotRecord.assessment_snapshot && typeof snapshotRecord.assessment_snapshot === 'object')
+        ? snapshotRecord.assessment_snapshot as Record<string, unknown>
+        : null;
+      const clinicalFindings = normalizeClinicalFindings(assessmentSnapshot?.clinical_findings);
+      const note = safeString(snapshotRecord.note) || transfer.handover_notes || null;
+
+      if (!atmist && !hasClinicalFindings(clinicalFindings) && !note) return;
+
+      timeline.push({
+        id: `transfer-${transfer.id}`,
+        timestamp: transfer.accepted_at ?? transfer.initiated_at,
+        source: 'transfer',
+        headline: `Transfer ${transfer.status}: ${transfer.from_callsign} -> ${transfer.to_callsign}`,
+        note,
+        atmist,
+        clinicalFindings,
+      });
+    });
+
+  return timeline.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+}
+
+function latestClinicalFindings(
+  timeline: ClinicalTimelineEntry[],
+  reportAssessment: Assessment | null | undefined,
+  totalCasualties: number,
+): ClinicalFindings {
+  for (let i = timeline.length - 1; i >= 0; i -= 1) {
+    if (hasClinicalFindings(timeline[i].clinicalFindings)) return timeline[i].clinicalFindings;
+  }
+  if (totalCasualties === 1) return normalizeClinicalFindings(reportAssessment?.clinical_findings);
+  return {};
+}
+
+function applyFilters(reports: OpsReport[], dispositions: OpsDisposition[], filters: OpsFilters): OpsReport[] {
+  let filtered = [...reports];
+  const query = filters.search.trim().toLowerCase();
+
+  if (query) {
+    filtered = filtered.filter((report) =>
+      matchesSearch(report.session_callsign, query)
+      || matchesSearch(report.headline, query)
+      || matchesSearch(report.assessment?.headline, query)
+      || matchesSearch(report.incident_number, query)
+      || matchesSearch(report.session_operator_id, query)
+      || matchesSearch(report.transcript, query)
+      || matchesSearch(getLocation(report), query)
+      || matchesSearch(getIncidentType(report), query)
+      || (query === 'safeguarding' && (report.assessment as any)?.safeguarding?.concern_identified === true)
+      || matchesSearch((report.assessment as any)?.safeguarding?.details, query)
+    );
+  }
+
+  if (filters.callsign) filtered = filtered.filter((r) => r.session_callsign === filters.callsign);
+  if (filters.operatorId) filtered = filtered.filter((r) => r.session_operator_id === filters.operatorId);
+
+  if (filters.dateFrom) {
+    const from = new Date(filters.dateFrom).getTime();
+    filtered = filtered.filter((r) => new Date(r.created_at ?? r.timestamp).getTime() >= from);
+  }
+
+  if (filters.dateTo) {
+    const to = new Date(filters.dateTo).getTime() + 86400000;
+    filtered = filtered.filter((r) => new Date(r.created_at ?? r.timestamp).getTime() < to);
+  }
+
+  if (filters.outcome) {
+    const reportIds = new Set(dispositions.filter((d) => d.disposition === filters.outcome).map((d) => d.report_id));
+    filtered = filtered.filter((r) => reportIds.has(r.id));
+  }
+
+  if (filters.incidentType) {
+    const incidentType = filters.incidentType.toLowerCase();
+    filtered = filtered.filter((r) => getIncidentType(r).toLowerCase().includes(incidentType));
+  }
+
+  if (filters.safeguarding === 'yes') {
+    filtered = filtered.filter((r) => (r.assessment as any)?.safeguarding?.concern_identified === true);
+  } else if (filters.safeguarding === 'no') {
+    filtered = filtered.filter((r) => !(r.assessment as any)?.safeguarding?.concern_identified);
+  }
+
+  return filtered;
+}
+
+function IncidentCard({
+  report,
+  dispositions,
+  transfers,
+  onClick,
+}: {
+  report: OpsReport;
+  dispositions: OpsDisposition[];
+  transfers: PatientTransfer[];
+  onClick: () => void;
+}) {
+  const priority = String(report.assessment?.priority ?? report.priority ?? '—');
+  const color = PRIORITY_COLORS[priority] ?? '#888';
+  const isClosed = report.status === 'closed';
+  const hasTransfer = transfers.some((t) => t.report_id === report.id);
+  const casualtyCount = Math.max(
+    getCasualtyCount(report),
+    dispositions.filter((d) => d.report_id === report.id).length,
+  );
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left rounded-lg border border-border bg-card shadow-sm p-3 cursor-pointer hover:bg-muted/30 transition-colors mb-2 block"
+    >
+      <div className="flex items-center gap-2 mb-1 flex-wrap">
+        <span className="text-sm font-bold" style={badgeStyle(color)}>{priority}</span>
+        <span className="text-sm font-bold" style={badgeStyle(isClosed ? '#888' : '#FF9500')}>
+          {isClosed ? 'CLOSED' : 'ACTIVE'}
+        </span>
+        {hasTransfer && <span className="text-sm font-bold" style={badgeStyle('#8B5CF6')}>XFER</span>}
+      </div>
+      <p className="text-base text-foreground font-bold truncate mb-0.5">{incidentTitle(report)}</p>
+      <p className="text-sm text-muted-foreground truncate mb-1">{getIncidentType(report)}</p>
+      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+        <span>📍 {getLocation(report)}</span>
+        <span>{fmtDateTime(report.latest_transmission_at ?? report.created_at ?? report.timestamp)}</span>
+        {casualtyCount > 0 && <span>{casualtyCount} patient{casualtyCount === 1 ? '' : 's'}</span>}
+      </div>
+    </button>
+  );
+}
+
+function PatientListCard({ casualty, onOpen }: { casualty: CasualtySummary; onOpen: () => void }) {
+  const priorityColor = PRIORITY_COLORS[casualty.priority] ?? '#888';
+  const outcomeLabel = casualty.disposition
+    ? (DISPOSITION_LABELS[casualty.disposition.disposition as DispositionType] ?? casualty.disposition.disposition)
+    : 'Open';
+  const outcomeColor = !casualty.disposition
+    ? '#6B7280'
+    : casualty.disposition.disposition === 'conveyed'
+      ? '#34C759'
+      : casualty.disposition.disposition === 'refused_transport'
+        ? '#FF9500'
+        : casualty.disposition.disposition === 'role'
+          ? '#EF4444'
+          : casualty.disposition.disposition === 'transferred'
+            ? '#8B5CF6'
+            : '#1E90FF';
+  const injurySummary = casualty.atmist ? safeString(casualty.atmist.I) : '';
+
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full text-left rounded-xl border border-border bg-card px-4 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer shadow-sm"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+            <span className="text-sm font-bold" style={badgeStyle(priorityColor)}>{casualty.priority}</span>
+            <span className="text-base text-foreground font-semibold break-words">{casualty.label}</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold" style={badgeStyle(outcomeColor)}>
+              {outcomeLabel}
+            </span>
+          </div>
+          {injurySummary && (
+            <p className="text-xs text-muted-foreground mt-2 leading-5 line-clamp-2">
+              {injurySummary}
+            </p>
+          )}
+        </div>
+        <ChevronRight size={18} className="text-muted-foreground mt-1 flex-shrink-0" />
+      </div>
+    </button>
+  );
+}
+
+function PatientDetailView({
+  report,
+  casualty,
+  timeline,
+  totalCasualties,
+  onBack,
+}: {
+  report: OpsReport;
+  casualty: CasualtySummary;
+  timeline: ClinicalTimelineEntry[];
+  totalCasualties: number;
+  onBack: () => void;
+}) {
+  const latestAbcde = latestClinicalFindings(timeline, report.assessment, totalCasualties);
+  const atmist = casualty.atmist;
+  const outcome = casualty.disposition;
+  const transfer = casualty.transfer;
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border flex-shrink-0">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-primary bg-transparent cursor-pointer">
+          <ArrowLeft size={16} /> Back to patient list
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="sticky top-0 z-10 -mx-4 px-4 py-3 border-b border-border bg-background/95 backdrop-blur">
+          <div className="rounded-lg p-3 border border-border bg-card shadow-sm">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className="text-sm font-bold" style={badgeStyle(PRIORITY_COLORS[casualty.priority] ?? '#888')}>{casualty.priority}</span>
+              <span className="text-lg font-bold text-foreground">{casualty.label}</span>
+            </div>
+            <div className="text-xs text-muted-foreground tracking-wide">
+              {incidentTitle(report)} • {fmtDateTime(report.latest_transmission_at ?? report.created_at ?? report.timestamp)}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] mt-4">
+          <div className="space-y-4">
+            <div className="rounded-lg border border-border p-3">
+              <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">ATMIST</h3>
+              {atmist ? (
+                <div className="space-y-1.5">
+                  {Object.entries(ATMIST_FIELD_LABELS).map(([field, label]) => (
+                    <div key={field} className="grid grid-cols-[130px_minmax(0,1fr)] items-start gap-2 text-[13px] leading-5">
+                      <span className="font-semibold text-muted-foreground">{label}</span>
+                      <span className="text-foreground break-words">{safeString(atmist[field]) || '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[13px] text-muted-foreground">No ATMIST data recorded for this patient.</p>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-border p-3">
+              <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">ABCDE (LATEST)</h3>
+              {hasClinicalFindings(latestAbcde) ? (
+                <div className="space-y-1.5">
+                  {(Object.keys(ABCDE_LABELS) as AbcdeKey[]).map((key) => (
+                    <div key={key} className="grid grid-cols-[130px_minmax(0,1fr)] items-start gap-2 text-[13px] leading-5">
+                      <span className="font-semibold" style={{ color: '#1E90FF' }}>{key} — {ABCDE_LABELS[key]}</span>
+                      <span className="text-foreground break-words">{latestAbcde[key] ?? '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[13px] text-muted-foreground">No clinical findings recorded yet.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border p-3">
+            <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">CLINICAL TIMELINE</h3>
+            {timeline.length === 0 ? (
+              <p className="text-[13px] text-muted-foreground">No timestamped clinical updates recorded for this patient yet.</p>
+            ) : (
+              <div className="relative pl-6">
+                <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border" />
+                <div className="space-y-3">
+                {timeline.map((entry, index) => (
+                  <div key={entry.id} className="relative rounded-lg border border-border p-3 bg-card">
+                    <span
+                      className="absolute -left-[22px] top-4 h-3 w-3 rounded-full border-2 bg-background"
+                      style={{ borderColor: entry.source === 'transfer' ? '#8B5CF6' : '#1E90FF' }}
+                    />
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                      <span className="text-[11px] font-bold" style={badgeStyle(entry.source === 'transfer' ? '#8B5CF6' : '#1E90FF')}>
+                        {entry.source === 'transfer' ? 'TRANSFER' : `UPDATE #${index + 1}`}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground tracking-wide">{fmtDateTime(entry.timestamp)}</span>
+                    </div>
+                    <p className="text-[13px] font-semibold text-foreground mb-1.5 leading-5">{entry.headline}</p>
+
+                    {hasClinicalFindings(entry.clinicalFindings) && (
+                      <div className="space-y-1 mb-1.5">
+                        {(Object.keys(ABCDE_LABELS) as AbcdeKey[]).map((key) => (
+                          <div key={key} className="grid grid-cols-[18px_minmax(0,1fr)] gap-1.5 text-[12px] leading-4.5">
+                            <span className="font-bold" style={{ color: '#1E90FF' }}>{key}</span>
+                            <span className="text-foreground break-words">{entry.clinicalFindings[key] ?? '—'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {entry.atmist && (
+                      <div className="text-[12px] text-foreground leading-4.5">
+                        <span className="font-semibold text-muted-foreground">ATMIST snapshot:</span>{' '}
+                        {[entry.atmist.A, entry.atmist.M, entry.atmist.I].map(safeString).filter(Boolean).join(' • ') || '—'}
+                      </div>
+                    )}
+
+                    {entry.note && <p className="text-[12px] text-foreground mt-1.5 leading-4.5"><span className="font-semibold text-muted-foreground">Note:</span> {entry.note}</p>}
+                    {entry.transcript && <p className="text-[12px] text-muted-foreground mt-1 italic leading-4.5">"{entry.transcript}"</p>}
+                  </div>
+                ))}
+              </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border p-3">
+          <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">OUTCOME</h3>
+          {outcome ? (
+            <div className="space-y-1.5 text-[13px]">
+              <div className="text-foreground font-semibold">
+                {DISPOSITION_LABELS[outcome.disposition as DispositionType] ?? outcome.disposition}
+              </div>
+              <div className="text-muted-foreground">Closed: {fmtDateTime(outcome.closed_at)}</div>
+              {(outcome.fields as Record<string, unknown> | null)?.notes && (
+                <div className="text-foreground">Notes: {safeString((outcome.fields as Record<string, unknown>).notes)}</div>
+              )}
+            </div>
+          ) : transfer ? (
+            <div className="space-y-1.5 text-[13px]">
+              <div className="text-foreground font-semibold">
+                Transfer {transfer.status}: {transfer.from_callsign} {'->'} {transfer.to_callsign}
+              </div>
+              <div className="text-muted-foreground">
+                {transfer.accepted_at
+                  ? `Accepted: ${fmtDateTime(transfer.accepted_at)}`
+                  : `Initiated: ${fmtDateTime(transfer.initiated_at)}`}
+              </div>
+            </div>
+          ) : (
+            <p className="text-[13px] text-muted-foreground">Patient still open — no final outcome recorded.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) => void } = {}) {
+  void onSelectReport;
   const { reports, transmissions, dispositions, transfers, loading, uniqueCallsigns, uniqueOperatorIds } = useOpsLog();
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
+  const [selectedPatientKey, setSelectedPatientKey] = useState<string | null>(null);
   const [filters, setFilters] = useState<OpsFilters>({
     search: '',
     service: '',
@@ -925,29 +619,32 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
 
   const filtered = useMemo(
     () => applyFilters(reports, dispositions, filters),
-    [reports, dispositions, filters]
+    [reports, dispositions, filters],
   );
 
-  const updateFilter = (key: keyof OpsFilters, val: string) => {
-    setFilters(prev => ({ ...prev, [key]: val }));
+  const selectedReport = selectedIncident ? reports.find((r) => r.id === selectedIncident) ?? null : null;
+  const casualties = useMemo(
+    () => selectedReport ? buildCasualties(selectedReport, dispositions, transfers) : [],
+    [selectedReport, dispositions, transfers],
+  );
+  const selectedCasualty = selectedPatientKey
+    ? casualties.find((c) => c.key === selectedPatientKey) ?? null
+    : null;
+
+  const updateFilter = (key: keyof OpsFilters, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const hasFilters = filters.search || filters.dateFrom || filters.dateTo || filters.outcome || filters.incidentType || filters.callsign || filters.operatorId || filters.safeguarding;
-
-  // If an incident is selected, show the detail view
-  const selectedReport = selectedIncident ? reports.find(r => r.id === selectedIncident) : null;
-
-  if (selectedReport) {
-    return (
-      <IncidentDetail
-        report={selectedReport}
-        transmissions={transmissions}
-        dispositions={dispositions}
-        transfers={transfers}
-        onBack={() => setSelectedIncident(null)}
-      />
-    );
-  }
+  const hasFilters = Boolean(
+    filters.search
+    || filters.dateFrom
+    || filters.dateTo
+    || filters.outcome
+    || filters.incidentType
+    || filters.callsign
+    || filters.operatorId
+    || filters.safeguarding,
+  );
 
   if (loading) {
     return (
@@ -957,9 +654,78 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
     );
   }
 
+  if (selectedReport && selectedCasualty) {
+    const timeline = buildClinicalTimeline(
+      selectedReport,
+      transmissions,
+      transfers,
+      selectedCasualty,
+      casualties.length,
+    );
+
+    return (
+      <PatientDetailView
+        report={selectedReport}
+        casualty={selectedCasualty}
+        timeline={timeline}
+        totalCasualties={casualties.length}
+        onBack={() => setSelectedPatientKey(null)}
+      />
+    );
+  }
+
+  if (selectedReport) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border flex-shrink-0">
+          <button
+            onClick={() => {
+              setSelectedPatientKey(null);
+              setSelectedIncident(null);
+            }}
+            className="flex items-center gap-1 text-sm text-primary bg-transparent cursor-pointer"
+          >
+            <ArrowLeft size={16} /> Back to incidents
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="rounded-lg border border-border p-4">
+            <p className="text-lg font-bold text-foreground">{incidentTitle(selectedReport)}</p>
+            <p className="text-sm text-muted-foreground">{getIncidentType(selectedReport)}</p>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2 flex-wrap">
+              <span>📍 {getLocation(selectedReport)}</span>
+              <span>{fmtDateTime(selectedReport.latest_transmission_at ?? selectedReport.created_at ?? selectedReport.timestamp)}</span>
+              {selectedReport.session_callsign && <span>🚑 {selectedReport.session_callsign}</span>}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-bold tracking-widest text-muted-foreground mb-2">
+              PATIENTS ({casualties.length})
+            </h3>
+            {casualties.length === 0 ? (
+              <div className="rounded-lg border border-border p-3 text-sm text-muted-foreground">
+                No patients captured on this incident yet.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {casualties.map((casualty) => (
+                  <PatientListCard
+                    key={casualty.key}
+                    casualty={casualty}
+                    onOpen={() => setSelectedPatientKey(casualty.key)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header + Filters */}
       <div className="flex-shrink-0 p-3 border-b border-border space-y-2">
         <div className="text-sm font-bold tracking-widest text-muted-foreground mb-1">
           INCIDENT LOG
@@ -969,7 +735,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
           <input
             type="text"
             value={filters.search}
-            onChange={e => updateFilter('search', e.target.value)}
+            onChange={(event) => updateFilter('search', event.target.value)}
             placeholder="Search callsign, collar number, incident number, location..."
             style={{ ...inputStyle, paddingLeft: 36 }}
           />
@@ -977,27 +743,29 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
         <div className="flex gap-2 flex-wrap">
           <select
             value={filters.callsign}
-            onChange={e => updateFilter('callsign', e.target.value)}
+            onChange={(event) => updateFilter('callsign', event.target.value)}
             style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
           >
             <option value="">All callsigns</option>
-            {uniqueCallsigns.map(c => (
-              <option key={c} value={c}>{c}</option>
+            {uniqueCallsigns.map((callsign) => (
+              <option key={callsign} value={callsign}>{callsign}</option>
             ))}
           </select>
+
           <select
             value={filters.operatorId}
-            onChange={e => updateFilter('operatorId', e.target.value)}
+            onChange={(event) => updateFilter('operatorId', event.target.value)}
             style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
           >
             <option value="">All collar numbers</option>
-            {uniqueOperatorIds.map(o => (
-              <option key={o} value={o}>{o}</option>
+            {uniqueOperatorIds.map((operatorId) => (
+              <option key={operatorId} value={operatorId}>{operatorId}</option>
             ))}
           </select>
+
           <select
             value={filters.outcome}
-            onChange={e => updateFilter('outcome', e.target.value)}
+            onChange={(event) => updateFilter('outcome', event.target.value)}
             style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
           >
             <option value="">All outcomes</option>
@@ -1006,42 +774,57 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
             <option value="see_and_refer">Referred</option>
             <option value="refused_transport">Refused</option>
             <option value="role">ROLE</option>
+            <option value="transferred">Transferred</option>
           </select>
+
           <select
             value={filters.incidentType}
-            onChange={e => updateFilter('incidentType', e.target.value)}
+            onChange={(event) => updateFilter('incidentType', event.target.value)}
             style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
           >
             <option value="">All types</option>
-            {INCIDENT_TYPE_OPTIONS.map(t => (
-              <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+            {INCIDENT_TYPE_OPTIONS.map((type) => (
+              <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
             ))}
           </select>
+
           <select
             value={filters.safeguarding}
-            onChange={e => updateFilter('safeguarding', e.target.value)}
+            onChange={(event) => updateFilter('safeguarding', event.target.value)}
             style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
           >
             <option value="">Safeguarding</option>
-            <option value="yes">⚠ Concern flagged</option>
+            <option value="yes">Concern flagged</option>
             <option value="no">No concern</option>
           </select>
-          <input type="date" value={filters.dateFrom} onChange={e => updateFilter('dateFrom', e.target.value)}
-            style={{ ...inputStyle, width: 'auto' }} title="From date" />
-          <input type="date" value={filters.dateTo} onChange={e => updateFilter('dateTo', e.target.value)}
-            style={{ ...inputStyle, width: 'auto' }} title="To date" />
+
+          <input
+            type="date"
+            value={filters.dateFrom}
+            onChange={(event) => updateFilter('dateFrom', event.target.value)}
+            style={{ ...inputStyle, width: 'auto' }}
+            title="From date"
+          />
+          <input
+            type="date"
+            value={filters.dateTo}
+            onChange={(event) => updateFilter('dateTo', event.target.value)}
+            style={{ ...inputStyle, width: 'auto' }}
+            title="To date"
+          />
+
           {hasFilters && (
             <button
               onClick={() => setFilters({ search: '', service: '', station: '', dateFrom: '', dateTo: '', outcome: '', incidentType: '', callsign: '', operatorId: '', safeguarding: '' })}
               className="px-3 py-1.5 text-sm rounded border cursor-pointer"
-              style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
+              style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}
+            >
               Reset
             </button>
           )}
         </div>
       </div>
 
-      {/* List */}
       <div className="flex-1 overflow-y-auto p-3">
         <div className="text-xs text-muted-foreground tracking-widest mb-2">
           {filtered.length} INCIDENT{filtered.length !== 1 ? 'S' : ''}
@@ -1052,13 +835,16 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
             NO MATCHING INCIDENTS
           </div>
         ) : (
-          filtered.map(r => (
+          filtered.map((report) => (
             <IncidentCard
-              key={r.id}
-              report={r}
+              key={report.id}
+              report={report}
               dispositions={dispositions}
               transfers={transfers}
-              onClick={() => setSelectedIncident(r.id)}
+              onClick={() => {
+                setSelectedIncident(report.id);
+                setSelectedPatientKey(null);
+              }}
             />
           ))
         )}
