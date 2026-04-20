@@ -566,7 +566,8 @@ function PatientDetailView({
   );
 }
 
-export function OpsLogTab() {
+export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) => void } = {}) {
+  void onSelectReport;
   const { reports, transmissions, dispositions, transfers, loading, uniqueCallsigns, uniqueOperatorIds } = useOpsLog();
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
   const [selectedPatientKey, setSelectedPatientKey] = useState<string | null>(null);
