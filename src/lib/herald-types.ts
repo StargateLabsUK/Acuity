@@ -10,9 +10,6 @@ export interface HeraldReport {
   device_id?: string;
   priority?: string;
   service?: string;
-  lat?: number;
-  lng?: number;
-  location_accuracy?: number;
   session_callsign?: string;
   session_operator_id?: string;
   session_service?: string;

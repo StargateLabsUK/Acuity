@@ -12,7 +12,7 @@ const ALLOWED_REPORT_FIELDS = new Set([
   'status', 'incident_number', 'service', 'session_callsign', 'session_service',
   'session_station', 'session_operator_id', 'operator_id', 'device_id',
   'vehicle_type', 'can_transport', 'critical_care', 'trust_id', 'shift_id',
-  'user_id', 'lat', 'lng', 'location_accuracy', 'synced', 'confirmed_at',
+  'user_id', 'synced', 'confirmed_at',
   'original_assessment', 'final_assessment', 'diff', 'edited',
   'follow_up_of', 'transmission_count', 'latest_transmission_at',
 ]);
@@ -37,9 +37,50 @@ function validateReport(report: Record<string, unknown>): string | null {
     return `Headline too long (max ${MAX_HEADLINE_LENGTH})`;
   }
   if (report.trust_id && typeof report.trust_id !== 'string') return 'Invalid trust_id';
-  if (report.lat !== undefined && report.lat !== null && typeof report.lat !== 'number') return 'Invalid lat';
-  if (report.lng !== undefined && report.lng !== null && typeof report.lng !== 'number') return 'Invalid lng';
   return null;
+}
+
+function buildAutoIncidentNumber(now = new Date()): string {
+  const y = now.getUTCFullYear().toString();
+  const m = (now.getUTCMonth() + 1).toString().padStart(2, "0");
+  const d = now.getUTCDate().toString().padStart(2, "0");
+  const h = now.getUTCHours().toString().padStart(2, "0");
+  const min = now.getUTCMinutes().toString().padStart(2, "0");
+  const s = now.getUTCSeconds().toString().padStart(2, "0");
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `INC-${y}${m}${d}-${h}${min}${s}-${rand}`;
+}
+
+async function ensureIncidentNumber(
+  supabase: ReturnType<typeof createClient>,
+  reportData: Record<string, unknown>,
+): Promise<void> {
+  const fromPayload = typeof reportData.incident_number === "string"
+    ? reportData.incident_number.trim()
+    : "";
+  const fromStructured = typeof (reportData.assessment as any)?.structured?.incident_number === "string"
+    ? String((reportData.assessment as any).structured.incident_number).trim()
+    : "";
+  const chosen = fromPayload || fromStructured;
+  if (chosen) {
+    reportData.incident_number = chosen;
+    return;
+  }
+
+  for (let i = 0; i < 4; i += 1) {
+    const candidate = buildAutoIncidentNumber();
+    const { data: existing } = await supabase
+      .from("herald_reports")
+      .select("id")
+      .eq("incident_number", candidate)
+      .limit(1);
+    if (!existing || existing.length === 0) {
+      reportData.incident_number = candidate;
+      return;
+    }
+  }
+
+  reportData.incident_number = `${buildAutoIncidentNumber()}-${Math.floor(Math.random() * 10)}`;
 }
 
 serve(async (req) => {
@@ -363,6 +404,7 @@ serve(async (req) => {
       reportData.assessment = normalizeAssessmentForMerge(reportData.assessment as Record<string, unknown>);
     }
 
+    await ensureIncidentNumber(supabase, reportData);
     reportData.status = "active";
     reportData.latest_transmission_at = reportData.latest_transmission_at || report.timestamp;
     reportData.transmission_count = reportData.transmission_count || 1;

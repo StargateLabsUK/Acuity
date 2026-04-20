@@ -33,12 +33,25 @@ function getCasualtyCount(report: OpsReport): number {
 }
 
 function getLocation(report: OpsReport): string {
-  const s = report.assessment?.structured;
-  if (s && typeof s === 'object') {
-    const loc = (s as any).location ?? (s as any).scene_location;
-    if (loc) return String(loc);
+  const a = report.assessment;
+  const structured = a?.structured as Record<string, unknown> | undefined;
+  const candidates = [
+    a?.scene_location,
+    structured?.location,
+    structured?.scene_location,
+    structured?.address,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
   }
-  return '—';
+  return 'Location not specified';
+}
+
+function incidentTitle(report: OpsReport): string {
+  if (report.incident_number && report.incident_number.trim()) {
+    return report.incident_number.trim();
+  }
+  return `INCIDENT-${report.id.slice(0, 8).toUpperCase()}`;
 }
 
 function getIncidentType(report: OpsReport): string {
@@ -472,11 +485,9 @@ function IncidentDetail({
         <div className="rounded-lg p-4" style={{ background: `${col}12`, borderLeft: `4px solid ${col}` }}>
           <div className="flex items-center gap-3 flex-wrap mb-2">
             <span className="text-xl font-bold" style={{ color: col }}>{p}</span>
-            {report.incident_number && (
-              <span className="text-sm font-bold px-2 py-0.5 rounded" style={{ border: '1px solid hsl(var(--border))', color: 'hsl(var(--foreground))' }}>
-                #{report.incident_number}
-              </span>
-            )}
+            <span className="text-sm font-bold px-2 py-0.5 rounded" style={{ border: '1px solid hsl(var(--border))', color: 'hsl(var(--foreground))' }}>
+              Incident
+            </span>
             <span className="text-sm font-bold" style={badgeStyle(report.status === 'closed' ? '#888' : '#FF9500')}>
               {report.status === 'closed' ? 'CLOSED' : 'ACTIVE'}
             </span>
@@ -486,11 +497,12 @@ function IncidentDetail({
               </span>
             )}
           </div>
-          <p className="text-base text-foreground font-semibold">{getIncidentType(report)}</p>
+          <p className="text-lg text-foreground font-bold">{incidentTitle(report)}</p>
+          <p className="text-base text-muted-foreground">{getIncidentType(report)}</p>
           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground flex-wrap">
             <span>📍 {getLocation(report)}</span>
             {report.session_callsign && <span>🚑 {report.session_callsign}</span>}
-            <span>Opened: {fmtTime(report.created_at ?? report.timestamp)}</span>
+            <span>{fmtDateTime(report.latest_transmission_at ?? report.created_at ?? report.timestamp)}</span>
             {report.confirmed_at && <span>Closed: {fmtTime(report.confirmed_at)}</span>}
           </div>
         </div>
@@ -846,12 +858,6 @@ function IncidentCard({ report, dispositions, transfers, onClick }: {
     >
       <div className="flex items-center gap-2 mb-1 flex-wrap">
         <span className="text-sm font-bold" style={badgeStyle(col)}>{p}</span>
-        {report.incident_number && (
-          <span className="text-sm font-semibold px-1.5 py-0.5 rounded"
-            style={{ border: '1px solid hsl(var(--border))', color: 'hsl(var(--foreground))' }}>
-            #{report.incident_number}
-          </span>
-        )}
         <span className="text-sm" style={badgeStyle(isClosed ? '#888' : '#FF9500')}>
           {isClosed ? 'CLOSED' : 'ACTIVE'}
         </span>
@@ -868,11 +874,12 @@ function IncidentCard({ report, dispositions, transfers, onClick }: {
         )}
       </div>
 
-      <p className="text-sm text-foreground font-semibold truncate mb-1">{getIncidentType(report)}</p>
+      <p className="text-base text-foreground font-bold truncate mb-0.5">{incidentTitle(report)}</p>
+      <p className="text-sm text-muted-foreground truncate mb-1">{getIncidentType(report)}</p>
 
       <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
         <span>📍 {getLocation(report)}</span>
-        <span>{fmtTime(report.created_at ?? report.timestamp)}</span>
+        <span>{fmtDateTime(report.latest_transmission_at ?? report.created_at ?? report.timestamp)}</span>
         {report.confirmed_at && <span>→ {fmtTime(report.confirmed_at)}</span>}
         {casCount > 0 && <span>{casCount} casualt{casCount === 1 ? 'y' : 'ies'}</span>}
         {report.session_callsign && (

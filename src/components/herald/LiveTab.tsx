@@ -39,17 +39,6 @@ async function fetchExistingAtmist(callsign: string | undefined, shiftId: string
 
 const MAX_DURATION_MS = 5 * 60 * 1000;
 
-function getLocation(): Promise<{ lat?: number; lng?: number; location_accuracy?: number }> {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve({});
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, location_accuracy: pos.coords.accuracy }),
-      () => resolve({}),
-      { enableHighAccuracy: true, timeout: 5000 }
-    );
-  });
-}
-
 function getSupportedMimeType(): string {
   const types = ['audio/webm', 'audio/ogg', 'audio/wav'];
   for (const t of types) {
@@ -127,7 +116,7 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend, queuedCount = 0 }
   const recordingStartRef = useRef(0);
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingReportRef = useRef<{ id: string; timestamp: string; transcript: string; lat?: number; lng?: number; location_accuracy?: number } | null>(null);
+  const pendingReportRef = useRef<{ id: string; timestamp: string; transcript: string } | null>(null);
   const lastSubmissionRef = useRef<{ content: string; callsign: string; timestamp: number } | null>(null);
 
   const syncNow = useCallback(async (reportId: string) => {
@@ -149,7 +138,6 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend, queuedCount = 0 }
     reportTranscript: string,
     reportAssessment: Assessment,
     reportId: string,
-    loc: { lat?: number; lng?: number; location_accuracy?: number },
     followUp?: { reportId: string; incidentNumber?: string | null },
   ) => {
     const clean = sanitizeAssessment(reportAssessment);
@@ -165,9 +153,6 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend, queuedCount = 0 }
       headline: clean.headline,
       priority: clean.priority,
       service: clean.service,
-      lat: loc.lat,
-      lng: loc.lng,
-      location_accuracy: loc.location_accuracy,
       original_assessment: clean as any,
       final_assessment: clean as any,
       diff: { has_edits: false } as any,
@@ -475,18 +460,16 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend, queuedCount = 0 }
           }
 
           setAssessment(result);
-          const loc = await getLocation();
           const reportId = crypto.randomUUID();
           setCurrentReportId(reportId);
           pendingReportRef.current = {
             id: reportId,
             timestamp: new Date().toISOString(),
             transcript: t,
-            ...loc,
           };
           lastSubmissionRef.current = { content: t, callsign: dedupCallsign, timestamp: Date.now() };
           if (autoSend) {
-            await autoSaveReport(t, result, reportId, loc);
+            await autoSaveReport(t, result, reportId);
             resolve();
             return;
           }
@@ -521,13 +504,12 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend, queuedCount = 0 }
                 };
               }
               setAssessment(retryResult);
-              const loc = await getLocation();
               const reportId = crypto.randomUUID();
               setCurrentReportId(reportId);
-              pendingReportRef.current = { id: reportId, transcript: retryT, assessment: retryResult, lat: loc?.lat, lng: loc?.lng, accuracy: loc?.accuracy };
+              pendingReportRef.current = { id: reportId, timestamp: new Date().toISOString(), transcript: retryT };
               lastSubmissionRef.current = { content: retryT, callsign: sessionRetry?.callsign || '', timestamp: Date.now() };
               if (autoSend) {
-                await autoSaveReport(retryT, retryResult, reportId, loc);
+                await autoSaveReport(retryT, retryResult, reportId);
                 resolve();
                 return;
               }
@@ -633,18 +615,16 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend, queuedCount = 0 }
       }
 
       setAssessment(result);
-      const loc = await getLocation();
       const reportId = crypto.randomUUID();
       setCurrentReportId(reportId);
       pendingReportRef.current = {
         id: reportId,
         timestamp: new Date().toISOString(),
         transcript: text,
-        ...loc,
       };
       lastSubmissionRef.current = { content: text, callsign: dedupCallsign, timestamp: Date.now() };
       if (autoSend) {
-        await autoSaveReport(text, result, reportId, loc);
+        await autoSaveReport(text, result, reportId);
         return;
       }
       setState('ready');
@@ -663,7 +643,6 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend, queuedCount = 0 }
     const finalAssessment = buildFinalAssessment();
     const diff = computeDiff(originalAssessment, finalAssessment);
 
-    const loc = await getLocation();
     const sessionFields = await getSessionFields();
     const pending = pendingReportRef.current;
 
@@ -677,9 +656,6 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend, queuedCount = 0 }
       headline: finalAssessment.headline,
       priority: finalAssessment.priority,
       service: finalAssessment.service,
-      lat: loc.lat ?? pending.lat,
-      lng: loc.lng ?? pending.lng,
-      location_accuracy: loc.location_accuracy ?? pending.location_accuracy,
       original_assessment: originalAssessment as any,
       final_assessment: finalAssessment as any,
       diff: { ...diff, mismatches } as any,
