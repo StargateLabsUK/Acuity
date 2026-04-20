@@ -1,12 +1,10 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import * as React from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useHeraldCommand } from '@/hooks/useHeraldCommand';
 import { CommandTopBar } from '@/components/command/CommandTopBar';
 import { ReportDetail } from '@/components/command/ReportDetail';
-import { CommandStatus } from '@/components/command/CommandStatus';
 import { OpsLogTab } from '@/components/command/OpsLogTab';
 import { UptimeTab } from '@/components/command/UptimeTab';
 
@@ -30,33 +28,6 @@ function useViewMode(): ViewMode {
   return mode;
 }
 
-function applyFilters(
-  reports: ReturnType<typeof useHeraldCommand>['reports'],
-  filters: { service: string; callsign: string; timeRange: string }
-) {
-  let filtered = [...reports];
-  if (filters.service) {
-    filtered = filtered.filter(
-      (r) => (r.assessment?.service ?? r.service ?? r.session_service) === filters.service
-    );
-  }
-  if (filters.callsign) {
-    filtered = filtered.filter((r) => r.session_callsign === filters.callsign);
-  }
-  if (filters.timeRange === 'today') {
-    const today = new Date().toDateString();
-    filtered = filtered.filter(
-      (r) => new Date(r.created_at ?? r.timestamp).toDateString() === today
-    );
-  } else if (filters.timeRange === '24h') {
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-    filtered = filtered.filter(
-      (r) => new Date(r.created_at ?? r.timestamp).getTime() > cutoff
-    );
-  }
-  return filtered;
-}
-
 /** Expand/collapse button for panel top-right */
 function ExpandButton({ expanded, onClick }: { expanded: boolean; onClick: () => void }) {
   return (
@@ -75,7 +46,6 @@ export default function Command() {
   const [authChecked, setAuthChecked] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>('ops');
-  const [filters] = useState({ service: '', callsign: '', timeRange: 'today' as const });
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
   const [desktopUpperTab, setDesktopUpperTab] = useState<'ops' | 'sla'>('ops');
   const [opsReportId, setOpsReportId] = useState<string | null>(null);
@@ -83,12 +53,8 @@ export default function Command() {
 
   const {
     reports,
-    todayReports,
     priorityCounts,
-    serviceCounts,
-    uniqueDevices,
     connected,
-    activeShifts,
     dispositions,
     transfers,
   } = useHeraldCommand();
@@ -114,50 +80,12 @@ export default function Command() {
     });
   }, [navigate]);
 
-  const filteredReports = useMemo(() => applyFilters(reports, filters), [reports, filters]);
-  const selectedReport = filteredReports.find((r) => r.id === selectedId) ?? null;
+  const selectedReport = reports.find((r) => r.id === selectedId) ?? null;
   const opsReport = useMemo(() => opsReportId ? reports.find((r) => r.id === opsReportId) ?? null : null, [opsReportId, reports]);
 
   const handleOpsReportSelect = useCallback((id: string) => {
     setOpsReportId(id);
   }, []);
-
-  const uniqueCallsigns = useMemo(() => {
-    const set = new Set<string>();
-    todayReports.forEach((r) => {
-      if (r.session_callsign) set.add(r.session_callsign);
-    });
-    return Array.from(set).sort();
-  }, [todayReports]);
-
-  const uniqueServices = useMemo(() => {
-    const set = new Set<string>();
-    todayReports.forEach((r) => {
-      const s = r.assessment?.service ?? r.service ?? r.session_service;
-      if (s) set.add(s);
-    });
-    return Array.from(set).sort();
-  }, [todayReports]);
-
-  const filteredPriorityCounts = useMemo(() => {
-    const counts = { P1: 0, P2: 0, P3: 0 };
-    filteredReports.forEach((r) => {
-      const p = r.assessment?.priority ?? r.priority;
-      if (p === 'P1') counts.P1++;
-      else if (p === 'P2') counts.P2++;
-      else if (p === 'P3') counts.P3++;
-    });
-    return counts;
-  }, [filteredReports]);
-
-  const filteredServiceCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    filteredReports.forEach((r) => {
-      const s = r.assessment?.service ?? r.service ?? 'unknown';
-      counts[s] = (counts[s] || 0) + 1;
-    });
-    return counts;
-  }, [filteredReports]);
 
   const toggleExpand = useCallback((panel: ExpandedPanel) => {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
@@ -269,14 +197,6 @@ export default function Command() {
             </div>
             {desktopUpperTab === 'ops' ? (
               <div className="flex-1 flex flex-col overflow-hidden">
-                <CommandStatus
-                  todayReports={filteredReports}
-                  priorityCounts={filteredPriorityCounts}
-                  serviceCounts={filteredServiceCounts}
-                  uniqueDevices={uniqueDevices}
-                  connected={connected}
-                  activeShifts={activeShifts} transfers={transfers}
-                />
                 <div className="flex-1 overflow-y-auto">
                   <OpsLogTab onSelectReport={handleOpsReportSelect} />
                 </div>
@@ -319,14 +239,6 @@ export default function Command() {
             </div>
             {tabletTab === 'ops' ? (
               <div className="flex-1 flex flex-col overflow-hidden">
-                <CommandStatus
-                  todayReports={filteredReports}
-                  priorityCounts={filteredPriorityCounts}
-                  serviceCounts={filteredServiceCounts}
-                  uniqueDevices={uniqueDevices}
-                  connected={connected}
-                  activeShifts={activeShifts} transfers={transfers}
-                />
                 <div className="flex-1 overflow-y-auto">
                   <OpsLogTab onSelectReport={handleOpsReportSelect} />
                 </div>
@@ -350,14 +262,6 @@ export default function Command() {
       <div className="flex-1 overflow-hidden">
         {mobileTab === 'ops' && (
           <div className="h-full flex flex-col">
-            <CommandStatus
-              todayReports={filteredReports}
-              priorityCounts={filteredPriorityCounts}
-              serviceCounts={filteredServiceCounts}
-              uniqueDevices={uniqueDevices}
-              connected={connected}
-              activeShifts={activeShifts} transfers={transfers}
-            />
             <div className="flex-1 overflow-y-auto">
               <OpsLogTab onSelectReport={handleOpsReportSelect} />
             </div>
