@@ -9,6 +9,7 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/seed.sql'
       - 'supabase/config.toml'
+      - '.github/workflows/deploy-migrations.yml'
   workflow_dispatch:
 
 jobs:
@@ -64,8 +65,8 @@ jobs:
               CURRENT_VERSION="$(echo "$CURRENT_FILE" | awk -F'_' '{print $1}')"
             fi
 
-            if [ -n "$CURRENT_VERSION" ] && echo "$PUSH_OUTPUT" | awk '/SQLSTATE 42701|SQLSTATE 42710|SQLSTATE 42P07|already exists/ {found=1} END{exit(found ? 0 : 1)}'; then
-              echo "Detected duplicate-object legacy migration ${CURRENT_VERSION}; marking as applied and retrying."
+            if [ -n "$CURRENT_VERSION" ] && echo "$PUSH_OUTPUT" | awk '/SQLSTATE 42701|SQLSTATE 42710|SQLSTATE 42P07|already exists|SQLSTATE 42703|does not exist/ {found=1} END{exit(found ? 0 : 1)}'; then
+              echo "Detected legacy schema drift in migration ${CURRENT_VERSION}; marking as applied and retrying."
               supabase migration repair --status applied "$CURRENT_VERSION"
               ATTEMPT=$((ATTEMPT + 1))
               continue
