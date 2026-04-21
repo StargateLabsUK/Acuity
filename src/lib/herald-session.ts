@@ -99,7 +99,7 @@ export async function endShiftRemote(shiftId: string): Promise<void> {
 /** Generate a 6-digit link code for a shift */
 export async function generateLinkCode(
   session: HeraldSession,
-): Promise<{ code: string; expires_at: string } | null> {
+): Promise<{ code: string; expires_at: string } | { error: string }> {
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/link-shift`, {
       method: 'POST',
@@ -111,10 +111,19 @@ export async function generateLinkCode(
         session_data: session,
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      let errMsg = `Server error (${res.status})`;
+      try {
+        const data = await res.json();
+        errMsg = data.error ?? errMsg;
+      } catch {
+        // non-JSON response
+      }
+      return { error: errMsg };
+    }
     return await res.json();
-  } catch {
-    return null;
+  } catch (e: any) {
+    return { error: e?.message ?? 'Network error — check your connection' };
   }
 }
 
