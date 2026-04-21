@@ -28,6 +28,10 @@ export interface EndShiftResult {
   outstanding_accepted_transfer_count?: number;
 }
 
+interface ShiftLookupRow {
+  id: string;
+}
+
 const SESSION_KEY = 'herald_session';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -140,13 +144,70 @@ export async function endShiftRemote(shiftId: string): Promise<EndShiftResult> {
   }
 }
 
+async function findLatestActiveShiftId(session: HeraldSession): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({
+      select: 'id',
+      callsign: `eq.${session.callsign}`,
+      service: `eq.${session.service}`,
+      ended_at: 'is.null',
+      order: 'started_at.desc',
+      limit: '1',
+    });
+
+    if (session.trust_id) {
+      params.set('trust_id', `eq.${session.trust_id}`);
+    }
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/shifts?${params.toString()}`, {
+      headers,
+      method: 'GET',
+    });
+
+    if (!res.ok) return null;
+    const rows = (await res.json()) as ShiftLookupRow[];
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    return rows[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function ensureSessionShiftId(
+  session: HeraldSession,
+): Promise<{ session: HeraldSession; error?: string }> {
+  if (session.shift_id) {
+    return { session };
+  }
+
+  const recoveredShiftId = await findLatestActiveShiftId(session);
+  if (recoveredShiftId) {
+    const updatedSession = { ...session, shift_id: recoveredShiftId };
+    await saveSession(updatedSession);
+    return { session: updatedSession };
+  }
+
+  const startResult = await startShiftRemote(session);
+  if (!startResult.ok || !startResult.shift_id) {
+    return {
+      session,
+      error: startResult.error ?? 'No active shift found, start your shift first.',
+    };
+  }
+
+  const updatedSession = { ...session, shift_id: startResult.shift_id };
+  await saveSession(updatedSession);
+  return { session: updatedSession };
+}
+
 /** Generate a 6-digit link code for a shift */
 export async function generateLinkCode(
   session: HeraldSession,
 ): Promise<{ code: string; expires_at: string } | { error: string }> {
   try {
-    if (!session.shift_id) {
-      return { error: 'No active shift ID found. Start your shift first.' };
+    const ensured = await ensureSessionShiftId(session);
+    if (ensured.error) {
+      return { error: ensured.error };
     }
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/link-shift`, {
@@ -154,9 +215,9 @@ export async function generateLinkCode(
       headers,
       body: JSON.stringify({
         action: 'generate',
-        shift_id: session.shift_id,
-        trust_id: session.trust_id ?? null,
-        session_data: session,
+        shift_id: ensured.session.shift_id,
+        trust_id: ensured.session.trust_id ?? null,
+        session_data: ensured.session,
       }),
     });
     if (!res.ok) {

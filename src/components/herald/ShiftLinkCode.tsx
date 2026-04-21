@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { generateLinkCode } from '@/lib/herald-session';
+import { ensureSessionShiftId, generateLinkCode } from '@/lib/herald-session';
 import { supabase } from '@/integrations/supabase/client';
 import type { HeraldSession } from '@/lib/herald-session';
 
@@ -17,6 +17,7 @@ interface LinkedCrew {
 export function ShiftLinkCode({ session }: Props) {
   const [code, setCode] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [activeSession, setActiveSession] = useState<HeraldSession>(session);
   const [generating, setGenerating] = useState(false);
   const [refreshingCrew, setRefreshingCrew] = useState(false);
   const [error, setError] = useState('');
@@ -25,7 +26,14 @@ export function ShiftLinkCode({ session }: Props) {
   const generate = async () => {
     setGenerating(true);
     setError('');
-    const result = await generateLinkCode(session);
+    const ensured = await ensureSessionShiftId(activeSession);
+    if (ensured.error) {
+      setError(ensured.error);
+      setGenerating(false);
+      return;
+    }
+    setActiveSession(ensured.session);
+    const result = await generateLinkCode(ensured.session);
     if (result?.code) {
       setCode(result.code);
       setExpiresAt(result.expires_at);
@@ -36,19 +44,23 @@ export function ShiftLinkCode({ session }: Props) {
   };
 
   useEffect(() => {
+    setActiveSession(session);
+  }, [session]);
+
+  useEffect(() => {
     if (!code) generate();
-  }, [session.shift_id]);
+  }, [activeSession.shift_id]);
 
   // Fetch linked crew members
   useEffect(() => {
-    if (!session.shift_id) return;
+    if (!activeSession.shift_id) return;
     const fetchCrew = async (showSpinner = false) => {
       if (showSpinner) setRefreshingCrew(true);
       try {
         const { data } = await supabase
           .from('shift_link_codes')
           .select('operator_id, used_at, left_at')
-          .eq('shift_id', session.shift_id!)
+          .eq('shift_id', activeSession.shift_id!)
           .not('used_at', 'is', null)
           .not('operator_id', 'is', null);
         setLinkedCrew((data as LinkedCrew[]) ?? []);
@@ -62,14 +74,14 @@ export function ShiftLinkCode({ session }: Props) {
 
     // Realtime subscription for instant updates
     const channel = supabase
-      .channel(`crew-${session.shift_id}`)
+      .channel(`crew-${activeSession.shift_id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'shift_link_codes',
-          filter: `shift_id=eq.${session.shift_id}`,
+          filter: `shift_id=eq.${activeSession.shift_id}`,
         },
         () => { fetchCrew(); }
       )
@@ -82,7 +94,7 @@ export function ShiftLinkCode({ session }: Props) {
       window.removeEventListener('focus', fetchCrew);
       supabase.removeChannel(channel);
     };
-  }, [session.shift_id]);
+  }, [activeSession.shift_id]);
 
   // Countdown
   const [timeLeft, setTimeLeft] = useState('');
@@ -183,12 +195,12 @@ export function ShiftLinkCode({ session }: Props) {
 
         <button
           onClick={() => {
-            if (session.shift_id) {
+            if (activeSession.shift_id) {
               setRefreshingCrew(true);
               supabase
                 .from('shift_link_codes')
                 .select('operator_id, used_at, left_at')
-                .eq('shift_id', session.shift_id!)
+                .eq('shift_id', activeSession.shift_id!)
                 .not('used_at', 'is', null)
                 .not('operator_id', 'is', null)
                 .then(({ data }) => setLinkedCrew((data as LinkedCrew[]) ?? []))
