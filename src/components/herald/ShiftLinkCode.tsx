@@ -36,7 +36,7 @@ export function ShiftLinkCode({ session }: Props) {
   };
 
   useEffect(() => {
-    if (session.shift_id && !code) generate();
+    if (!code) generate();
   }, [session.shift_id]);
 
   // Fetch linked crew members
@@ -148,7 +148,7 @@ export function ShiftLinkCode({ session }: Props) {
               {timeLeft}
             </span>
           </>
-        ) : loading ? (
+        ) : generating ? (
           <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Generating…</span>
         ) : null}
 
