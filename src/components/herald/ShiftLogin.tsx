@@ -130,7 +130,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
             src="/Acuity.png"
             alt="Acuity"
             className="mx-auto mb-6"
-            style={{ width: 180, maxWidth: '100%', height: 'auto' }}
+            style={{ width: 220, maxWidth: '100%', height: 'auto' }}
           />
           <p
             style={{

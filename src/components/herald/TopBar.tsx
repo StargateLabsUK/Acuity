@@ -13,6 +13,7 @@ interface TopBarProps {
 export function TopBar({ micStatus, aiStatus, syncStatus, queuedCount, onEndShift, onRefresh }: TopBarProps) {
   const [utc, setUtc] = useState('');
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const tick = () => {
@@ -38,6 +39,17 @@ export function TopBar({ micStatus, aiStatus, syncStatus, queuedCount, onEndShif
     </div>
   );
 
+  const handleRefresh = async () => {
+    if (!onRefresh || refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.resolve(onRefresh());
+    } finally {
+      // Keep animation visible briefly so users get feedback.
+      setTimeout(() => setRefreshing(false), 450);
+    }
+  };
+
   return (
     <>
       <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b border-border" style={{ minHeight: 48, paddingTop: 50 }}>
@@ -54,11 +66,18 @@ export function TopBar({ micStatus, aiStatus, syncStatus, queuedCount, onEndShif
           )}
           {onRefresh && (
             <button
-              onClick={onRefresh}
+              onClick={handleRefresh}
               className="ml-1 p-1 rounded hover:bg-muted/40 active:bg-muted/60 transition-colors"
               title="Refresh status"
+              disabled={refreshing}
             >
-              <RefreshCw size={16} className="text-muted-foreground" />
+              <RefreshCw
+                size={16}
+                className="text-muted-foreground"
+                style={{
+                  animation: refreshing ? 'spin 0.8s linear infinite' : undefined,
+                }}
+              />
             </button>
           )}
         </div>

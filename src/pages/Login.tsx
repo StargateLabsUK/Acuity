@@ -269,12 +269,12 @@ export default function Login() {
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
         <h1
-          className="text-center mb-8"
+          className="text-center mb-6"
         >
           <img
             src="/Acuity.png"
             alt="Acuity"
-            style={{ height: 48, margin: '0 auto', objectFit: 'contain' }}
+            style={{ width: 220, maxWidth: '100%', height: 'auto', margin: '0 auto', objectFit: 'contain' }}
           />
         </h1>
         <p

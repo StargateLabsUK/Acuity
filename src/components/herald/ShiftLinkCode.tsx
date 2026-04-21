@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import { generateLinkCode } from '@/lib/herald-session';
 import { supabase } from '@/integrations/supabase/client';
 import type { HeraldSession } from '@/lib/herald-session';
@@ -16,22 +17,22 @@ interface LinkedCrew {
 export function ShiftLinkCode({ session }: Props) {
   const [code, setCode] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [refreshingCrew, setRefreshingCrew] = useState(false);
   const [error, setError] = useState('');
   const [linkedCrew, setLinkedCrew] = useState<LinkedCrew[]>([]);
 
   const generate = async () => {
-    if (!session.shift_id) return;
-    setLoading(true);
+    setGenerating(true);
     setError('');
-    const result = await generateLinkCode(session);
+    const result = await generateLinkCode(session, true);
     if (result?.code) {
       setCode(result.code);
       setExpiresAt(result.expires_at);
     } else {
-      setError('Failed to generate code');
+      setError('Failed to generate code — make sure your shift is active and try again');
     }
-    setLoading(false);
+    setGenerating(false);
   };
 
   useEffect(() => {
@@ -41,7 +42,8 @@ export function ShiftLinkCode({ session }: Props) {
   // Fetch linked crew members
   useEffect(() => {
     if (!session.shift_id) return;
-    const fetchCrew = async () => {
+    const fetchCrew = async (showSpinner = false) => {
+      if (showSpinner) setRefreshingCrew(true);
       try {
         const { data } = await supabase
           .from('shift_link_codes')
@@ -52,6 +54,8 @@ export function ShiftLinkCode({ session }: Props) {
         setLinkedCrew((data as LinkedCrew[]) ?? []);
       } catch {
         // silent
+      } finally {
+        if (showSpinner) setRefreshingCrew(false);
       }
     };
     fetchCrew();
@@ -150,7 +154,7 @@ export function ShiftLinkCode({ session }: Props) {
 
         <button
           onClick={generate}
-          disabled={loading}
+          disabled={generating}
           style={{
             marginLeft: 'auto',
             fontSize: 12,
@@ -162,9 +166,56 @@ export function ShiftLinkCode({ session }: Props) {
             padding: '4px 10px',
             borderRadius: 3,
             cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
           }}
         >
-          {code ? 'REFRESH' : 'GENERATE'}
+          {generating ? (
+            <>
+              <Loader2 size={12} style={{ animation: 'spin 0.9s linear infinite' }} />
+              {code ? 'REFRESHING' : 'GENERATING'}
+            </>
+          ) : (
+            code ? 'REFRESH' : 'GENERATE'
+          )}
+        </button>
+
+        <button
+          onClick={() => {
+            if (session.shift_id) {
+              setRefreshingCrew(true);
+              supabase
+                .from('shift_link_codes')
+                .select('operator_id, used_at, left_at')
+                .eq('shift_id', session.shift_id!)
+                .not('used_at', 'is', null)
+                .not('operator_id', 'is', null)
+                .then(({ data }) => setLinkedCrew((data as LinkedCrew[]) ?? []))
+                .finally(() => setRefreshingCrew(false));
+            }
+          }}
+          disabled={refreshingCrew}
+          title="Refresh linked crew"
+          style={{
+            fontSize: 12,
+            fontFamily: "'IBM Plex Mono', monospace",
+            letterSpacing: '0.1em',
+            color: 'hsl(var(--muted-foreground))',
+            background: 'transparent',
+            border: '1px solid rgba(0,0,0,0.12)',
+            padding: '4px 8px',
+            borderRadius: 3,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Loader2
+            size={12}
+            style={{ animation: refreshingCrew ? 'spin 0.9s linear infinite' : 'none' }}
+          />
         </button>
 
         {error && (

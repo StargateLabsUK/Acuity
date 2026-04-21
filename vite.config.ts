@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon-192.png", "icon-512.png", "favicon.ico"],
+      includeAssets: ["Acuity.png", "favicon.ico"],
       manifest: {
         name: "Acuity",
         short_name: "Acuity",
@@ -31,18 +31,13 @@ export default defineConfig(({ mode }) => ({
         scope: "/",
         icons: [
           {
-            src: "/icon-192.png",
-            sizes: "192x192",
+            src: "/Acuity.png",
+            sizes: "500x500",
             type: "image/png",
           },
           {
-            src: "/icon-512.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
-          {
-            src: "/icon-512.png",
-            sizes: "512x512",
+            src: "/Acuity.png",
+            sizes: "500x500",
             type: "image/png",
             purpose: "maskable",
           },
