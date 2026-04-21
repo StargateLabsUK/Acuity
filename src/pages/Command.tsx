@@ -43,7 +43,8 @@ function ExpandButton({ expanded, onClick }: { expanded: boolean; onClick: () =>
 
 export default function Command() {
   const navigate = useNavigate();
-  const [authChecked, setAuthChecked] = useState(false);
+  const [authStatus, setAuthStatus] = useState<'checking' | 'allowed' | 'denied'>('checking');
+  const [authError, setAuthError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>('ops');
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
@@ -60,24 +61,51 @@ export default function Command() {
   } = useHeraldCommand();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user?.email) {
-        navigate('/login', { replace: true });
-        return;
-      }
-      // Verify user has command or admin role
-      supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .then(({ data }) => {
-          if (data?.some(r => r.role === 'command' || r.role === 'admin')) {
-            setAuthChecked(true);
-          } else {
+    let cancelled = false;
+    const checkAuth = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!session?.user?.id) {
+          if (!cancelled) {
+            setAuthStatus('denied');
             navigate('/login', { replace: true });
           }
-        });
-    });
+          return;
+        }
+
+        const { data: roleRows, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id);
+        if (rolesError) throw rolesError;
+
+        const allowed = roleRows?.some((r) => r.role === 'command' || r.role === 'admin') ?? false;
+        if (!allowed) {
+          if (!cancelled) {
+            setAuthStatus('denied');
+            navigate('/login', { replace: true });
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          setAuthError(null);
+          setAuthStatus('allowed');
+        }
+      } catch (error) {
+        console.error('Command auth check failed:', error);
+        if (!cancelled) {
+          setAuthError('Unable to verify access. Please sign in again.');
+          setAuthStatus('denied');
+        }
+      }
+    };
+
+    void checkAuth();
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
 
   const selectedReport = reports.find((r) => r.id === selectedId) ?? null;
@@ -109,8 +137,24 @@ export default function Command() {
   };
 
 
-  if (!authChecked) {
-    return <div className="min-h-screen" style={{ background: 'var(--acuity-command-bg)' }} />;
+  if (authStatus !== 'allowed') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--acuity-command-bg)' }}>
+        <div className="text-center">
+          <p className="font-heading tracking-wider text-base text-foreground">
+            {authStatus === 'checking' ? 'Checking operations access...' : (authError ?? 'Redirecting to login...')}
+          </p>
+          {authStatus !== 'checking' && (
+            <button
+              onClick={() => navigate('/login', { replace: true })}
+              className="mt-4 px-4 py-2 rounded border border-border text-sm font-bold tracking-wider text-foreground bg-card hover:bg-card/80"
+            >
+              GO TO LOGIN
+            </button>
+          )}
+        </div>
+      </div>
+    );
   }
 
   const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} />;

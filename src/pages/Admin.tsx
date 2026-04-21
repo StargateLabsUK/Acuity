@@ -301,6 +301,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const [role, setRole] = useState<'owner' | 'admin' | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userTrustId, setUserTrustId] = useState<string | null>(null);
 
@@ -336,39 +337,67 @@ export default function Admin() {
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login');
-        return;
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!session) {
+          if (!cancelled) {
+            navigate('/login', { replace: true });
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          setUserId(session.user.id);
+        }
+
+        const { data: roles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id);
+        if (rolesError) throw rolesError;
+
+        if (roles?.some(r => r.role === 'owner')) {
+          if (!cancelled) setRole('owner');
+        } else if (roles?.some(r => r.role === 'admin')) {
+          if (!cancelled) setRole('admin');
+        } else {
+          if (!cancelled) {
+            navigate('/login', { replace: true });
+          }
+          return;
+        }
+
+        // Get user's trust_id
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('trust_id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (profileError) throw profileError;
+
+        if (!cancelled) {
+          setUserTrustId(profile?.trust_id || null);
+          setAuthError(null);
+        }
+      } catch (error) {
+        console.error('Admin auth check failed:', error);
+        if (!cancelled) {
+          setAuthError('Unable to verify admin access. Please sign in again.');
+          navigate('/login', { replace: true });
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-      setUserId(session.user.id);
-
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id);
-
-      if (roles?.some(r => r.role === 'owner')) {
-        setRole('owner');
-      } else if (roles?.some(r => r.role === 'admin')) {
-        setRole('admin');
-      } else {
-        navigate('/login');
-        return;
-      }
-
-      // Get user's trust_id
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('trust_id')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      setUserTrustId(profile?.trust_id || null);
-      setLoading(false);
     };
-    checkAuth();
+    void checkAuth();
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
 
   const loadTrusts = useCallback(async () => {
@@ -618,7 +647,22 @@ export default function Admin() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ background: '#F5F5F0' }}>
-        <p style={{ color: '#666666', letterSpacing: '0.15em' }}>LOADING...</p>
+        <p style={{ color: '#666666', letterSpacing: '0.15em' }}>CHECKING ADMIN ACCESS...</p>
+      </div>
+    );
+  }
+
+  if (!role) {
+    return (
+      <div className="flex items-center justify-center min-h-screen px-4" style={{ background: '#F5F5F0' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#333333', marginBottom: 12 }}>
+            {authError || 'Redirecting to login...'}
+          </p>
+          <button onClick={() => navigate('/login', { replace: true })} style={btnSmall}>
+            GO TO LOGIN
+          </button>
+        </div>
       </div>
     );
   }
