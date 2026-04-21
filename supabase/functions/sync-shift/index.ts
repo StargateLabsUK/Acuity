@@ -13,6 +13,12 @@ function validateString(val: unknown, maxLen = MAX_STRING_LENGTH): boolean {
   return !val || (typeof val === 'string' && val.length <= maxLen);
 }
 
+function isMissingShiftLifecycleColumnError(error: { message?: string | null; details?: string | null; code?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  const text = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+  return text.includes("active_report_id") || text.includes("crew_status");
+}
+
 serve(async (req) => {
   const preflight = handleCors(req);
   if (preflight) return preflight;
@@ -68,7 +74,7 @@ serve(async (req) => {
         }
       }
 
-      const { data, error } = await supabase.from("shifts").insert({
+      const baseInsert = {
         callsign,
         service,
         station: station || null,
@@ -77,10 +83,30 @@ serve(async (req) => {
         vehicle_type: vehicle_type || null,
         can_transport: can_transport ?? true,
         critical_care: critical_care ?? false,
+        trust_id: trust_id || null,
+      };
+      const lifecycleInsert = {
+        ...baseInsert,
         crew_status: "available",
         active_report_id: null,
-        trust_id: trust_id || null,
-      }).select("id").single();
+      };
+
+      let { data, error } = await supabase
+        .from("shifts")
+        .insert(lifecycleInsert)
+        .select("id")
+        .single();
+
+      // Backward compatibility for environments where lifecycle migration hasn't been applied yet.
+      if (error && isMissingShiftLifecycleColumnError(error as { message?: string | null; details?: string | null; code?: string | null })) {
+        const retry = await supabase
+          .from("shifts")
+          .insert(baseInsert)
+          .select("id")
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         console.error("Insert shift error:", error);
@@ -150,11 +176,19 @@ serve(async (req) => {
         );
       }
 
-      const { error } = await supabase.from("shifts").update({
+      let { error } = await supabase.from("shifts").update({
         ended_at: new Date().toISOString(),
         active_report_id: null,
         crew_status: "available",
       }).eq("id", shift_id);
+
+      if (error && isMissingShiftLifecycleColumnError(error as { message?: string | null; details?: string | null; code?: string | null })) {
+        const retry = await supabase
+          .from("shifts")
+          .update({ ended_at: new Date().toISOString() })
+          .eq("id", shift_id);
+        error = retry.error;
+      }
 
       if (error) {
         console.error("End shift error:", error);
@@ -185,12 +219,25 @@ serve(async (req) => {
         );
       }
 
-      const status = await recomputeCrewStatus(supabase, shift_id);
+      let status: string | null = null;
+      try {
+        status = await recomputeCrewStatus(supabase, shift_id);
+      } catch (err) {
+        console.warn("Status recompute failed, falling back to available:", err);
+      }
       if (!status) {
-        return new Response(
-          JSON.stringify({ error: "Shift not found" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        const { data: shiftExists } = await supabase
+          .from("shifts")
+          .select("id")
+          .eq("id", shift_id)
+          .maybeSingle();
+        if (!shiftExists) {
+          return new Response(
+            JSON.stringify({ error: "Shift not found" }),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        status = "available";
       }
 
       return new Response(
