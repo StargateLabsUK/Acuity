@@ -33,6 +33,8 @@ const labelStyle: React.CSSProperties = {
 export function ShiftLogin({ onShiftStarted }: Props) {
   const service = 'ambulance';
   const [callsign, setCallsign] = useState('');
+  const [station, setStation] = useState('');
+  const [operatorId, setOperatorId] = useState('');
   const [vehicleType, setVehicleType] = useState('');
 
   const [trust, setTrust] = useState<CachedTrust | null>(null);
@@ -50,8 +52,13 @@ export function ShiftLogin({ onShiftStarted }: Props) {
 
   // Input validation: alphanumeric, hyphens, spaces, max 30 chars
   const CALLSIGN_PATTERN = /^[a-zA-Z0-9\-_ ]{1,30}$/;
+  const OPERATOR_PATTERN = /^[a-zA-Z0-9\-_ ]{1,30}$/;
   const isCallsignValid = callsign.trim() !== '' && CALLSIGN_PATTERN.test(callsign.trim());
-  const canSubmit = isCallsignValid && vehicleType !== '';
+  const stationTrimmed = station.trim();
+  const isStationValid = stationTrimmed.length >= 2 && stationTrimmed.length <= 60;
+  const operatorTrimmed = operatorId.trim();
+  const isOperatorValid = !operatorTrimmed || OPERATOR_PATTERN.test(operatorTrimmed);
+  const canSubmit = isCallsignValid && isStationValid && isOperatorValid && vehicleType !== '';
 
   if (!trust) {
     return <TrustPinEntry onValidated={(t) => setTrust(t)} />;
@@ -66,8 +73,8 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       service,
       service_emoji: '',
       callsign: callsign.trim(),
-      operator_id: null,
-      station: null,
+      operator_id: operatorTrimmed || null,
+      station: stationTrimmed,
       session_date: new Date().toISOString().slice(0, 10),
       shift_started: new Date().toISOString(),
       vehicle_type: vehicleType,
@@ -262,6 +269,29 @@ export function ShiftLogin({ onShiftStarted }: Props) {
             value={callsign}
             onChange={(e) => setCallsign(e.target.value)}
             placeholder="e.g. Alpha Two, Bravo Three"
+            style={inputStyle}
+          />
+        </div>
+
+        {/* VEHICLE TYPE */}
+        <div className="mb-5">
+          <label style={labelStyle}>STATION / BASE</label>
+          <input
+            type="text"
+            value={station}
+            onChange={(e) => setStation(e.target.value)}
+            placeholder="e.g. South Central, Station 12"
+            style={inputStyle}
+          />
+        </div>
+
+        <div className="mb-5">
+          <label style={labelStyle}>PRIMARY OPERATOR ID (OPTIONAL)</label>
+          <input
+            type="text"
+            value={operatorId}
+            onChange={(e) => setOperatorId(e.target.value)}
+            placeholder="e.g. 12345A"
             style={inputStyle}
           />
         </div>

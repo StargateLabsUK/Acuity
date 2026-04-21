@@ -74,12 +74,14 @@ serve(async (req) => {
         }
       }
 
+      const startedAt = new Date().toISOString();
       const baseInsert = {
         callsign,
         service,
         station: station || null,
         operator_id: operator_id || null,
         device_id: device_id || null,
+        started_at: startedAt,
         vehicle_type: vehicle_type || null,
         can_transport: can_transport ?? true,
         critical_care: critical_care ?? false,
@@ -126,8 +128,9 @@ serve(async (req) => {
         details: {
           shift_id: data.id,
           callsign,
+          station: station || null,
           operator_id: operator_id || null,
-          started_at: new Date().toISOString(),
+          started_at: startedAt,
         },
       });
 
