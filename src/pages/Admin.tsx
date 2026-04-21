@@ -595,14 +595,6 @@ export default function Admin() {
     window.location.href = '/login';
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen" style={{ background: '#F5F5F0' }}>
-        <p style={{ color: '#666666', letterSpacing: '0.15em' }}>LOADING...</p>
-      </div>
-    );
-  }
-
   const auditRows = useMemo(
     () => auditLogs.map((entry) => buildAuditViewModel(entry, auditShiftMeta, auditReportMeta)),
     [auditLogs, auditShiftMeta, auditReportMeta],
@@ -610,9 +602,8 @@ export default function Admin() {
 
   const filteredAuditRows = useMemo(() => {
     const actionRows = auditRows.filter((row) => row.entry.action !== 'incidents_fetched');
-    if (!auditFilter.trim()) return auditRows;
-    const needle = auditFilter.toLowerCase();
     if (!auditFilter.trim()) return actionRows;
+    const needle = auditFilter.toLowerCase();
     return actionRows.filter((row) => {
       return (
         row.actor.toLowerCase().includes(needle) ||
@@ -623,6 +614,14 @@ export default function Admin() {
       );
     });
   }, [auditRows, auditFilter]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#F5F5F0' }}>
+        <p style={{ color: '#666666', letterSpacing: '0.15em' }}>LOADING...</p>
+      </div>
+    );
+  }
 
   const myTrust = trusts.find(t => t.id === userTrustId);
 
