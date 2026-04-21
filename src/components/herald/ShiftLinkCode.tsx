@@ -25,12 +25,12 @@ export function ShiftLinkCode({ session }: Props) {
   const generate = async () => {
     setGenerating(true);
     setError('');
-    const result = await generateLinkCode(session, true);
+    const result = await generateLinkCode(session);
     if (result?.code) {
       setCode(result.code);
       setExpiresAt(result.expires_at);
     } else {
-      setError('Failed to generate code — make sure your shift is active and try again');
+      setError(result.error ?? 'Failed to generate code — make sure your shift is active and try again');
     }
     setGenerating(false);
   };

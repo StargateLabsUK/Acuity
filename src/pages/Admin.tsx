@@ -98,6 +98,9 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   user_invited: 'User Invited',
   shift_started: 'Shift Started',
   shift_ended: 'Shift Ended',
+  shift_end_blocked_open_patients: 'Shift End Blocked (Open Patients)',
+  shift_link_redeemed: 'Shift Link Redeemed',
+  shift_link_left: 'Shift Link Left',
   report_synced: 'Report Synced',
   disposition_recorded: 'Disposition Recorded',
   transfer_initiated: 'Transfer Initiated',
@@ -690,7 +693,7 @@ export default function Admin() {
                       >
                         <td style={cellStyle}>{new Date(a.created_at).toLocaleString()}</td>
                         <td style={cellStyle}>{a.user_email || '—'}</td>
-                        <td style={cellStyle}>{a.action}</td>
+                        <td style={cellStyle}>{formatAuditAction(a.action)}</td>
                         <td style={{ ...cellStyle, textAlign: 'center', fontSize: 12, color: '#666666' }}>
                           {isExpanded ? '▲' : '▼'}
                         </td>

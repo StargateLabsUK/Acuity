@@ -2,7 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { isRateLimited } from "../_shared/rate-limit.ts";
-import { recomputeCrewStatus } from "../_shared/lifecycle.ts";
+import {
+  getShiftEndBlockingState,
+  recomputeCrewStatus,
+} from "../_shared/lifecycle.ts";
 
 const MAX_STRING_LENGTH = 200;
 
@@ -119,6 +122,27 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ error: "Shift not found" }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const blocking = await getShiftEndBlockingState(supabase, shift_id);
+      if (blocking.openIncidentIds.length > 0 || blocking.outstandingAcceptedTransferCount > 0) {
+        await supabase.from("audit_log").insert({
+          action: "shift_end_blocked_open_patients",
+          trust_id: shift.trust_id ?? null,
+          details: {
+            shift_id,
+            open_incident_ids: blocking.openIncidentIds,
+            outstanding_accepted_transfer_count: blocking.outstandingAcceptedTransferCount,
+          },
+        });
+        return new Response(
+          JSON.stringify({
+            error: "Cannot end shift while patients are still awaiting final disposition",
+            open_incident_ids: blocking.openIncidentIds,
+            outstanding_accepted_transfer_count: blocking.outstandingAcceptedTransferCount,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
