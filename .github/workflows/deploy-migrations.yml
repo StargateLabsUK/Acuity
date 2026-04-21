@@ -27,28 +27,54 @@ jobs:
         run: |
           set -euo pipefail
           supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
-          set +e
-          PUSH_OUTPUT="$(supabase db push --include-all --yes 2>&1)"
-          PUSH_EXIT=$?
-          set -e
+          MAX_ATTEMPTS=40
+          ATTEMPT=1
+          SUCCESS=0
 
-          echo "$PUSH_OUTPUT"
+          while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
+            echo "Migration push attempt ${ATTEMPT}/${MAX_ATTEMPTS}..."
+            set +e
+            PUSH_OUTPUT="$(supabase db push --include-all --yes 2>&1)"
+            PUSH_EXIT=$?
+            set -e
 
-          if [ "$PUSH_EXIT" -eq 0 ]; then
-            exit 0
-          fi
+            echo "$PUSH_OUTPUT"
 
-          if echo "$PUSH_OUTPUT" | awk '/Remote migration versions not found in local migrations directory\./ {found=1} END{exit(found ? 0 : 1)}'; then
-            REPAIR_VERSIONS="$(echo "$PUSH_OUTPUT" | awk '/^supabase migration repair --status reverted / {sub(/^supabase migration repair --status reverted /, ""); print; exit}')"
-            if [ -z "$REPAIR_VERSIONS" ]; then
-              echo "Could not extract migration repair command from Supabase CLI output."
-              exit "$PUSH_EXIT"
+            if [ "$PUSH_EXIT" -eq 0 ]; then
+              SUCCESS=1
+              break
             fi
 
-            echo "Running automatic migration history repair..."
-            supabase migration repair --status reverted $REPAIR_VERSIONS
-            echo "Retrying migration push..."
-            supabase db push --include-all --yes
-          else
+            if echo "$PUSH_OUTPUT" | awk '/Remote migration versions not found in local migrations directory\./ {found=1} END{exit(found ? 0 : 1)}'; then
+              REPAIR_VERSIONS="$(echo "$PUSH_OUTPUT" | awk '/^supabase migration repair --status reverted / {sub(/^supabase migration repair --status reverted /, ""); print; exit}')"
+              if [ -z "$REPAIR_VERSIONS" ]; then
+                echo "Could not extract migration repair command from Supabase CLI output."
+                exit "$PUSH_EXIT"
+              fi
+
+              echo "Running automatic migration history repair..."
+              supabase migration repair --status reverted $REPAIR_VERSIONS
+              ATTEMPT=$((ATTEMPT + 1))
+              continue
+            fi
+
+            CURRENT_FILE="$(echo "$PUSH_OUTPUT" | awk '/^Applying migration [0-9]{14}_[^ ]+\.sql\.\.\./ {print $3; exit}')"
+            CURRENT_VERSION=""
+            if [ -n "$CURRENT_FILE" ]; then
+              CURRENT_VERSION="$(echo "$CURRENT_FILE" | awk -F'_' '{print $1}')"
+            fi
+
+            if [ -n "$CURRENT_VERSION" ] && echo "$PUSH_OUTPUT" | awk '/SQLSTATE 42701|SQLSTATE 42710|SQLSTATE 42P07|already exists/ {found=1} END{exit(found ? 0 : 1)}'; then
+              echo "Detected duplicate-object legacy migration ${CURRENT_VERSION}; marking as applied and retrying."
+              supabase migration repair --status applied "$CURRENT_VERSION"
+              ATTEMPT=$((ATTEMPT + 1))
+              continue
+            fi
+
             exit "$PUSH_EXIT"
+          done
+
+          if [ "$SUCCESS" -ne 1 ]; then
+            echo "Migration push did not complete within retry budget."
+            exit 1
           fi
