@@ -85,7 +85,11 @@ serve(async (req) => {
       if (error) {
         console.error("Insert shift error:", error);
         return new Response(
-          JSON.stringify({ error: "Failed to create shift" }),
+          JSON.stringify({
+            error: "Failed to create shift",
+            details: error.message ?? null,
+            code: error.code ?? null,
+          }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
