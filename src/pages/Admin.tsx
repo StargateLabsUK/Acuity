@@ -25,6 +25,7 @@ interface UserRow {
 interface AuditEntry {
   id: string;
   user_email: string | null;
+  trust_id: string | null;
   action: string;
   details: Record<string, unknown> | null;
   created_at: string;
@@ -43,10 +44,10 @@ interface ShiftRow {
 
 const tabStyle = (active: boolean): React.CSSProperties => ({
   padding: '10px 20px',
-  background: 'transparent',
+  background: active ? 'rgba(61, 255, 140, 0.08)' : 'transparent',
   border: 'none',
   borderBottom: active ? '2px solid hsl(147, 100%, 62%)' : '2px solid transparent',
-  color: active ? '#FFFFFF' : '#4A6058',
+  color: active ? '#1A1A1A' : '#4A6058',
   fontFamily: "'IBM Plex Mono', monospace",
   fontSize: 14,
   fontWeight: 600,
@@ -90,6 +91,47 @@ const inputSmall: React.CSSProperties = {
   fontSize: 14,
   outline: 'none',
 };
+
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  trust_created: 'Trust Created',
+  trust_pin_reset: 'Trust PIN Reset',
+  user_invited: 'User Invited',
+  shift_started: 'Shift Started',
+  shift_ended: 'Shift Ended',
+  report_synced: 'Report Synced',
+  disposition_recorded: 'Disposition Recorded',
+  transfer_initiated: 'Transfer Initiated',
+  transfer_accepted: 'Transfer Accepted',
+  transfer_declined: 'Transfer Declined',
+  incidents_fetched: 'Incidents Fetched',
+  data_exported: 'Data Exported',
+  data_deleted: 'Data Deleted',
+};
+
+function detailString(details: Record<string, unknown> | null, key: string): string {
+  if (!details) return '';
+  const value = details[key];
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return '';
+}
+
+function detailArray(details: Record<string, unknown> | null, key: string): string[] {
+  if (!details) return [];
+  const value = details[key];
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item));
+}
+
+function extractReportId(details: Record<string, unknown> | null): string {
+  return detailString(details, 'report_id') || detailString(details, 'incident_id');
+}
+
+function formatAuditAction(action: string): string {
+  if (AUDIT_ACTION_LABELS[action]) return AUDIT_ACTION_LABELS[action];
+  return action.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
 export default function Admin() {
   const navigate = useNavigate();
