@@ -98,7 +98,7 @@ serve(async (req) => {
 
     const { data: report } = await supabase
       .from("herald_reports")
-      .select("id")
+      .select("id, incident_number, shift_id")
       .eq("id", reportId)
       .maybeSingle();
 
@@ -135,16 +135,26 @@ serve(async (req) => {
       );
     }
 
-    await supabase.from("audit_log").insert({
-      action: "disposition_recorded",
-      trust_id: trustId || null,
-      details: { report_id: reportId, casualty_key: casualtyKey, disposition },
-    });
-
     const conveyedHospital =
       disposition === "conveyed" && typeof fields.receiving_hospital === "string"
         ? fields.receiving_hospital.trim()
         : "";
+
+    await supabase.from("audit_log").insert({
+      action: "disposition_recorded",
+      trust_id: trustId || null,
+      details: {
+        report_id: reportId,
+        incident_number: incidentNumber || report?.incident_number || null,
+        shift_id: report?.shift_id || null,
+        callsign: sessionCallsign || null,
+        casualty_key: casualtyKey,
+        casualty_label: casualtyLabel,
+        disposition,
+        receiving_hospital: conveyedHospital || null,
+        closed_at: closedAt,
+      },
+    });
 
     // Build report update payload
     const reportUpdate: Record<string, unknown> = {};

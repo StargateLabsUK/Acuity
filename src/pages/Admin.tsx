@@ -122,15 +122,29 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   shift_end_blocked_open_patients: 'Logout Blocked (Open Patients)',
   shift_link_redeemed: 'Logged In (Field App)',
   shift_link_left: 'Logged Out (Field App)',
-  report_synced: 'Report Synced',
+  incident_created: 'Incident Created',
+  incident_updated: 'Incident Updated',
   disposition_recorded: 'Disposition Recorded',
   transfer_initiated: 'Transfer Initiated',
   transfer_accepted: 'Transfer Accepted',
   transfer_declined: 'Transfer Declined',
-  incidents_fetched: 'Incidents Fetched',
   data_exported: 'Data Exported',
   data_deleted: 'Data Deleted',
 };
+
+const OPERATIONAL_ACTIONS = new Set([
+  'shift_started',
+  'shift_ended',
+  'shift_end_blocked_open_patients',
+  'shift_link_redeemed',
+  'shift_link_left',
+  'incident_created',
+  'incident_updated',
+  'disposition_recorded',
+  'transfer_initiated',
+  'transfer_accepted',
+  'transfer_declined',
+]);
 
 function detailString(details: Record<string, unknown> | null, key: string): string {
   if (!details) return '';
@@ -241,12 +255,12 @@ function buildAuditViewModel(
     const casualty = detailString(details, 'casualty_label') || detailString(details, 'casualty_key');
     actionSummary = `Transfer declined${casualty ? ` for ${casualty}` : ''}`;
     detailsSummary = detailString(details, 'reason') || 'No decline reason provided';
-  } else if (entry.action === 'report_synced') {
-    actionSummary = 'Incident report updated';
+  } else if (entry.action === 'incident_created') {
+    actionSummary = 'Incident created';
     detailsSummary = report?.headline || '';
-  } else if (entry.action === 'incidents_fetched') {
-    actionSummary = `${callsign || 'Crew'} viewed incident list`;
-    detailsSummary = `${detailString(details, 'report_count') || '0'} active incident(s) returned`;
+  } else if (entry.action === 'incident_updated') {
+    actionSummary = 'Incident updated';
+    detailsSummary = report?.headline || '';
   }
 
   const incidentRef = incidentNumber || (reportId ? `Report ${reportId}` : '—');
@@ -426,13 +440,14 @@ export default function Admin() {
       if (shiftIds.size > 0) {
         const { data: shiftRows } = await supabase
           .from('shifts')
-          .select('id, callsign, operator_id')
+          .select('id, callsign, operator_id, started_at')
           .in('id', Array.from(shiftIds));
         const mapped: Record<string, AuditShiftMeta> = {};
         for (const row of shiftRows ?? []) {
           mapped[row.id] = {
             callsign: row.callsign ?? null,
             operator_id: row.operator_id ?? null,
+            started_at: row.started_at ?? null,
           };
         }
         setAuditShiftMeta(mapped);
@@ -594,9 +609,11 @@ export default function Admin() {
   );
 
   const filteredAuditRows = useMemo(() => {
+    const actionRows = auditRows.filter((row) => row.entry.action !== 'incidents_fetched');
     if (!auditFilter.trim()) return auditRows;
     const needle = auditFilter.toLowerCase();
-    return auditRows.filter((row) => {
+    if (!auditFilter.trim()) return actionRows;
+    return actionRows.filter((row) => {
       return (
         row.actor.toLowerCase().includes(needle) ||
         row.actionSummary.toLowerCase().includes(needle) ||
@@ -893,6 +910,7 @@ export default function Admin() {
               <thead>
                 <tr>
                   <th style={headerCellStyle}>TIMESTAMP</th>
+                  <th style={headerCellStyle}>EVENT TIME</th>
                   <th style={headerCellStyle}>CREW ID / USER</th>
                   <th style={headerCellStyle}>ACTION</th>
                   <th style={headerCellStyle}>INCIDENT</th>
@@ -912,6 +930,7 @@ export default function Admin() {
                         style={{ cursor: 'pointer', background: isExpanded ? 'rgba(61, 255, 140, 0.04)' : 'transparent' }}
                       >
                         <td style={cellStyle}>{new Date(a.created_at).toLocaleString()}</td>
+                        <td style={cellStyle}>{row.timeRef}</td>
                         <td style={cellStyle}>{row.actor}</td>
                         <td style={cellStyle}>{row.actionSummary}</td>
                         <td style={cellStyle}>{row.incidentRef}</td>
@@ -929,7 +948,7 @@ export default function Admin() {
                       </tr>
                       {isExpanded && a.details && (
                         <tr>
-                          <td colSpan={7} style={{ padding: 0, borderBottom: '1px solid #E2E2DE' }}>
+                          <td colSpan={8} style={{ padding: 0, borderBottom: '1px solid #E2E2DE' }}>
                             <div style={{
                               padding: '12px 16px',
                               background: '#FFFFFF',
@@ -965,7 +984,7 @@ export default function Admin() {
                       )}
                       {isExpanded && !a.details && (
                         <tr>
-                          <td colSpan={7} style={{ ...cellStyle, color: '#666666', fontStyle: 'italic' }}>
+                          <td colSpan={8} style={{ ...cellStyle, color: '#666666', fontStyle: 'italic' }}>
                             No details available
                           </td>
                         </tr>
@@ -975,7 +994,7 @@ export default function Admin() {
                 })}
                 {filteredAuditRows.length === 0 && (
                   <tr>
-                    <td colSpan={7} style={{ ...cellStyle, textAlign: 'center', color: '#666666' }}>
+                    <td colSpan={8} style={{ ...cellStyle, textAlign: 'center', color: '#666666' }}>
                       No audit entries found
                     </td>
                   </tr>

@@ -123,7 +123,12 @@ serve(async (req) => {
       await supabase.from("audit_log").insert({
         action: "shift_started",
         trust_id: trust_id || null,
-        details: { shift_id: data.id, callsign },
+        details: {
+          shift_id: data.id,
+          callsign,
+          operator_id: operator_id || null,
+          started_at: new Date().toISOString(),
+        },
       });
 
       return new Response(
@@ -201,7 +206,10 @@ serve(async (req) => {
       await supabase.from("audit_log").insert({
         action: "shift_ended",
         trust_id: shift.trust_id ?? null,
-        details: { shift_id },
+        details: {
+          shift_id,
+          ended_at: new Date().toISOString(),
+        },
       });
 
       return new Response(

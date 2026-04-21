@@ -65,7 +65,7 @@ serve(async (req) => {
       // Verify report exists
       const { data: report } = await supabase
         .from("herald_reports")
-        .select("id")
+        .select("id, incident_number")
         .eq("id", reportId)
         .maybeSingle();
       if (!report) {
@@ -144,10 +144,15 @@ serve(async (req) => {
         details: {
           transfer_id: transfer.id,
           report_id: reportId,
+          incident_number: report.incident_number ?? null,
+          from_shift_id: fromShiftId || null,
+          to_shift_id: toShiftId || null,
           casualty_key: casualtyKey,
+          casualty_label: casualtyLabel,
           from_callsign: fromCallsign,
           to_callsign: toCallsign,
           initiated_at: initiatedAt,
+          handover_notes: handoverNotes || null,
           has_handover_notes: !!handoverNotes,
         },
       });
@@ -280,7 +285,11 @@ serve(async (req) => {
         details: {
           transfer_id: transferId,
           report_id: transfer.report_id,
+          incident_number: transfer.incident_number ?? null,
+          from_shift_id: transfer.from_shift_id ?? null,
+          to_shift_id: transfer.to_shift_id ?? null,
           casualty_key: transfer.casualty_key,
+          casualty_label: transfer.casualty_label ?? null,
           from_callsign: transfer.from_callsign,
           to_callsign: transfer.to_callsign,
           initiated_at: transfer.initiated_at,
@@ -351,7 +360,11 @@ serve(async (req) => {
         details: {
           transfer_id: transferId,
           report_id: transfer.report_id,
+          incident_number: transfer.incident_number ?? null,
+          from_shift_id: transfer.from_shift_id ?? null,
+          to_shift_id: transfer.to_shift_id ?? null,
           casualty_key: transfer.casualty_key,
+          casualty_label: transfer.casualty_label ?? null,
           from_callsign: transfer.from_callsign,
           to_callsign: transfer.to_callsign,
           declined_by: decliningCallsign,

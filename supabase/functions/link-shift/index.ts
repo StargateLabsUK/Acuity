@@ -105,6 +105,7 @@ async function handleCrewLink(
     trust_id: codeRow.trust_id ?? null,
     details: {
       shift_id: codeRow.shift_id,
+      callsign: codeRow.session_data?.callsign ?? null,
       operator_id: opId,
       code: codeRow.code,
       redeemed_at: now,
