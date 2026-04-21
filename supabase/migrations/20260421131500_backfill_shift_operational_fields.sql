@@ -1,5 +1,6 @@
 -- Backfill shift operational fields so admin/device views have data.
 -- Safe to run multiple times.
+-- Workflow touch: ensures migration deployment workflow reruns after CI fix.
 
 -- Ensure future inserts always get a shift start timestamp.
 ALTER TABLE public.shifts
