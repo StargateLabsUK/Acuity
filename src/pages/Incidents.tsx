@@ -34,6 +34,7 @@ const IncidentsPage = () => {
   const [reports, setReports] = useState<HeraldReport[]>([]);
   const [fetchOk, setFetchOk] = useState(true);
   const [session, setSession] = useState<HeraldSession | null>(null);
+  const [endShiftError, setEndShiftError] = useState('');
 
   useEffect(() => {
     // TEST BYPASS: ?bypass=true skips login and injects a test session
@@ -194,8 +195,18 @@ const IncidentsPage = () => {
   }, [refreshReports]);
 
   const handleEndShift = useCallback(async () => {
+    setEndShiftError('');
     if (session?.shift_id) {
-      await endShiftRemote(session.shift_id);
+      const result = await endShiftRemote(session.shift_id);
+      if (!result.ok) {
+        const openIncidents = result.open_incident_ids?.length ?? 0;
+        const transferredPatients = result.outstanding_accepted_transfer_count ?? 0;
+        setEndShiftError(
+          result.error ??
+            `Cannot end shift: ${openIncidents} incident(s) and ${transferredPatients} transferred patient(s) still need disposition.`,
+        );
+        return;
+      }
     }
     clearSession();
     clearCachedTrust();
@@ -218,6 +229,16 @@ const IncidentsPage = () => {
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F5F5F0' }}>
       <TopBar syncStatus={!fetchOk ? 'offline' : !fieldOnline ? 'offline' : syncStatus} queuedCount={queuedCount} onEndShift={handleEndShift} onRefresh={() => { void refreshReports(); }} />
+      {endShiftError && (
+        <div
+          className="px-4 py-2"
+          style={{ borderBottom: '1px solid rgba(255,59,48,0.2)', background: 'rgba(255,59,48,0.05)' }}
+        >
+          <p style={{ color: '#FF3B30', fontSize: 13, fontFamily: "'IBM Plex Mono', monospace" }}>
+            {endShiftError}
+          </p>
+        </div>
+      )}
       <ShiftLinkCode session={session} />
 
       <div className="flex-1 flex flex-col overflow-hidden">

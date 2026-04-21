@@ -37,6 +37,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
 
   const [trust, setTrust] = useState<CachedTrust | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [startError, setStartError] = useState('');
 
   useEffect(() => {
     getCachedTrust().then(setTrust);
@@ -59,6 +60,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const handleBeginShift = async () => {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
+    setStartError('');
     const vt = VEHICLE_TYPES.find((v) => v.code === vehicleType);
     const session: HeraldSession = {
       service,
@@ -73,8 +75,13 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       critical_care: vt?.critical_care ?? false,
       trust_id: trust.trust_id,
     };
-    const shiftId = await startShiftRemote(session);
-    if (shiftId) session.shift_id = shiftId;
+    const startResult = await startShiftRemote(session);
+    if (!startResult.ok || !startResult.shift_id) {
+      setStartError(startResult.error ?? 'Failed to start shift. Please try again.');
+      setSubmitting(false);
+      return;
+    }
+    session.shift_id = startResult.shift_id;
     await saveSession(session);
     onShiftStarted(session);
     setSubmitting(false);
@@ -301,6 +308,11 @@ export function ShiftLogin({ onShiftStarted }: Props) {
         >
           BEGIN SHIFT
         </button>
+        {startError && (
+          <p style={{ color: '#FF3B30', fontSize: 14, textAlign: 'center', marginTop: 12 }}>
+            {startError}
+          </p>
+        )}
       </div>
     </div>
   );

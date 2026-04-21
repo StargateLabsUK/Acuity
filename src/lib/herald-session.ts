@@ -15,6 +15,19 @@ export interface HeraldSession {
   trust_id?: string;
 }
 
+export interface StartShiftResult {
+  ok: boolean;
+  shift_id?: string;
+  error?: string;
+}
+
+export interface EndShiftResult {
+  ok: boolean;
+  error?: string;
+  open_incident_ids?: string[];
+  outstanding_accepted_transfer_count?: number;
+}
+
 const SESSION_KEY = 'herald_session';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -57,8 +70,8 @@ export async function getTrustId(): Promise<string | undefined> {
   return (await getSession())?.trust_id;
 }
 
-/** Start a shift in Supabase, returns the shift_id */
-export async function startShiftRemote(session: HeraldSession): Promise<string | null> {
+/** Start a shift in Supabase */
+export async function startShiftRemote(session: HeraldSession): Promise<StartShiftResult> {
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-shift`, {
       method: 'POST',
@@ -75,24 +88,55 @@ export async function startShiftRemote(session: HeraldSession): Promise<string |
         trust_id: session.trust_id ?? null,
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      let errMsg = `Server error (${res.status})`;
+      try {
+        const data = await res.json();
+        errMsg = data.error ?? errMsg;
+      } catch {
+        // non-JSON response
+      }
+      return { ok: false, error: errMsg };
+    }
     const data = await res.json();
-    return data.shift_id ?? null;
-  } catch {
-    return null;
+    if (!data?.shift_id) {
+      return { ok: false, error: 'Shift started but no shift ID was returned' };
+    }
+    return { ok: true, shift_id: data.shift_id };
+  } catch (e: any) {
+    return { ok: false, error: e?.message ?? 'Network error — check your connection' };
   }
 }
 
 /** End a shift in Supabase */
-export async function endShiftRemote(shiftId: string): Promise<void> {
+export async function endShiftRemote(shiftId: string): Promise<EndShiftResult> {
   try {
-    await fetch(`${SUPABASE_URL}/functions/v1/sync-shift`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-shift`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ action: 'end', shift_id: shiftId }),
     });
-  } catch {
-    // silent
+
+    if (!res.ok) {
+      let errMsg = `Server error (${res.status})`;
+      let payload: any = null;
+      try {
+        payload = await res.json();
+        errMsg = payload?.error ?? errMsg;
+      } catch {
+        // non-JSON response
+      }
+      return {
+        ok: false,
+        error: errMsg,
+        open_incident_ids: payload?.open_incident_ids ?? [],
+        outstanding_accepted_transfer_count: payload?.outstanding_accepted_transfer_count ?? 0,
+      };
+    }
+
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e?.message ?? 'Network error — check your connection' };
   }
 }
 
@@ -101,6 +145,10 @@ export async function generateLinkCode(
   session: HeraldSession,
 ): Promise<{ code: string; expires_at: string } | { error: string }> {
   try {
+    if (!session.shift_id) {
+      return { error: 'No active shift ID found. Start your shift first.' };
+    }
+
     const res = await fetch(`${SUPABASE_URL}/functions/v1/link-shift`, {
       method: 'POST',
       headers,

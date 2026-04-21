@@ -68,6 +68,7 @@ async function handleCrewLink(
   corsHeaders: Record<string, string>,
 ) {
   const opId = operator_id ?? null;
+  const now = new Date().toISOString();
 
   if (opId) {
     // Check if this operator already has a row for this shift
@@ -83,7 +84,7 @@ async function handleCrewLink(
       // Rejoin: clear left_at
       await supabase
         .from("shift_link_codes")
-        .update({ left_at: null, used_at: new Date().toISOString() })
+        .update({ left_at: null, used_at: now })
         .eq("id", existing.id);
     } else {
       // New crew member: insert a tracking row
@@ -93,11 +94,22 @@ async function handleCrewLink(
         trust_id: codeRow.trust_id,
         session_data: codeRow.session_data,
         expires_at: codeRow.expires_at,
-        used_at: new Date().toISOString(),
+        used_at: now,
         operator_id: opId,
       });
     }
   }
+
+  await supabase.from("audit_log").insert({
+    action: "shift_link_redeemed",
+    trust_id: codeRow.trust_id ?? null,
+    details: {
+      shift_id: codeRow.shift_id,
+      operator_id: opId,
+      code: codeRow.code,
+      redeemed_at: now,
+    },
+  });
 
   return new Response(
     JSON.stringify({ session_data: codeRow.session_data }),
@@ -123,6 +135,26 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ error: "shift_id and session_data required" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const { data: shift, error: shiftError } = await supabase
+        .from("shifts")
+        .select("id, ended_at, trust_id")
+        .eq("id", shift_id)
+        .maybeSingle();
+
+      if (shiftError || !shift) {
+        return new Response(
+          JSON.stringify({ error: "Shift not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      if (shift.ended_at) {
+        return new Response(
+          JSON.stringify({ error: "Shift is not active" }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
@@ -152,7 +184,7 @@ Deno.serve(async (req) => {
         const { error } = await supabase.from("shift_link_codes").insert({
           shift_id,
           code: linkCode,
-          trust_id: trust_id ?? null,
+          trust_id: shift.trust_id ?? trust_id ?? null,
           session_data,
           expires_at: expiresAt,
         });
@@ -272,6 +304,22 @@ Deno.serve(async (req) => {
         .eq("operator_id", operator_id)
         .not("used_at", "is", null)
         .is("left_at", null);
+
+      const { data: shift } = await supabase
+        .from("shifts")
+        .select("trust_id")
+        .eq("id", shift_id)
+        .maybeSingle();
+
+      await supabase.from("audit_log").insert({
+        action: "shift_link_left",
+        trust_id: shift?.trust_id ?? null,
+        details: {
+          shift_id,
+          operator_id,
+          left_at: new Date().toISOString(),
+        },
+      });
 
       return new Response(
         JSON.stringify({ ok: true }),
