@@ -26,6 +26,7 @@ export interface EndShiftResult {
   error?: string;
   open_incident_ids?: string[];
   outstanding_accepted_transfer_count?: number;
+  shift_id?: string;
 }
 
 interface ShiftLookupRow {
@@ -144,6 +145,27 @@ export async function endShiftRemote(shiftId: string): Promise<EndShiftResult> {
   }
 }
 
+async function findActiveShiftById(shiftId: string): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({
+      select: 'id',
+      id: `eq.${shiftId}`,
+      ended_at: 'is.null',
+      limit: '1',
+    });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/shifts?${params.toString()}`, {
+      headers,
+      method: 'GET',
+    });
+    if (!res.ok) return null;
+    const rows = (await res.json()) as ShiftLookupRow[];
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    return rows[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function findLatestActiveShiftId(session: HeraldSession): Promise<string | null> {
   try {
     const params = new URLSearchParams({
@@ -177,7 +199,10 @@ export async function ensureSessionShiftId(
   session: HeraldSession,
 ): Promise<{ session: HeraldSession; error?: string }> {
   if (session.shift_id) {
-    return { session };
+    const activeSameId = await findActiveShiftById(session.shift_id);
+    if (activeSameId) {
+      return { session };
+    }
   }
 
   const recoveredShiftId = await findLatestActiveShiftId(session);
@@ -198,6 +223,30 @@ export async function ensureSessionShiftId(
   const updatedSession = { ...session, shift_id: startResult.shift_id };
   await saveSession(updatedSession);
   return { session: updatedSession };
+}
+
+export async function endShiftWithRecovery(
+  session: HeraldSession,
+): Promise<{ result: EndShiftResult; session: HeraldSession }> {
+  const ensured = await ensureSessionShiftId(session);
+  if (ensured.error || !ensured.session.shift_id) {
+    return {
+      session: ensured.session,
+      result: {
+        ok: false,
+        error: ensured.error ?? 'No active shift found, start your shift first.',
+      },
+    };
+  }
+
+  const result = await endShiftRemote(ensured.session.shift_id);
+  return {
+    session: ensured.session,
+    result: {
+      ...result,
+      shift_id: ensured.session.shift_id,
+    },
+  };
 }
 
 /** Generate a 6-digit link code for a shift */

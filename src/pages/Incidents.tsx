@@ -7,7 +7,7 @@ import { BottomNav } from '@/components/herald/BottomNav';
 import { ReportsTab } from '@/components/herald/ReportsTab';
 import { IncidentsTab } from '@/components/herald/IncidentsTab';
 import { ShiftLogin } from '@/components/herald/ShiftLogin';
-import { clearSession, endShiftRemote, leaveShiftRemote } from '@/lib/herald-session';
+import { clearSession, endShiftRemote, ensureSessionShiftId, leaveShiftRemote, saveSession } from '@/lib/herald-session';
 import { clearCachedTrust } from '@/lib/trust-cache';
 import { supabase } from '@/integrations/supabase/client';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
@@ -196,16 +196,24 @@ const IncidentsPage = () => {
 
   const handleEndShift = useCallback(async () => {
     setEndShiftError('');
-    if (session?.shift_id) {
-      const result = await endShiftRemote(session.shift_id);
-      if (!result.ok) {
-        const openIncidents = result.open_incident_ids?.length ?? 0;
-        const transferredPatients = result.outstanding_accepted_transfer_count ?? 0;
-        setEndShiftError(
-          result.error ??
-            `Cannot end shift: ${openIncidents} incident(s) and ${transferredPatients} transferred patient(s) still need disposition.`,
-        );
-        return;
+    if (session) {
+      const ensured = await ensureSessionShiftId(session);
+      const targetSession = ensured.session;
+      if (targetSession.shift_id) {
+        if (targetSession.shift_id !== session.shift_id) {
+          setSession(targetSession);
+          await saveSession(targetSession);
+        }
+        const result = await endShiftRemote(targetSession.shift_id, targetSession);
+        if (!result.ok) {
+          const openIncidents = result.open_incident_ids?.length ?? 0;
+          const transferredPatients = result.outstanding_accepted_transfer_count ?? 0;
+          setEndShiftError(
+            result.error ??
+              `Cannot end shift: ${openIncidents} incident(s) and ${transferredPatients} transferred patient(s) still need disposition.`,
+          );
+          return;
+        }
       }
     }
     clearSession();
