@@ -61,6 +61,44 @@ function validateOperatorId(opId: string | null): boolean {
   return OPERATOR_ID_PATTERN.test(opId);
 }
 
+function normalizeSlugLike(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function resolveTrustIdForLink(
+  supabase: any,
+  params: { shiftId?: string | null; providedTrustId?: string | null; sessionService?: string | null },
+): Promise<string | null> {
+  if (params.providedTrustId) return params.providedTrustId;
+
+  if (params.shiftId) {
+    const { data: shift } = await supabase
+      .from("shifts")
+      .select("trust_id")
+      .eq("id", params.shiftId)
+      .maybeSingle();
+    if (shift?.trust_id) return shift.trust_id;
+  }
+
+  const service = typeof params.sessionService === "string" ? params.sessionService.trim() : "";
+  if (!service) return null;
+  const normalizedService = normalizeSlugLike(service);
+  const { data: trusts } = await supabase
+    .from("trusts")
+    .select("id, name, slug")
+    .eq("active", true);
+  const match = (trusts ?? []).find((trust: any) =>
+    trust.name?.toLowerCase().trim() === service.toLowerCase().trim() ||
+    normalizeSlugLike(trust.name ?? "") === normalizedService ||
+    (trust.slug ?? "").toLowerCase().trim() === normalizedService
+  );
+  return match?.id ?? null;
+}
+
 async function handleCrewLink(
   supabase: any,
   codeRow: any,
@@ -182,10 +220,16 @@ Deno.serve(async (req) => {
         linkCode = randomCode();
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
+        const effectiveTrustId = await resolveTrustIdForLink(supabase, {
+          shiftId: shift_id,
+          providedTrustId: typeof trust_id === "string" ? trust_id : null,
+          sessionService: typeof session_data?.service === "string" ? session_data.service : null,
+        });
+
         const { error } = await supabase.from("shift_link_codes").insert({
           shift_id,
           code: linkCode,
-          trust_id: shift.trust_id ?? trust_id ?? null,
+          trust_id: effectiveTrustId ?? null,
           session_data,
           expires_at: expiresAt,
         });

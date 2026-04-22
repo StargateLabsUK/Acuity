@@ -19,6 +19,62 @@ function jsonSafe(v: unknown): Record<string, unknown> {
   return JSON.parse(JSON.stringify(v));
 }
 
+function normalizeSlugLike(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function resolveTrustIdForTransfer(
+  supabase: ReturnType<typeof createClient>,
+  params: {
+    reportId?: string | null;
+    fromShiftId?: string | null;
+    toShiftId?: string | null;
+    providedTrustId?: string | null;
+  },
+): Promise<string | null> {
+  if (params.providedTrustId) return params.providedTrustId;
+
+  if (params.reportId) {
+    const { data: report } = await supabase
+      .from("herald_reports")
+      .select("trust_id, session_service")
+      .eq("id", params.reportId)
+      .maybeSingle();
+    if (report?.trust_id) return report.trust_id;
+
+    const sessionService = typeof report?.session_service === "string" ? report.session_service.trim() : "";
+    if (sessionService) {
+      const normalizedService = normalizeSlugLike(sessionService);
+      const { data: trusts } = await supabase
+        .from("trusts")
+        .select("id, name, slug")
+        .eq("active", true);
+      const match = (trusts ?? []).find((trust) =>
+        trust.name?.toLowerCase().trim() === sessionService.toLowerCase().trim() ||
+        normalizeSlugLike(trust.name ?? "") === normalizedService ||
+        (trust.slug ?? "").toLowerCase().trim() === normalizedService
+      );
+      if (match?.id) return match.id;
+    }
+  }
+
+  const shiftIds = [params.fromShiftId, params.toShiftId].filter(Boolean) as string[];
+  for (const shiftId of shiftIds) {
+    const { data: shift } = await supabase
+      .from("shifts")
+      .select("trust_id")
+      .eq("id", shiftId)
+      .maybeSingle();
+    if (shift?.trust_id) return shift.trust_id;
+  }
+
+  return null;
+}
+
 serve(async (req) => {
   const preflight = handleCors(req);
   if (preflight) return preflight;
@@ -90,12 +146,19 @@ serve(async (req) => {
         );
       }
 
+      const effectiveTrustId = await resolveTrustIdForTransfer(supabase, {
+        reportId,
+        fromShiftId,
+        toShiftId,
+        providedTrustId: trustId,
+      });
+
       // Verify trust
-      if (trustId) {
+      if (effectiveTrustId) {
         const { data: trust } = await supabase
           .from("trusts")
           .select("id")
-          .eq("id", trustId)
+          .eq("id", effectiveTrustId)
           .eq("active", true)
           .maybeSingle();
         if (!trust) {
@@ -124,7 +187,7 @@ serve(async (req) => {
           handover_notes: handoverNotes,
           initiated_at: initiatedAt,
           status: "pending",
-          trust_id: trustId,
+          trust_id: effectiveTrustId,
         })
         .select("id")
         .single();
@@ -140,7 +203,7 @@ serve(async (req) => {
       // Log to audit_log
       await supabase.from("audit_log").insert({
         action: "transfer_initiated",
-        trust_id: trustId,
+        trust_id: effectiveTrustId,
         details: {
           transfer_id: transfer.id,
           report_id: reportId,
@@ -199,11 +262,21 @@ serve(async (req) => {
       }
 
       const acceptedAt = new Date().toISOString();
+      const effectiveTrustId = await resolveTrustIdForTransfer(supabase, {
+        reportId: transfer.report_id,
+        fromShiftId: transfer.from_shift_id,
+        toShiftId: transfer.to_shift_id,
+        providedTrustId: transfer.trust_id,
+      });
 
       // Update transfer status
       const { error: updateError } = await supabase
         .from("patient_transfers")
-        .update({ status: "accepted", accepted_at: acceptedAt })
+        .update({
+          status: "accepted",
+          accepted_at: acceptedAt,
+          ...(effectiveTrustId ? { trust_id: effectiveTrustId } : {}),
+        })
         .eq("id", transferId);
 
       if (updateError) {
@@ -233,7 +306,7 @@ serve(async (req) => {
           initiated_at: transfer.initiated_at,
           accepted_at: acceptedAt,
         },
-        trust_id: transfer.trust_id,
+        trust_id: effectiveTrustId,
       });
 
       // Sender-side auto disposition for transfer lifecycle.
@@ -256,7 +329,7 @@ serve(async (req) => {
           incident_number: null,
           closed_at: acceptedAt,
           session_callsign: transfer.from_callsign,
-          trust_id: transfer.trust_id,
+          trust_id: effectiveTrustId,
         },
         { onConflict: "report_id,casualty_key" },
       );
@@ -281,7 +354,7 @@ serve(async (req) => {
       // Log to audit_log
       await supabase.from("audit_log").insert({
         action: "transfer_accepted",
-        trust_id: transfer.trust_id,
+        trust_id: effectiveTrustId,
         details: {
           transfer_id: transferId,
           report_id: transfer.report_id,
@@ -339,10 +412,21 @@ serve(async (req) => {
       }
 
       const declinedAt = new Date().toISOString();
+      const effectiveTrustId = await resolveTrustIdForTransfer(supabase, {
+        reportId: transfer.report_id,
+        fromShiftId: transfer.from_shift_id,
+        toShiftId: transfer.to_shift_id,
+        providedTrustId: transfer.trust_id,
+      });
 
       const { error: updateError } = await supabase
         .from("patient_transfers")
-        .update({ status: "declined", declined_at: declinedAt, declined_reason: reason })
+        .update({
+          status: "declined",
+          declined_at: declinedAt,
+          declined_reason: reason,
+          ...(effectiveTrustId ? { trust_id: effectiveTrustId } : {}),
+        })
         .eq("id", transferId);
 
       if (updateError) {
@@ -356,7 +440,7 @@ serve(async (req) => {
       // Log to audit_log
       await supabase.from("audit_log").insert({
         action: "transfer_declined",
-        trust_id: transfer.trust_id,
+        trust_id: effectiveTrustId,
         details: {
           transfer_id: transferId,
           report_id: transfer.report_id,
