@@ -529,6 +529,7 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend, queuedCount = 0 }
               mime_type: mimeTypeRef.current || 'audio/webm',
               report_id: crypto.randomUUID(),
               session_data: offlineSession ? { callsign: offlineSession.callsign, operator_id: offlineSession.operator_id, service: offlineSession.service, station: offlineSession.station } : null,
+              trust_id: offlineSession?.trust_id ?? null,
               vehicle_type: offlineSession?.vehicle_type ?? null,
               can_transport: offlineSession?.can_transport ?? true,
             });
