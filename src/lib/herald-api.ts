@@ -15,24 +15,41 @@ async function getTrustId(): Promise<string | null> {
   return session?.trust_id || null;
 }
 
-export async function transcribeAudio(base64Audio: string, mimeType?: string): Promise<string> {
+async function resolveTrustId(overrideTrustId?: string | null): Promise<string | null> {
+  if (overrideTrustId && overrideTrustId.trim()) return overrideTrustId.trim();
+  return getTrustId();
+}
+
+export async function transcribeAudio(base64Audio: string, mimeType?: string, trustIdOverride?: string | null): Promise<string> {
+  const trust_id = await resolveTrustId(trustIdOverride);
   const res = await fetch(`${SUPABASE_URL}/functions/v1/transcribe`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ audio: base64Audio, mimeType: mimeType || 'audio/webm', trust_id: await getTrustId() }),
+    body: JSON.stringify({ audio: base64Audio, mimeType: mimeType || 'audio/webm', trust_id }),
   });
-  if (!res.ok) throw new Error('Transcription failed');
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Transcription failed (${res.status}): ${text}`);
+  }
   const data = await res.json();
   return data.transcript;
 }
 
-export async function assessTranscript(transcript: string, context?: { vehicle_type?: string; can_transport?: boolean; existing_atmist?: Record<string, any> }) {
+export async function assessTranscript(
+  transcript: string,
+  context?: { vehicle_type?: string; can_transport?: boolean; existing_atmist?: Record<string, any> },
+  trustIdOverride?: string | null,
+) {
+  const trust_id = await resolveTrustId(trustIdOverride);
   const res = await fetch(`${SUPABASE_URL}/functions/v1/assess`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ transcript, vehicle_type: context?.vehicle_type, can_transport: context?.can_transport, existing_atmist: context?.existing_atmist, trust_id: await getTrustId() }),
+    body: JSON.stringify({ transcript, vehicle_type: context?.vehicle_type, can_transport: context?.can_transport, existing_atmist: context?.existing_atmist, trust_id }),
   });
-  if (!res.ok) throw new Error('Assessment failed');
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Assessment failed (${res.status}): ${text}`);
+  }
   return res.json();
 }
 

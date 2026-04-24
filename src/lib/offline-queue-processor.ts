@@ -65,12 +65,13 @@ async function processItem(item: QueueItem): Promise<void> {
  * This replays the full LiveTab recording pipeline.
  */
 async function processTranscribe(item: QueueItem): Promise<void> {
-  const { audio_base64, mime_type, report_id, session_data, vehicle_type, can_transport, existing_atmist } = item.payload;
+  const { audio_base64, mime_type, report_id, session_data, vehicle_type, can_transport, existing_atmist, trust_id } = item.payload;
 
   // Step 1: Transcribe
   const transcript = await transcribeAudio(
     audio_base64 as string,
     (mime_type as string) || 'audio/webm',
+    typeof trust_id === 'string' ? trust_id : null,
   );
 
   if (!transcript || !transcript.trim()) {
@@ -84,6 +85,7 @@ async function processTranscribe(item: QueueItem): Promise<void> {
     existing_atmist: existing_atmist as Record<string, any> | undefined,
     session_callsign: (session_data as any)?.callsign ?? null,
     session_operator_id: (session_data as any)?.operator_id ?? null,
+    trust_id: typeof trust_id === 'string' ? trust_id : null,
   });
 
   // Step 3: Build and save report locally
@@ -120,6 +122,7 @@ async function assessWithFallback(
     existing_atmist?: Record<string, any>;
     session_callsign?: string | null;
     session_operator_id?: string | null;
+    trust_id?: string | null;
   },
 ): Promise<Assessment> {
   try {
@@ -127,7 +130,7 @@ async function assessWithFallback(
       vehicle_type: context.vehicle_type,
       can_transport: context.can_transport,
       existing_atmist: context.existing_atmist,
-    });
+    }, context.trust_id ?? null);
   } catch {
     return {
       service: 'unknown',
