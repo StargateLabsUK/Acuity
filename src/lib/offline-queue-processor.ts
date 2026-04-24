@@ -10,6 +10,7 @@ import { toSyncPayload } from './herald-sync';
 import { getSession } from './herald-session';
 import { initiateTransfer, acceptTransfer, declineTransfer } from './transfer-types';
 import type { HeraldReport } from './herald-types';
+import type { Assessment } from './herald-types';
 
 /** Process all ready queue items. Returns { processed, failed, remaining }. */
 export async function processQueue(): Promise<{ processed: number; failed: number; remaining: number }> {
@@ -76,11 +77,13 @@ async function processTranscribe(item: QueueItem): Promise<void> {
     throw new Error('Transcription returned empty');
   }
 
-  // Step 2: Assess
-  const assessment = await assessTranscript(transcript, {
+  // Step 2: Assess (fallback to minimal assessment if AI is temporarily unavailable)
+  const assessment = await assessWithFallback(transcript, {
     vehicle_type: vehicle_type as string | undefined,
     can_transport: can_transport as boolean | undefined,
     existing_atmist: existing_atmist as Record<string, any> | undefined,
+    session_callsign: (session_data as any)?.callsign ?? null,
+    session_operator_id: (session_data as any)?.operator_id ?? null,
   });
 
   // Step 3: Build and save report locally
@@ -107,6 +110,55 @@ async function processTranscribe(item: QueueItem): Promise<void> {
     await markSynced(report.id);
   }
   // Even if sync fails, the report is saved locally and useHeraldSync will retry
+}
+
+async function assessWithFallback(
+  transcript: string,
+  context: {
+    vehicle_type?: string;
+    can_transport?: boolean;
+    existing_atmist?: Record<string, any>;
+    session_callsign?: string | null;
+    session_operator_id?: string | null;
+  },
+): Promise<Assessment> {
+  try {
+    return await assessTranscript(transcript, {
+      vehicle_type: context.vehicle_type,
+      can_transport: context.can_transport,
+      existing_atmist: context.existing_atmist,
+    });
+  } catch {
+    return {
+      service: 'unknown',
+      protocol: 'NONE',
+      priority: null,
+      priority_label: null,
+      headline: transcript.substring(0, 80),
+      incident_type: 'Unknown',
+      major_incident: false,
+      scene_location: null,
+      receiving_hospital: [],
+      clinical_findings: {
+        A: 'Not assessed',
+        B: 'Not assessed',
+        C: 'Not assessed',
+        D: 'Not assessed',
+        E: 'Not assessed',
+      },
+      atmist: {},
+      treatment_given: [],
+      action_items: [],
+      structured: {
+        callsign: context.session_callsign ?? null,
+        incident_number: null,
+        operator_id: context.session_operator_id ?? null,
+      },
+      actions: ['AI assessment unavailable — queued sync fallback used'],
+      formatted_report: transcript,
+      clinical_history: '',
+    } as unknown as Assessment;
+  }
 }
 
 /** Sync a queued report to Supabase */
