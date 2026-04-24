@@ -23,6 +23,7 @@ export interface HeraldReport {
   latest_transmission_at?: string;
   status?: 'active' | 'closed';
   shift_id?: string;
+  trust_id?: string;
 }
 
 export interface IncidentTransmission {

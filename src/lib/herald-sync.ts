@@ -3,6 +3,8 @@ import { getShiftId, getSession, getTrustId } from './herald-session';
 
 export async function toSyncPayload(report: HeraldReport, followUpOf?: string): Promise<Record<string, unknown>> {
   const session = await getSession();
+  const reportShiftId = (report as HeraldReport & { shift_id?: string | null }).shift_id ?? null;
+  const reportTrustId = (report as HeraldReport & { trust_id?: string | null }).trust_id ?? null;
   return {
     id: report.id,
     timestamp: report.timestamp,
@@ -21,12 +23,12 @@ export async function toSyncPayload(report: HeraldReport, followUpOf?: string): 
     session_operator_id: report.session_operator_id ?? null,
     session_service: report.session_service ?? null,
     session_station: report.session_station ?? null,
-    shift_id: await getShiftId() ?? null,
+    shift_id: reportShiftId ?? await getShiftId() ?? null,
     incident_number: report.incident_number ?? null,
     follow_up_of: followUpOf ?? null,
     vehicle_type: session?.vehicle_type ?? null,
     can_transport: session?.can_transport ?? true,
     critical_care: session?.critical_care ?? false,
-    trust_id: await getTrustId() ?? null,
+    trust_id: reportTrustId ?? await getTrustId() ?? null,
   };
 }

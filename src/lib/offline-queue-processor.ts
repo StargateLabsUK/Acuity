@@ -3,7 +3,7 @@
  * network operation. Called by useHeraldSync on interval/reconnect.
  */
 
-import { getReady, remove, markFailed, purgeExpired, count, type QueueItem } from './offline-queue';
+import { getReady, remove, markFailed, count, type QueueItem } from './offline-queue';
 import { transcribeAudio, assessTranscript, syncReport, syncDisposition } from './herald-api';
 import { saveReport, markSynced } from './herald-storage';
 import { toSyncPayload } from './herald-sync';
@@ -17,9 +17,6 @@ export async function processQueue(): Promise<{ processed: number; failed: numbe
   if (!navigator.onLine) {
     return { processed: 0, failed: 0, remaining: await count() };
   }
-
-  // Clean up items that have exceeded max retries
-  await purgeExpired();
 
   const items = await getReady();
   let processed = 0;
@@ -65,7 +62,17 @@ async function processItem(item: QueueItem): Promise<void> {
  * This replays the full LiveTab recording pipeline.
  */
 async function processTranscribe(item: QueueItem): Promise<void> {
-  const { audio_base64, mime_type, report_id, session_data, vehicle_type, can_transport, existing_atmist, trust_id } = item.payload;
+  const {
+    audio_base64,
+    mime_type,
+    report_id,
+    session_data,
+    vehicle_type,
+    can_transport,
+    existing_atmist,
+    trust_id,
+    shift_id,
+  } = item.payload;
 
   // Step 1: Transcribe
   const transcript = await transcribeAudio(
@@ -101,6 +108,14 @@ async function processTranscribe(item: QueueItem): Promise<void> {
     session_operator_id: session?.operator_id ?? (session_data as any)?.operator_id ?? null,
     session_service: session?.service ?? (session_data as any)?.service ?? null,
     session_station: session?.station ?? (session_data as any)?.station ?? null,
+    shift_id:
+      (typeof shift_id === 'string' && shift_id) ||
+      session?.shift_id ||
+      undefined,
+    trust_id:
+      (typeof trust_id === 'string' && trust_id) ||
+      session?.trust_id ||
+      undefined,
   };
 
   await saveReport(report);

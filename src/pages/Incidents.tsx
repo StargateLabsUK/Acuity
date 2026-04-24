@@ -16,6 +16,7 @@ import { useCommandPull } from '@/lib/useCommandPull';
 import { getReports, getDispositionsForShift } from '@/lib/herald-storage';
 import { getSession } from '@/lib/herald-session';
 import { fetchIncidentsRemote } from '@/lib/herald-api';
+import { getDeadLetters, retryDeadLetter, countDeadLetters } from '@/lib/offline-queue';
 import type { HeraldReport, CasualtyDisposition } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 
@@ -56,6 +57,16 @@ const IncidentsPage = () => {
   const [incidentRefresh, setIncidentRefresh] = useState(0);
   const [closedCasualties, setClosedCasualties] = useState<CasualtyDisposition[]>([]);
   const [hospitalAlert, setHospitalAlert] = useState<HospitalAlert | null>(null);
+  const [deadLetterCount, setDeadLetterCount] = useState(0);
+  const [deadLetterOpen, setDeadLetterOpen] = useState(false);
+  const [deadLetters, setDeadLetters] = useState<Array<{
+    id?: number;
+    type: string;
+    attempts: number;
+    lastError: string | null;
+    createdAt: string;
+  }>>([]);
+  const [retryingDeadLetterId, setRetryingDeadLetterId] = useState<number | null>(null);
   const knownHospitalsRef = useRef<Map<string, string>>(new Map());
   const { syncStatus, queuedCount } = useHeraldSync();
   const { fieldOnline } = useShiftPresence(session?.shift_id ?? session?.callsign, 'crew');
@@ -133,11 +144,55 @@ const IncidentsPage = () => {
     }
   }, [session]);
 
+  const refreshDeadLetterSummary = useCallback(async () => {
+    const count = await countDeadLetters();
+    setDeadLetterCount(count);
+  }, []);
+
+  const openDeadLetterReview = useCallback(async () => {
+    const items = await getDeadLetters();
+    setDeadLetters(items.map((item) => ({
+      id: item.id,
+      type: item.type,
+      attempts: item.attempts,
+      lastError: item.lastError,
+      createdAt: item.createdAt,
+    })));
+    setDeadLetterOpen(true);
+  }, []);
+
+  const handleRetryDeadLetter = useCallback(async (id: number | undefined) => {
+    if (typeof id !== 'number') return;
+    setRetryingDeadLetterId(id);
+    try {
+      await retryDeadLetter(id);
+      const items = await getDeadLetters();
+      setDeadLetters(items.map((item) => ({
+        id: item.id,
+        type: item.type,
+        attempts: item.attempts,
+        lastError: item.lastError,
+        createdAt: item.createdAt,
+      })));
+      await refreshDeadLetterSummary();
+    } finally {
+      setRetryingDeadLetterId(null);
+    }
+  }, [refreshDeadLetterSummary]);
+
   useCommandPull(refreshReports);
 
   useEffect(() => {
     refreshReports();
   }, [activeTab, session, refreshReports]);
+
+  useEffect(() => {
+    refreshDeadLetterSummary();
+    const id = setInterval(() => {
+      void refreshDeadLetterSummary();
+    }, 5000);
+    return () => clearInterval(id);
+  }, [refreshDeadLetterSummary]);
 
   // Realtime subscription for disposition changes + hospital assignments
   useEffect(() => {
@@ -236,7 +291,17 @@ const IncidentsPage = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F5F5F0' }}>
-      <TopBar syncStatus={!fetchOk ? 'offline' : !fieldOnline ? 'offline' : syncStatus} queuedCount={queuedCount} onEndShift={handleEndShift} onRefresh={() => { void refreshReports(); }} />
+      <TopBar
+        syncStatus={!fetchOk ? 'offline' : !fieldOnline ? 'offline' : syncStatus}
+        queuedCount={queuedCount}
+        deadLetterCount={deadLetterCount}
+        onDeadLetterReview={openDeadLetterReview}
+        onEndShift={handleEndShift}
+        onRefresh={() => {
+          void refreshReports();
+          void refreshDeadLetterSummary();
+        }}
+      />
       {endShiftError && (
         <div
           className="px-4 py-2"
@@ -299,6 +364,58 @@ const IncidentsPage = () => {
               }}>
               ACKNOWLEDGED
             </button>
+          </div>
+        </div>
+      )}
+
+      {deadLetterOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="mx-4 w-full max-w-2xl rounded-xl p-6 max-h-[80vh] overflow-auto" style={{ background: '#F5F5F0', border: '2px solid #FF9500' }}>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-lg font-bold tracking-[0.15em]" style={{ color: '#FF9500' }}>
+                DEAD LETTER REVIEW ({deadLetters.length})
+              </p>
+              <button
+                onClick={() => setDeadLetterOpen(false)}
+                className="px-3 py-1 rounded border"
+                style={{ borderColor: 'rgba(0,0,0,0.2)', color: '#333333' }}
+              >
+                Close
+              </button>
+            </div>
+
+            {deadLetters.length === 0 ? (
+              <p style={{ color: '#666666' }}>No dead-lettered queue items.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {deadLetters.map((item) => (
+                  <div key={item.id ?? `${item.type}-${item.createdAt}`} className="rounded-lg border p-3" style={{ borderColor: 'rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.07)' }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-bold" style={{ color: '#FF9500' }}>{item.type.toUpperCase()}</p>
+                        <p style={{ color: '#333333', fontSize: 13 }}>Attempts: {item.attempts}</p>
+                        <p style={{ color: '#333333', fontSize: 13 }}>Created: {new Date(item.createdAt).toLocaleString()}</p>
+                        {item.lastError && (
+                          <p style={{ color: '#FF3B30', fontSize: 13, marginTop: 4 }}>{item.lastError}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => void handleRetryDeadLetter(item.id)}
+                        disabled={retryingDeadLetterId === item.id}
+                        className="px-3 py-2 rounded border"
+                        style={{
+                          borderColor: '#FF9500',
+                          color: '#FF9500',
+                          opacity: retryingDeadLetterId === item.id ? 0.6 : 1,
+                        }}
+                      >
+                        {retryingDeadLetterId === item.id ? 'Retrying...' : 'Retry'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -3,7 +3,7 @@ import { getUnsyncedReports, markSynced } from '@/lib/herald-storage';
 import { syncReport } from '@/lib/herald-api';
 import { toSyncPayload } from '@/lib/herald-sync';
 import { processQueue } from '@/lib/offline-queue-processor';
-import { count as offlineQueueCount } from '@/lib/offline-queue';
+import { count as offlineQueueCount, countDeadLetters as offlineDeadLetterCount } from '@/lib/offline-queue';
 
 const SYNC_INTERVAL_MS = 5000;
 const RECONNECT_DELAY_MS = 1500; // wait for network to stabilise after online event
@@ -11,6 +11,7 @@ const RECONNECT_DELAY_MS = 1500; // wait for network to stabilise after online e
 export function useHeraldSync() {
   const [syncStatus, setSyncStatus] = useState<'ok' | 'error' | 'offline'>('ok');
   const [queuedCount, setQueuedCount] = useState(0);
+  const [deadLetterCount, setDeadLetterCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const syncingRef = useRef(false);
 
@@ -22,6 +23,7 @@ export function useHeraldSync() {
       if (!navigator.onLine) {
         setSyncStatus('offline');
         setQueuedCount(await offlineQueueCount());
+        setDeadLetterCount(await offlineDeadLetterCount());
         return;
       }
 
@@ -49,8 +51,10 @@ export function useHeraldSync() {
       }
 
       const remaining = await offlineQueueCount();
+      const deadLetters = await offlineDeadLetterCount();
       setQueuedCount(remaining);
-      setSyncStatus(!allOk || remaining > 0 ? 'error' : 'ok');
+      setDeadLetterCount(deadLetters);
+      setSyncStatus(!allOk || deadLetters > 0 ? 'error' : 'ok');
     } finally {
       syncingRef.current = false;
     }
@@ -82,5 +86,5 @@ export function useHeraldSync() {
     };
   }, [doSync]);
 
-  return { syncStatus, queuedCount, triggerSync: doSync };
+  return { syncStatus, queuedCount, deadLetterCount, triggerSync: doSync };
 }
