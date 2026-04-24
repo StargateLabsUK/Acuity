@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { generateLinkCode } from '@/lib/herald-session';
+import { Loader2 } from 'lucide-react';
+import { ensureSessionShiftId, generateLinkCode } from '@/lib/herald-session';
 import { supabase } from '@/integrations/supabase/client';
 import type { HeraldSession } from '@/lib/herald-session';
 
@@ -16,56 +17,71 @@ interface LinkedCrew {
 export function ShiftLinkCode({ session }: Props) {
   const [code, setCode] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [activeSession, setActiveSession] = useState<HeraldSession>(session);
+  const [generating, setGenerating] = useState(false);
+  const [refreshingCrew, setRefreshingCrew] = useState(false);
   const [error, setError] = useState('');
   const [linkedCrew, setLinkedCrew] = useState<LinkedCrew[]>([]);
 
   const generate = async () => {
-    if (!session.shift_id) return;
-    setLoading(true);
+    setGenerating(true);
     setError('');
-    const result = await generateLinkCode(session);
+    const ensured = await ensureSessionShiftId(activeSession);
+    if (ensured.error) {
+      setError(ensured.error);
+      setGenerating(false);
+      return;
+    }
+    setActiveSession(ensured.session);
+    const result = await generateLinkCode(ensured.session);
     if (result?.code) {
       setCode(result.code);
       setExpiresAt(result.expires_at);
     } else {
-      setError('Failed to generate code');
+      setError(result.error ?? 'Failed to generate code — make sure your shift is active and try again');
     }
-    setLoading(false);
+    setGenerating(false);
   };
 
   useEffect(() => {
-    if (session.shift_id && !code) generate();
-  }, [session.shift_id]);
+    setActiveSession(session);
+  }, [session]);
+
+  useEffect(() => {
+    if (!code) generate();
+  }, [activeSession.shift_id]);
 
   // Fetch linked crew members
   useEffect(() => {
-    if (!session.shift_id) return;
-    const fetchCrew = async () => {
+    if (!activeSession.shift_id) return;
+    const fetchCrew = async (showSpinner = false) => {
+      if (showSpinner) setRefreshingCrew(true);
       try {
         const { data } = await supabase
           .from('shift_link_codes')
           .select('operator_id, used_at, left_at')
-          .eq('shift_id', session.shift_id!)
+          .eq('shift_id', activeSession.shift_id!)
           .not('used_at', 'is', null)
           .not('operator_id', 'is', null);
         setLinkedCrew((data as LinkedCrew[]) ?? []);
       } catch {
         // silent
+      } finally {
+        if (showSpinner) setRefreshingCrew(false);
       }
     };
     fetchCrew();
 
     // Realtime subscription for instant updates
     const channel = supabase
-      .channel(`crew-${session.shift_id}`)
+      .channel(`crew-${activeSession.shift_id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'shift_link_codes',
-          filter: `shift_id=eq.${session.shift_id}`,
+          filter: `shift_id=eq.${activeSession.shift_id}`,
         },
         () => { fetchCrew(); }
       )
@@ -78,7 +94,7 @@ export function ShiftLinkCode({ session }: Props) {
       window.removeEventListener('focus', fetchCrew);
       supabase.removeChannel(channel);
     };
-  }, [session.shift_id]);
+  }, [activeSession.shift_id]);
 
   // Countdown
   const [timeLeft, setTimeLeft] = useState('');
@@ -144,13 +160,13 @@ export function ShiftLinkCode({ session }: Props) {
               {timeLeft}
             </span>
           </>
-        ) : loading ? (
+        ) : generating ? (
           <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Generating…</span>
         ) : null}
 
         <button
           onClick={generate}
-          disabled={loading}
+          disabled={generating}
           style={{
             marginLeft: 'auto',
             fontSize: 12,
@@ -162,9 +178,56 @@ export function ShiftLinkCode({ session }: Props) {
             padding: '4px 10px',
             borderRadius: 3,
             cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
           }}
         >
-          {code ? 'REFRESH' : 'GENERATE'}
+          {generating ? (
+            <>
+              <Loader2 size={12} style={{ animation: 'spin 0.9s linear infinite' }} />
+              {code ? 'REFRESHING' : 'GENERATING'}
+            </>
+          ) : (
+            code ? 'REFRESH' : 'GENERATE'
+          )}
+        </button>
+
+        <button
+          onClick={() => {
+            if (activeSession.shift_id) {
+              setRefreshingCrew(true);
+              supabase
+                .from('shift_link_codes')
+                .select('operator_id, used_at, left_at')
+                .eq('shift_id', activeSession.shift_id!)
+                .not('used_at', 'is', null)
+                .not('operator_id', 'is', null)
+                .then(({ data }) => setLinkedCrew((data as LinkedCrew[]) ?? []))
+                .finally(() => setRefreshingCrew(false));
+            }
+          }}
+          disabled={refreshingCrew}
+          title="Refresh linked crew"
+          style={{
+            fontSize: 12,
+            fontFamily: "'IBM Plex Mono', monospace",
+            letterSpacing: '0.1em',
+            color: 'hsl(var(--muted-foreground))',
+            background: 'transparent',
+            border: '1px solid rgba(0,0,0,0.12)',
+            padding: '4px 8px',
+            borderRadius: 3,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Loader2
+            size={12}
+            style={{ animation: refreshingCrew ? 'spin 0.9s linear infinite' : 'none' }}
+          />
         </button>
 
         {error && (

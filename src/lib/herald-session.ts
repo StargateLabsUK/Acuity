@@ -15,6 +15,24 @@ export interface HeraldSession {
   trust_id?: string;
 }
 
+export interface StartShiftResult {
+  ok: boolean;
+  shift_id?: string;
+  error?: string;
+}
+
+export interface EndShiftResult {
+  ok: boolean;
+  error?: string;
+  open_incident_ids?: string[];
+  outstanding_accepted_transfer_count?: number;
+  shift_id?: string;
+}
+
+interface ShiftLookupRow {
+  id: string;
+}
+
 const SESSION_KEY = 'herald_session';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -57,8 +75,8 @@ export async function getTrustId(): Promise<string | undefined> {
   return (await getSession())?.trust_id;
 }
 
-/** Start a shift in Supabase, returns the shift_id */
-export async function startShiftRemote(session: HeraldSession): Promise<string | null> {
+/** Start a shift in Supabase */
+export async function startShiftRemote(session: HeraldSession): Promise<StartShiftResult> {
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-shift`, {
       method: 'POST',
@@ -75,46 +93,195 @@ export async function startShiftRemote(session: HeraldSession): Promise<string |
         trust_id: session.trust_id ?? null,
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      let errMsg = `Server error (${res.status})`;
+      try {
+        const data = await res.json();
+        errMsg = data.error ?? errMsg;
+      } catch {
+        // non-JSON response
+      }
+      return { ok: false, error: errMsg };
+    }
     const data = await res.json();
-    return data.shift_id ?? null;
+    if (!data?.shift_id) {
+      return { ok: false, error: 'Shift started but no shift ID was returned' };
+    }
+    return { ok: true, shift_id: data.shift_id };
+  } catch (e: any) {
+    return { ok: false, error: e?.message ?? 'Network error — check your connection' };
+  }
+}
+
+/** End a shift in Supabase */
+export async function endShiftRemote(shiftId: string): Promise<EndShiftResult> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-shift`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ action: 'end', shift_id: shiftId }),
+    });
+
+    if (!res.ok) {
+      let errMsg = `Server error (${res.status})`;
+      let payload: any = null;
+      try {
+        payload = await res.json();
+        errMsg = payload?.error ?? errMsg;
+      } catch {
+        // non-JSON response
+      }
+      return {
+        ok: false,
+        error: errMsg,
+        open_incident_ids: payload?.open_incident_ids ?? [],
+        outstanding_accepted_transfer_count: payload?.outstanding_accepted_transfer_count ?? 0,
+      };
+    }
+
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e?.message ?? 'Network error — check your connection' };
+  }
+}
+
+async function findActiveShiftById(shiftId: string): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({
+      select: 'id',
+      id: `eq.${shiftId}`,
+      ended_at: 'is.null',
+      limit: '1',
+    });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/shifts?${params.toString()}`, {
+      headers,
+      method: 'GET',
+    });
+    if (!res.ok) return null;
+    const rows = (await res.json()) as ShiftLookupRow[];
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    return rows[0]?.id ?? null;
   } catch {
     return null;
   }
 }
 
-/** End a shift in Supabase */
-export async function endShiftRemote(shiftId: string): Promise<void> {
+async function findLatestActiveShiftId(session: HeraldSession): Promise<string | null> {
   try {
-    await fetch(`${SUPABASE_URL}/functions/v1/sync-shift`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ action: 'end', shift_id: shiftId }),
+    const params = new URLSearchParams({
+      select: 'id',
+      callsign: `eq.${session.callsign}`,
+      service: `eq.${session.service}`,
+      ended_at: 'is.null',
+      order: 'started_at.desc',
+      limit: '1',
     });
+
+    if (session.trust_id) {
+      params.set('trust_id', `eq.${session.trust_id}`);
+    }
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/shifts?${params.toString()}`, {
+      headers,
+      method: 'GET',
+    });
+
+    if (!res.ok) return null;
+    const rows = (await res.json()) as ShiftLookupRow[];
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    return rows[0]?.id ?? null;
   } catch {
-    // silent
+    return null;
   }
+}
+
+export async function ensureSessionShiftId(
+  session: HeraldSession,
+): Promise<{ session: HeraldSession; error?: string }> {
+  if (session.shift_id) {
+    const activeSameId = await findActiveShiftById(session.shift_id);
+    if (activeSameId) {
+      return { session };
+    }
+  }
+
+  const recoveredShiftId = await findLatestActiveShiftId(session);
+  if (recoveredShiftId) {
+    const updatedSession = { ...session, shift_id: recoveredShiftId };
+    await saveSession(updatedSession);
+    return { session: updatedSession };
+  }
+
+  const startResult = await startShiftRemote(session);
+  if (!startResult.ok || !startResult.shift_id) {
+    return {
+      session,
+      error: startResult.error ?? 'No active shift found, start your shift first.',
+    };
+  }
+
+  const updatedSession = { ...session, shift_id: startResult.shift_id };
+  await saveSession(updatedSession);
+  return { session: updatedSession };
+}
+
+export async function endShiftWithRecovery(
+  session: HeraldSession,
+): Promise<{ result: EndShiftResult; session: HeraldSession }> {
+  const ensured = await ensureSessionShiftId(session);
+  if (ensured.error || !ensured.session.shift_id) {
+    return {
+      session: ensured.session,
+      result: {
+        ok: false,
+        error: ensured.error ?? 'No active shift found, start your shift first.',
+      },
+    };
+  }
+
+  const result = await endShiftRemote(ensured.session.shift_id);
+  return {
+    session: ensured.session,
+    result: {
+      ...result,
+      shift_id: ensured.session.shift_id,
+    },
+  };
 }
 
 /** Generate a 6-digit link code for a shift */
 export async function generateLinkCode(
   session: HeraldSession,
-): Promise<{ code: string; expires_at: string } | null> {
+): Promise<{ code: string; expires_at: string } | { error: string }> {
   try {
+    const ensured = await ensureSessionShiftId(session);
+    if (ensured.error) {
+      return { error: ensured.error };
+    }
+
     const res = await fetch(`${SUPABASE_URL}/functions/v1/link-shift`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
         action: 'generate',
-        shift_id: session.shift_id,
-        trust_id: session.trust_id ?? null,
-        session_data: session,
+        shift_id: ensured.session.shift_id,
+        trust_id: ensured.session.trust_id ?? null,
+        session_data: ensured.session,
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      let errMsg = `Server error (${res.status})`;
+      try {
+        const data = await res.json();
+        errMsg = data.error ?? errMsg;
+      } catch {
+        // non-JSON response
+      }
+      return { error: errMsg };
+    }
     return await res.json();
-  } catch {
-    return null;
+  } catch (e: any) {
+    return { error: e?.message ?? 'Network error — check your connection' };
   }
 }
 

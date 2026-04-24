@@ -146,12 +146,6 @@ Deno.serve(async (req) => {
 
     const { data: dispositions } = await dispQuery;
 
-    await supabase.from("audit_log").insert({
-      action: "incidents_fetched",
-      trust_id: trust_id || null,
-      details: { shift_id: shift_id || null, callsign: callsign || null, report_count: (reports ?? []).length },
-    });
-
     return new Response(
       JSON.stringify({ reports: reports ?? [], dispositions: dispositions ?? [], accepted_transfers: acceptedTransfersForCrew }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

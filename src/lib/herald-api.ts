@@ -1,4 +1,4 @@
-import { getSession } from './herald-session';
+import { getSession, ensureSessionShiftId } from './herald-session';
 import { enqueue } from './offline-queue';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -84,10 +84,24 @@ export async function fetchIncidentsRemote(params: {
   callsign: string;
   session_date: string;
 }): Promise<{ reports: Record<string, unknown>[]; dispositions: Record<string, unknown>[]; accepted_transfers?: Record<string, unknown>[] }> {
+  let effectiveShiftId = params.shift_id;
+  if (!effectiveShiftId) {
+    const session = await getSession();
+    if (session) {
+      const ensured = await ensureSessionShiftId(session);
+      if (ensured.session.shift_id) {
+        effectiveShiftId = ensured.session.shift_id;
+      }
+    }
+  }
+
   const res = await fetch(`${SUPABASE_URL}/functions/v1/fetch-incidents`, {
     method: 'POST',
     headers,
-    body: JSON.stringify(params),
+    body: JSON.stringify({
+      ...params,
+      shift_id: effectiveShiftId,
+    }),
   });
   if (!res.ok) throw new Error(`fetch-incidents failed (${res.status})`);
   return res.json();

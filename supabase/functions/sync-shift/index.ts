@@ -2,12 +2,21 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { isRateLimited } from "../_shared/rate-limit.ts";
-import { recomputeCrewStatus } from "../_shared/lifecycle.ts";
+import {
+  getShiftEndBlockingState,
+  recomputeCrewStatus,
+} from "../_shared/lifecycle.ts";
 
 const MAX_STRING_LENGTH = 200;
 
 function validateString(val: unknown, maxLen = MAX_STRING_LENGTH): boolean {
   return !val || (typeof val === 'string' && val.length <= maxLen);
+}
+
+function isMissingShiftLifecycleColumnError(error: { message?: string | null; details?: string | null; code?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  const text = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+  return text.includes("active_report_id") || text.includes("crew_status");
 }
 
 serve(async (req) => {
@@ -65,24 +74,50 @@ serve(async (req) => {
         }
       }
 
-      const { data, error } = await supabase.from("shifts").insert({
+      const startedAt = new Date().toISOString();
+      const baseInsert = {
         callsign,
         service,
         station: station || null,
         operator_id: operator_id || null,
         device_id: device_id || null,
+        started_at: startedAt,
         vehicle_type: vehicle_type || null,
         can_transport: can_transport ?? true,
         critical_care: critical_care ?? false,
+        trust_id: trust_id || null,
+      };
+      const lifecycleInsert = {
+        ...baseInsert,
         crew_status: "available",
         active_report_id: null,
-        trust_id: trust_id || null,
-      }).select("id").single();
+      };
+
+      let { data, error } = await supabase
+        .from("shifts")
+        .insert(lifecycleInsert)
+        .select("id")
+        .single();
+
+      // Backward compatibility for environments where lifecycle migration hasn't been applied yet.
+      if (error && isMissingShiftLifecycleColumnError(error as { message?: string | null; details?: string | null; code?: string | null })) {
+        const retry = await supabase
+          .from("shifts")
+          .insert(baseInsert)
+          .select("id")
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         console.error("Insert shift error:", error);
         return new Response(
-          JSON.stringify({ error: "Failed to create shift" }),
+          JSON.stringify({
+            error: "Failed to create shift",
+            details: error.message ?? null,
+            code: error.code ?? null,
+          }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -90,7 +125,13 @@ serve(async (req) => {
       await supabase.from("audit_log").insert({
         action: "shift_started",
         trust_id: trust_id || null,
-        details: { shift_id: data.id, callsign },
+        details: {
+          shift_id: data.id,
+          callsign,
+          station: station || null,
+          operator_id: operator_id || null,
+          started_at: startedAt,
+        },
       });
 
       return new Response(
@@ -122,11 +163,40 @@ serve(async (req) => {
         );
       }
 
-      const { error } = await supabase.from("shifts").update({
+      const blocking = await getShiftEndBlockingState(supabase, shift_id);
+      if (blocking.openIncidentIds.length > 0 || blocking.outstandingAcceptedTransferCount > 0) {
+        await supabase.from("audit_log").insert({
+          action: "shift_end_blocked_open_patients",
+          trust_id: shift.trust_id ?? null,
+          details: {
+            shift_id,
+            open_incident_ids: blocking.openIncidentIds,
+            outstanding_accepted_transfer_count: blocking.outstandingAcceptedTransferCount,
+          },
+        });
+        return new Response(
+          JSON.stringify({
+            error: "Cannot end shift while patients are still awaiting final disposition",
+            open_incident_ids: blocking.openIncidentIds,
+            outstanding_accepted_transfer_count: blocking.outstandingAcceptedTransferCount,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      let { error } = await supabase.from("shifts").update({
         ended_at: new Date().toISOString(),
         active_report_id: null,
         crew_status: "available",
       }).eq("id", shift_id);
+
+      if (error && isMissingShiftLifecycleColumnError(error as { message?: string | null; details?: string | null; code?: string | null })) {
+        const retry = await supabase
+          .from("shifts")
+          .update({ ended_at: new Date().toISOString() })
+          .eq("id", shift_id);
+        error = retry.error;
+      }
 
       if (error) {
         console.error("End shift error:", error);
@@ -139,7 +209,10 @@ serve(async (req) => {
       await supabase.from("audit_log").insert({
         action: "shift_ended",
         trust_id: shift.trust_id ?? null,
-        details: { shift_id },
+        details: {
+          shift_id,
+          ended_at: new Date().toISOString(),
+        },
       });
 
       return new Response(
@@ -157,12 +230,25 @@ serve(async (req) => {
         );
       }
 
-      const status = await recomputeCrewStatus(supabase, shift_id);
+      let status: string | null = null;
+      try {
+        status = await recomputeCrewStatus(supabase, shift_id);
+      } catch (err) {
+        console.warn("Status recompute failed, falling back to available:", err);
+      }
       if (!status) {
-        return new Response(
-          JSON.stringify({ error: "Shift not found" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        const { data: shiftExists } = await supabase
+          .from("shifts")
+          .select("id")
+          .eq("id", shift_id)
+          .maybeSingle();
+        if (!shiftExists) {
+          return new Response(
+            JSON.stringify({ error: "Shift not found" }),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        status = "available";
       }
 
       return new Response(

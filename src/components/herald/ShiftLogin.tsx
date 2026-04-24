@@ -33,10 +33,13 @@ const labelStyle: React.CSSProperties = {
 export function ShiftLogin({ onShiftStarted }: Props) {
   const service = 'ambulance';
   const [callsign, setCallsign] = useState('');
+  const [station, setStation] = useState('');
+  const [operatorId, setOperatorId] = useState('');
   const [vehicleType, setVehicleType] = useState('');
-  
+
   const [trust, setTrust] = useState<CachedTrust | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [startError, setStartError] = useState('');
 
   useEffect(() => {
     getCachedTrust().then(setTrust);
@@ -49,8 +52,13 @@ export function ShiftLogin({ onShiftStarted }: Props) {
 
   // Input validation: alphanumeric, hyphens, spaces, max 30 chars
   const CALLSIGN_PATTERN = /^[a-zA-Z0-9\-_ ]{1,30}$/;
+  const OPERATOR_PATTERN = /^[a-zA-Z0-9\-_ ]{1,30}$/;
   const isCallsignValid = callsign.trim() !== '' && CALLSIGN_PATTERN.test(callsign.trim());
-  const canSubmit = isCallsignValid && vehicleType !== '';
+  const stationTrimmed = station.trim();
+  const isStationValid = stationTrimmed.length >= 2 && stationTrimmed.length <= 60;
+  const operatorTrimmed = operatorId.trim();
+  const isOperatorValid = !operatorTrimmed || OPERATOR_PATTERN.test(operatorTrimmed);
+  const canSubmit = isCallsignValid && isStationValid && isOperatorValid && vehicleType !== '';
 
   if (!trust) {
     return <TrustPinEntry onValidated={(t) => setTrust(t)} />;
@@ -59,13 +67,14 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const handleBeginShift = async () => {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
+    setStartError('');
     const vt = VEHICLE_TYPES.find((v) => v.code === vehicleType);
     const session: HeraldSession = {
       service,
       service_emoji: '',
       callsign: callsign.trim(),
-      operator_id: null,
-      station: null,
+      operator_id: operatorTrimmed || null,
+      station: stationTrimmed,
       session_date: new Date().toISOString().slice(0, 10),
       shift_started: new Date().toISOString(),
       vehicle_type: vehicleType,
@@ -73,8 +82,13 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       critical_care: vt?.critical_care ?? false,
       trust_id: trust.trust_id,
     };
-    const shiftId = await startShiftRemote(session);
-    if (shiftId) session.shift_id = shiftId;
+    const startResult = await startShiftRemote(session);
+    if (!startResult.ok || !startResult.shift_id) {
+      setStartError(startResult.error ?? 'Failed to start shift. Please try again.');
+      setSubmitting(false);
+      return;
+    }
+    session.shift_id = startResult.shift_id;
     await saveSession(session);
     onShiftStarted(session);
     setSubmitting(false);
@@ -126,12 +140,12 @@ export function ShiftLogin({ onShiftStarted }: Props) {
         style={{ background: '#F5F5F0' }}
       >
         <div className="w-full" style={{ maxWidth: 400 }}>
-          <h1
-            className="font-logo text-2xl text-center mb-1"
-            style={{ color: '#1A1A1A' }}
-          >
-            ACUITY
-          </h1>
+          <img
+            src="/Acuity.png"
+            alt="Acuity"
+            className="mx-auto mb-6"
+            style={{ width: 220, maxWidth: '100%', height: 'auto' }}
+          />
           <p
             style={{
               color: '#666666',
@@ -213,12 +227,12 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       style={{ background: '#F5F5F0' }}
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
-        <h1 className="font-logo text-4xl text-foreground text-center mb-1">
-          ACUITY
-        </h1>
-        <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
-          Real-time Field Intelligence
-        </p>
+        <img
+          src="/Acuity.png"
+          alt="Acuity"
+          className="mx-auto mb-6"
+          style={{ width: 220, maxWidth: '100%', height: 'auto' }}
+        />
         <p
           style={{
             color: '#8A9B94',
@@ -255,6 +269,29 @@ export function ShiftLogin({ onShiftStarted }: Props) {
             value={callsign}
             onChange={(e) => setCallsign(e.target.value)}
             placeholder="e.g. Alpha Two, Bravo Three"
+            style={inputStyle}
+          />
+        </div>
+
+        {/* VEHICLE TYPE */}
+        <div className="mb-5">
+          <label style={labelStyle}>STATION / BASE</label>
+          <input
+            type="text"
+            value={station}
+            onChange={(e) => setStation(e.target.value)}
+            placeholder="e.g. South Central, Station 12"
+            style={inputStyle}
+          />
+        </div>
+
+        <div className="mb-5">
+          <label style={labelStyle}>PRIMARY OPERATOR ID (OPTIONAL)</label>
+          <input
+            type="text"
+            value={operatorId}
+            onChange={(e) => setOperatorId(e.target.value)}
+            placeholder="e.g. 12345A"
             style={inputStyle}
           />
         </div>
@@ -301,6 +338,11 @@ export function ShiftLogin({ onShiftStarted }: Props) {
         >
           BEGIN SHIFT
         </button>
+        {startError && (
+          <p style={{ color: '#FF3B30', fontSize: 14, textAlign: 'center', marginTop: 12 }}>
+            {startError}
+          </p>
+        )}
       </div>
     </div>
   );

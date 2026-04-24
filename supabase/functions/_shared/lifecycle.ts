@@ -44,7 +44,7 @@ export function isFinalDisposition(disposition: string | null | undefined): bool
   return !!disposition && FINAL_DISPOSITIONS.has(disposition);
 }
 
-async function hasOpenOwnedCasualtiesForShiftOnReport(
+export async function hasOpenOwnedCasualtiesForShiftOnReport(
   supabase: SupabaseClient,
   shiftId: string,
   reportId: string,
@@ -97,17 +97,19 @@ async function hasOpenOwnedCasualtiesForShiftOnReport(
   return false;
 }
 
-async function hasOutstandingAcceptedTransfersForShift(
+export async function getOutstandingAcceptedTransferCountForShift(
   supabase: SupabaseClient,
   shiftId: string,
-): Promise<boolean> {
+): Promise<number> {
   const { data: accepted } = await supabase
     .from("patient_transfers")
     .select("report_id, casualty_key")
     .eq("to_shift_id", shiftId)
     .eq("status", "accepted");
 
-  if (!accepted || accepted.length === 0) return false;
+  if (!accepted || accepted.length === 0) return 0;
+
+  let outstandingCount = 0;
 
   for (const transfer of accepted) {
     const { data: disposition } = await supabase
@@ -118,11 +120,47 @@ async function hasOutstandingAcceptedTransfersForShift(
       .maybeSingle();
 
     if (!disposition || disposition.disposition === "transferred") {
-      return true;
+      outstandingCount += 1;
     }
   }
 
-  return false;
+  return outstandingCount;
+}
+
+export async function hasOutstandingAcceptedTransfersForShift(
+  supabase: SupabaseClient,
+  shiftId: string,
+): Promise<boolean> {
+  return (await getOutstandingAcceptedTransferCountForShift(supabase, shiftId)) > 0;
+}
+
+export async function getShiftEndBlockingState(
+  supabase: SupabaseClient,
+  shiftId: string,
+): Promise<{ openIncidentIds: string[]; outstandingAcceptedTransferCount: number }> {
+  const { data: activeReports } = await supabase
+    .from("herald_reports")
+    .select("id")
+    .eq("shift_id", shiftId)
+    .eq("status", "active");
+
+  const openIncidentIds: string[] = [];
+  for (const report of activeReports ?? []) {
+    const hasOpenPatients = await hasOpenOwnedCasualtiesForShiftOnReport(supabase, shiftId, report.id);
+    if (hasOpenPatients) {
+      openIncidentIds.push(report.id);
+    }
+  }
+
+  const outstandingAcceptedTransferCount = await getOutstandingAcceptedTransferCountForShift(
+    supabase,
+    shiftId,
+  );
+
+  return {
+    openIncidentIds,
+    outstandingAcceptedTransferCount,
+  };
 }
 
 export async function setShiftOnIncident(

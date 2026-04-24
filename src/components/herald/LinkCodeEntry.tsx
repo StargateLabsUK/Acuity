@@ -82,15 +82,13 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
         style={{ background: '#F5F5F0' }}
       >
         <div className="w-full" style={{ maxWidth: 400 }}>
-          <h1
-            className="font-logo text-4xl text-center mb-1"
-            style={{ color: '#1A1A1A' }}
-          >
-            ACUITY
-          </h1>
-          <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
-            Real-time Field Intelligence
-          </p>
+          <div className="flex justify-center mb-6">
+            <img
+              src="/Acuity.png"
+              alt="Acuity"
+              style={{ width: 220, maxWidth: '100%', height: 'auto', objectFit: 'contain' }}
+            />
+          </div>
           <p
             style={{
               color: '#8A9B94',
@@ -162,15 +160,13 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
       style={{ background: '#F5F5F0' }}
     >
       <div className="w-full" style={{ maxWidth: 400 }}>
-        <h1
-          className="text-4xl font-bold tracking-[0.08em] text-center mb-1"
-          style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: '0.25em', textTransform: 'uppercase' as const, color: '#1A1A1A' }}
-        >
-          ACUITY
-        </h1>
-        <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>
-          Real-time Field Intelligence
-        </p>
+        <div className="flex justify-center mb-6">
+          <img
+            src="/Acuity.png"
+            alt="Acuity"
+            style={{ width: 220, maxWidth: '100%', height: 'auto', objectFit: 'contain' }}
+          />
+        </div>
         <p
           style={{
             color: '#8A9B94',

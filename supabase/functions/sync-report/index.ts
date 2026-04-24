@@ -381,10 +381,23 @@ serve(async (req) => {
           .eq("id", parentId);
       }
 
+      const { data: parentMeta } = await supabase
+        .from("herald_reports")
+        .select("incident_number")
+        .eq("id", parentId)
+        .maybeSingle();
+
       await supabase.from("audit_log").insert({
-        action: "report_synced",
+        action: "incident_updated",
         trust_id: report.trust_id || null,
-        details: { report_id: parentId, callsign: report.session_callsign },
+        details: {
+          report_id: parentId,
+          incident_number: parentMeta?.incident_number ?? null,
+          callsign: report.session_callsign ?? null,
+          shift_id: report.shift_id ?? null,
+          headline: report.headline ?? null,
+          updated_at: report.timestamp ?? new Date().toISOString(),
+        },
       });
 
       if (report.shift_id && typeof report.shift_id === "string") {
@@ -434,9 +447,16 @@ serve(async (req) => {
     });
 
     await supabase.from("audit_log").insert({
-      action: "report_synced",
+      action: "incident_created",
       trust_id: report.trust_id || null,
-      details: { report_id: report.id, callsign: report.session_callsign },
+      details: {
+        report_id: report.id,
+        incident_number: reportData.incident_number ?? null,
+        callsign: report.session_callsign ?? null,
+        shift_id: report.shift_id ?? null,
+        headline: report.headline ?? null,
+        created_at: report.timestamp ?? new Date().toISOString(),
+      },
     });
 
     if (reportData.shift_id && typeof reportData.shift_id === "string" && typeof reportData.id === "string") {

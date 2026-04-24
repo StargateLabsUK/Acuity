@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 
@@ -25,9 +25,31 @@ interface UserRow {
 interface AuditEntry {
   id: string;
   user_email: string | null;
+  trust_id: string | null;
   action: string;
   details: Record<string, unknown> | null;
   created_at: string;
+}
+
+interface AuditShiftMeta {
+  callsign: string | null;
+  operator_id: string | null;
+  started_at: string | null;
+}
+
+interface AuditReportMeta {
+  incident_number: string | null;
+  headline: string | null;
+}
+
+interface AuditViewModel {
+  entry: AuditEntry;
+  actor: string;
+  actionSummary: string;
+  incidentRef: string;
+  shiftRef: string;
+  timeRef: string;
+  detailsSummary: string;
 }
 
 interface ShiftRow {
@@ -43,10 +65,10 @@ interface ShiftRow {
 
 const tabStyle = (active: boolean): React.CSSProperties => ({
   padding: '10px 20px',
-  background: 'transparent',
+  background: active ? 'rgba(61, 255, 140, 0.08)' : 'transparent',
   border: 'none',
   borderBottom: active ? '2px solid hsl(147, 100%, 62%)' : '2px solid transparent',
-  color: active ? '#FFFFFF' : '#4A6058',
+  color: active ? '#1A1A1A' : '#4A6058',
   fontFamily: "'IBM Plex Mono', monospace",
   fontSize: 14,
   fontWeight: 600,
@@ -91,10 +113,195 @@ const inputSmall: React.CSSProperties = {
   outline: 'none',
 };
 
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  trust_created: 'Trust Created',
+  trust_pin_reset: 'Trust PIN Reset',
+  user_invited: 'User Invited',
+  shift_started: 'Logged In (Shift Started)',
+  shift_ended: 'Logged Out (Shift Ended)',
+  shift_end_blocked_open_patients: 'Logout Blocked (Open Patients)',
+  shift_link_redeemed: 'Logged In (Field App)',
+  shift_link_left: 'Logged Out (Field App)',
+  incident_created: 'Incident Created',
+  incident_updated: 'Incident Updated',
+  disposition_recorded: 'Disposition Recorded',
+  transfer_initiated: 'Transfer Initiated',
+  transfer_accepted: 'Transfer Accepted',
+  transfer_declined: 'Transfer Declined',
+  data_exported: 'Data Exported',
+  data_deleted: 'Data Deleted',
+};
+
+const OPERATIONAL_ACTIONS = new Set([
+  'shift_started',
+  'shift_ended',
+  'shift_end_blocked_open_patients',
+  'shift_link_redeemed',
+  'shift_link_left',
+  'incident_created',
+  'incident_updated',
+  'disposition_recorded',
+  'transfer_initiated',
+  'transfer_accepted',
+  'transfer_declined',
+]);
+
+function detailString(details: Record<string, unknown> | null, key: string): string {
+  if (!details) return '';
+  const value = details[key];
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return '';
+}
+
+function detailArray(details: Record<string, unknown> | null, key: string): string[] {
+  if (!details) return [];
+  const value = details[key];
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item));
+}
+
+function extractReportId(details: Record<string, unknown> | null): string {
+  return detailString(details, 'report_id') || detailString(details, 'incident_id');
+}
+
+function extractShiftIds(details: Record<string, unknown> | null): string[] {
+  const ids = [
+    detailString(details, 'shift_id'),
+    detailString(details, 'from_shift_id'),
+    detailString(details, 'to_shift_id'),
+  ].filter(Boolean);
+  return [...new Set(ids)];
+}
+
+function extractPrimaryShiftId(details: Record<string, unknown> | null): string {
+  return (
+    detailString(details, 'shift_id') ||
+    detailString(details, 'from_shift_id') ||
+    detailString(details, 'to_shift_id')
+  );
+}
+
+function normalizeDisposition(disposition: string): string {
+  if (!disposition) return '';
+  return disposition.replace(/_/g, ' ');
+}
+
+function formatTimeRef(iso: string | null): string {
+  if (!iso) return '—';
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return '—';
+  return parsed.toLocaleString();
+}
+
+function buildAuditViewModel(
+  entry: AuditEntry,
+  shiftMeta: Record<string, AuditShiftMeta>,
+  reportMeta: Record<string, AuditReportMeta>,
+): AuditViewModel {
+  const details = entry.details;
+  const primaryShiftId = extractPrimaryShiftId(details);
+  const reportId = extractReportId(details);
+  const report = reportId ? reportMeta[reportId] : null;
+  const incidentNumber = detailString(details, 'incident_number') || report?.incident_number || '';
+
+  const callsign =
+    detailString(details, 'callsign') ||
+    detailString(details, 'from_callsign') ||
+    detailString(details, 'to_callsign') ||
+    detailString(details, 'accepting_callsign') ||
+    detailString(details, 'declining_callsign') ||
+    (primaryShiftId ? shiftMeta[primaryShiftId]?.callsign ?? '' : '');
+
+  const crewId =
+    detailString(details, 'operator_id') ||
+    detailString(details, 'declined_by') ||
+    detailString(details, 'from_operator_id') ||
+    (primaryShiftId ? shiftMeta[primaryShiftId]?.operator_id ?? '' : '');
+
+  const actor = crewId || callsign || entry.user_email || 'System';
+
+  let actionSummary = formatAuditAction(entry.action);
+  let detailsSummary = '';
+
+  if (entry.action === 'shift_started') {
+    actionSummary = `${callsign || 'Crew'} logged in and started shift`;
+  } else if (entry.action === 'shift_ended') {
+    actionSummary = `${callsign || 'Crew'} logged out and ended shift`;
+  } else if (entry.action === 'shift_end_blocked_open_patients') {
+    const openCount = detailArray(details, 'open_incident_ids').length;
+    const transferCount = detailString(details, 'outstanding_accepted_transfer_count');
+    actionSummary = 'Logout blocked: patients still active';
+    detailsSummary = `${openCount} open incident(s), ${transferCount || '0'} accepted transfer(s) pending`;
+  } else if (entry.action === 'shift_link_redeemed') {
+    actionSummary = `${crewId || 'Crew member'} logged in to field app`;
+  } else if (entry.action === 'shift_link_left') {
+    actionSummary = `${crewId || 'Crew member'} logged out from field app`;
+  } else if (entry.action === 'disposition_recorded') {
+    const casualty = detailString(details, 'casualty_label') || detailString(details, 'casualty_key');
+    const disposition = normalizeDisposition(detailString(details, 'disposition'));
+    actionSummary = `Disposition recorded: ${disposition || 'unknown outcome'}`;
+    detailsSummary = casualty ? `Patient: ${casualty}` : '';
+  } else if (entry.action === 'transfer_initiated') {
+    const casualty = detailString(details, 'casualty_label') || detailString(details, 'casualty_key');
+    actionSummary = `Transfer initiated${casualty ? ` for ${casualty}` : ''}`;
+    detailsSummary = `${detailString(details, 'from_callsign') || 'Unknown'} -> ${detailString(details, 'to_callsign') || 'Unknown'}`;
+  } else if (entry.action === 'transfer_accepted') {
+    const casualty = detailString(details, 'casualty_label') || detailString(details, 'casualty_key');
+    actionSummary = `Transfer accepted${casualty ? ` for ${casualty}` : ''}`;
+    detailsSummary = `${detailString(details, 'from_callsign') || 'Unknown'} -> ${detailString(details, 'to_callsign') || 'Unknown'}`;
+  } else if (entry.action === 'transfer_declined') {
+    const casualty = detailString(details, 'casualty_label') || detailString(details, 'casualty_key');
+    actionSummary = `Transfer declined${casualty ? ` for ${casualty}` : ''}`;
+    detailsSummary = detailString(details, 'reason') || 'No decline reason provided';
+  } else if (entry.action === 'incident_created') {
+    actionSummary = 'Incident created';
+    detailsSummary = report?.headline || '';
+  } else if (entry.action === 'incident_updated') {
+    actionSummary = 'Incident updated';
+    detailsSummary = report?.headline || '';
+  }
+
+  const incidentRef = incidentNumber || (reportId ? `Report ${reportId}` : '—');
+  const shiftRef = primaryShiftId || '—';
+  const timeRef = formatTimeRef(
+    detailString(details, 'started_at') ||
+    detailString(details, 'ended_at') ||
+    detailString(details, 'accepted_at') ||
+    detailString(details, 'declined_at') ||
+    detailString(details, 'initiated_at') ||
+    detailString(details, 'closed_at') ||
+    (primaryShiftId ? shiftMeta[primaryShiftId]?.started_at ?? null : null),
+  );
+  if (!detailsSummary && callsign) {
+    detailsSummary = `Callsign: ${callsign}`;
+  }
+  if (!detailsSummary) {
+    detailsSummary = '—';
+  }
+
+  return {
+    entry,
+    actor,
+    actionSummary,
+    incidentRef,
+    shiftRef,
+    timeRef,
+    detailsSummary,
+  };
+}
+
+function formatAuditAction(action: string): string {
+  if (AUDIT_ACTION_LABELS[action]) return AUDIT_ACTION_LABELS[action];
+  return action.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export default function Admin() {
   const navigate = useNavigate();
   const [role, setRole] = useState<'owner' | 'admin' | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userTrustId, setUserTrustId] = useState<string | null>(null);
 
@@ -123,44 +330,74 @@ export default function Admin() {
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
   const [auditFilter, setAuditFilter] = useState('');
   const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
+  const [auditShiftMeta, setAuditShiftMeta] = useState<Record<string, AuditShiftMeta>>({});
+  const [auditReportMeta, setAuditReportMeta] = useState<Record<string, AuditReportMeta>>({});
 
   // Devices state
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login');
-        return;
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!session) {
+          if (!cancelled) {
+            navigate('/login', { replace: true });
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          setUserId(session.user.id);
+        }
+
+        const { data: roles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id);
+        if (rolesError) throw rolesError;
+
+        if (roles?.some(r => r.role === 'owner')) {
+          if (!cancelled) setRole('owner');
+        } else if (roles?.some(r => r.role === 'admin')) {
+          if (!cancelled) setRole('admin');
+        } else {
+          if (!cancelled) {
+            navigate('/login', { replace: true });
+          }
+          return;
+        }
+
+        // Get user's trust_id
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('trust_id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (profileError) throw profileError;
+
+        if (!cancelled) {
+          setUserTrustId(profile?.trust_id || null);
+          setAuthError(null);
+        }
+      } catch (error) {
+        console.error('Admin auth check failed:', error);
+        if (!cancelled) {
+          setAuthError('Unable to verify admin access. Please sign in again.');
+          navigate('/login', { replace: true });
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-      setUserId(session.user.id);
-
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id);
-
-      if (roles?.some(r => r.role === 'owner')) {
-        setRole('owner');
-      } else if (roles?.some(r => r.role === 'admin')) {
-        setRole('admin');
-      } else {
-        navigate('/login');
-        return;
-      }
-
-      // Get user's trust_id
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('trust_id')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      setUserTrustId(profile?.trust_id || null);
-      setLoading(false);
     };
-    checkAuth();
+    void checkAuth();
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
 
   const loadTrusts = useCallback(async () => {
@@ -210,6 +447,63 @@ export default function Admin() {
       })));
     }
   }, []);
+
+  useEffect(() => {
+    const hydrateAuditContext = async () => {
+      if (auditLogs.length === 0) {
+        setAuditShiftMeta({});
+        setAuditReportMeta({});
+        return;
+      }
+
+      const shiftIds = new Set<string>();
+      const reportIds = new Set<string>();
+      for (const entry of auditLogs) {
+        for (const shiftId of extractShiftIds(entry.details)) {
+          if (shiftId) shiftIds.add(shiftId);
+        }
+        const reportId = extractReportId(entry.details);
+        if (reportId) reportIds.add(reportId);
+      }
+
+      if (shiftIds.size > 0) {
+        const { data: shiftRows } = await supabase
+          .from('shifts')
+          .select('id, callsign, operator_id, started_at')
+          .in('id', Array.from(shiftIds));
+        const mapped: Record<string, AuditShiftMeta> = {};
+        for (const row of shiftRows ?? []) {
+          mapped[row.id] = {
+            callsign: row.callsign ?? null,
+            operator_id: row.operator_id ?? null,
+            started_at: row.started_at ?? null,
+          };
+        }
+        setAuditShiftMeta(mapped);
+      } else {
+        setAuditShiftMeta({});
+      }
+
+      if (reportIds.size > 0) {
+        const { data: reportRows } = await supabase
+          .from('herald_reports')
+          .select('id, incident_number, headline')
+          .in('id', Array.from(reportIds));
+        const mapped: Record<string, AuditReportMeta> = {};
+        for (const row of reportRows ?? []) {
+          mapped[row.id] = {
+            incident_number: row.incident_number ?? null,
+            headline: row.headline ?? null,
+          };
+        }
+        setAuditReportMeta(mapped);
+      } else {
+        setAuditReportMeta({});
+      }
+    };
+
+    void hydrateAuditContext();
+  }, [auditLogs]);
 
   // Load data based on active tab
   const activeTab = role === 'owner' ? ownerTab : adminTab;
@@ -330,21 +624,48 @@ export default function Admin() {
     window.location.href = '/login';
   };
 
+  const auditRows = useMemo(
+    () => auditLogs.map((entry) => buildAuditViewModel(entry, auditShiftMeta, auditReportMeta)),
+    [auditLogs, auditShiftMeta, auditReportMeta],
+  );
+
+  const filteredAuditRows = useMemo(() => {
+    const actionRows = auditRows.filter((row) => row.entry.action !== 'incidents_fetched');
+    if (!auditFilter.trim()) return actionRows;
+    const needle = auditFilter.toLowerCase();
+    return actionRows.filter((row) => {
+      return (
+        row.actor.toLowerCase().includes(needle) ||
+        row.actionSummary.toLowerCase().includes(needle) ||
+        row.incidentRef.toLowerCase().includes(needle) ||
+        row.shiftRef.toLowerCase().includes(needle) ||
+        row.detailsSummary.toLowerCase().includes(needle)
+      );
+    });
+  }, [auditRows, auditFilter]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ background: '#F5F5F0' }}>
-        <p style={{ color: '#666666', letterSpacing: '0.15em' }}>LOADING...</p>
+        <p style={{ color: '#666666', letterSpacing: '0.15em' }}>CHECKING ADMIN ACCESS...</p>
       </div>
     );
   }
 
-  const filteredAudit = auditFilter
-    ? auditLogs.filter(
-        (a) =>
-          (a.user_email || '').toLowerCase().includes(auditFilter.toLowerCase()) ||
-          a.action.toLowerCase().includes(auditFilter.toLowerCase())
-      )
-    : auditLogs;
+  if (!role) {
+    return (
+      <div className="flex items-center justify-center min-h-screen px-4" style={{ background: '#F5F5F0' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#333333', marginBottom: 12 }}>
+            {authError || 'Redirecting to login...'}
+          </p>
+          <button onClick={() => navigate('/login', { replace: true })} style={btnSmall}>
+            GO TO LOGIN
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const myTrust = trusts.find(t => t.id === userTrustId);
 
@@ -625,20 +946,25 @@ export default function Admin() {
             <input
               value={auditFilter}
               onChange={(e) => setAuditFilter(e.target.value)}
-              placeholder="Filter by user or action..."
+              placeholder="Filter by crew, action, incident number, shift ID..."
               style={{ ...inputSmall, width: '100%', marginBottom: 16 }}
             />
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   <th style={headerCellStyle}>TIMESTAMP</th>
-                  <th style={headerCellStyle}>USER</th>
+                  <th style={headerCellStyle}>EVENT TIME</th>
+                  <th style={headerCellStyle}>CREW ID / USER</th>
                   <th style={headerCellStyle}>ACTION</th>
-                  <th style={{ ...headerCellStyle, width: 40 }}></th>
+                  <th style={headerCellStyle}>INCIDENT</th>
+                  <th style={headerCellStyle}>SHIFT</th>
+                  <th style={headerCellStyle}>DETAILS</th>
+                  <th style={{ ...headerCellStyle, width: 80 }}>RAW</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredAudit.map((a) => {
+                {filteredAuditRows.map((row) => {
+                  const a = row.entry;
                   const isExpanded = expandedAuditId === a.id;
                   return (
                     <React.Fragment key={a.id}>
@@ -647,18 +973,28 @@ export default function Admin() {
                         style={{ cursor: 'pointer', background: isExpanded ? 'rgba(61, 255, 140, 0.04)' : 'transparent' }}
                       >
                         <td style={cellStyle}>{new Date(a.created_at).toLocaleString()}</td>
-                        <td style={cellStyle}>{a.user_email || '—'}</td>
-                        <td style={cellStyle}>{a.action}</td>
-                        <td style={{ ...cellStyle, textAlign: 'center', fontSize: 12, color: '#666666' }}>
-                          {isExpanded ? '▲' : '▼'}
+                        <td style={cellStyle}>{row.timeRef}</td>
+                        <td style={cellStyle}>{row.actor}</td>
+                        <td style={cellStyle}>{row.actionSummary}</td>
+                        <td style={cellStyle}>{row.incidentRef}</td>
+                        <td style={cellStyle}>{row.shiftRef}</td>
+                        <td style={cellStyle}>{row.detailsSummary}</td>
+                        <td
+                          style={{ ...cellStyle, textAlign: 'center', fontSize: 12, color: '#666666' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedAuditId(isExpanded ? null : a.id);
+                          }}
+                        >
+                          {isExpanded ? 'HIDE' : 'SHOW'}
                         </td>
                       </tr>
                       {isExpanded && a.details && (
                         <tr>
-                          <td colSpan={4} style={{ padding: 0, borderBottom: '1px solid #E2E2DE' }}>
+                          <td colSpan={8} style={{ padding: 0, borderBottom: '1px solid #E2E2DE' }}>
                             <div style={{
-                              padding: '16px 20px',
-                              background: 'rgba(13, 17, 23, 0.6)',
+                              padding: '12px 16px',
+                              background: '#FFFFFF',
                               display: 'grid',
                               gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                               gap: 12,
@@ -672,8 +1008,8 @@ export default function Admin() {
                                     fontSize: 13,
                                     color: '#333333',
                                     wordBreak: 'break-all',
-                                    background: 'rgba(0,0,0,0.02)',
-                                    border: '1px solid rgba(0,0,0,0.06)',
+                                    background: '#F8F8F5',
+                                    border: '1px solid #E2E2DE',
                                     borderRadius: 3,
                                     padding: '6px 8px',
                                   }}>
@@ -691,7 +1027,7 @@ export default function Admin() {
                       )}
                       {isExpanded && !a.details && (
                         <tr>
-                          <td colSpan={4} style={{ ...cellStyle, color: '#666666', fontStyle: 'italic' }}>
+                          <td colSpan={8} style={{ ...cellStyle, color: '#666666', fontStyle: 'italic' }}>
                             No details available
                           </td>
                         </tr>
@@ -699,9 +1035,9 @@ export default function Admin() {
                     </React.Fragment>
                   );
                 })}
-                {filteredAudit.length === 0 && (
+                {filteredAuditRows.length === 0 && (
                   <tr>
-                    <td colSpan={4} style={{ ...cellStyle, textAlign: 'center', color: '#666666' }}>
+                    <td colSpan={8} style={{ ...cellStyle, textAlign: 'center', color: '#666666' }}>
                       No audit entries found
                     </td>
                   </tr>
