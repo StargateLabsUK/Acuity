@@ -4,6 +4,7 @@ import { LiveTab } from '@/components/herald/LiveTab';
 import { ShiftInfoBar } from '@/components/herald/ShiftInfoBar';
 import { LinkCodeEntry } from '@/components/herald/LinkCodeEntry';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
+import { countDeadLetters } from '@/lib/offline-queue';
 import { useShiftEndedPoll } from '@/hooks/useShiftEndedPoll';
 import { useShiftPresence } from '@/hooks/useShiftPresence';
 import { getSession } from '@/lib/herald-session';
@@ -37,6 +38,7 @@ const Index = () => {
     });
   }, []);
   const { syncStatus, queuedCount } = useHeraldSync();
+  const [deadLetterCount, setDeadLetterCount] = useState(0);
   // Join shift presence so crew page can see this device is online
   useShiftPresence(session?.shift_id ?? session?.callsign, 'field');
 
@@ -50,13 +52,31 @@ const Index = () => {
 
   useShiftEndedPoll(handleEndShift);
 
+  useEffect(() => {
+    const refresh = async () => {
+      setDeadLetterCount(await countDeadLetters());
+    };
+    void refresh();
+    const id = setInterval(() => {
+      void refresh();
+    }, 5000);
+    return () => clearInterval(id);
+  }, []);
+
   if (!session) {
     return <LinkCodeEntry onShiftLinked={handleShiftLinked} />;
   }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F5F5F0' }}>
-      <TopBar micStatus="granted" aiStatus={aiStatus} syncStatus={syncStatus} queuedCount={queuedCount} onRefresh={() => window.location.reload()} />
+      <TopBar
+        micStatus="granted"
+        aiStatus={aiStatus}
+        syncStatus={syncStatus}
+        queuedCount={queuedCount}
+        deadLetterCount={deadLetterCount}
+        onRefresh={() => window.location.reload()}
+      />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <LiveTab onAiStatus={setAiStatus} onReportSaved={() => {}} autoSend queuedCount={queuedCount} />

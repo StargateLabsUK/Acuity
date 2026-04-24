@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { HeraldSession } from '@/lib/herald-session';
-import { clearSession, endShiftRemote, leaveShiftRemote } from '@/lib/herald-session';
+import { clearSession, leaveShiftRemote } from '@/lib/herald-session';
 import { SERVICE_LABELS } from '@/lib/herald-types';
 import { getVehicleLabel } from '@/lib/vehicle-types';
 
@@ -15,14 +15,6 @@ interface Props {
 
 export function ShiftInfoBar({ session, onEndShift, position, showEndShift = false, isLinkedDevice = false }: Props) {
   const [confirming, setConfirming] = useState(false);
-
-  const handleEndShift = async () => {
-    if (session.shift_id) {
-      await endShiftRemote(session.shift_id);
-    }
-    clearSession();
-    onEndShift?.();
-  };
 
   const handleLeaveShift = async () => {
     if (session.shift_id && session.operator_id) {
@@ -97,13 +89,13 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
           </p>
 
           <button
-            onClick={isLinkedDevice ? handleLeaveShift : handleEndShift}
+            onClick={handleLeaveShift}
             className="w-full max-w-xs mb-4"
             style={{
               padding: 16,
-              background: isLinkedDevice ? 'rgba(255,149,0,0.1)' : 'rgba(255,59,48,0.1)',
-              border: `1px solid ${isLinkedDevice ? '#FF9500' : '#FF3B30'}`,
-              color: isLinkedDevice ? '#FF9500' : '#FF3B30',
+              background: 'rgba(255,149,0,0.1)',
+              border: '1px solid #FF9500',
+              color: '#FF9500',
               fontSize: 18,
               fontWeight: 700,
               letterSpacing: '0.15em',
@@ -111,7 +103,7 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
               cursor: 'pointer',
             }}
           >
-            {isLinkedDevice ? 'CONFIRM LEAVE' : 'CONFIRM END SHIFT'}
+            CONFIRM LEAVE
           </button>
 
           <button
