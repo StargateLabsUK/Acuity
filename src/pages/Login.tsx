@@ -32,7 +32,6 @@ export default function Login() {
   const [mfaCode, setMfaCode] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [showNhsMessage, setShowNhsMessage] = useState(false);
 
   // MFA state
   const [mfaFactorId, setMfaFactorId] = useState('');
@@ -344,31 +343,6 @@ export default function Login() {
             >
               {submitting ? 'SIGNING IN...' : 'SIGN IN'}
             </button>
-
-            <button
-              onClick={() => setShowNhsMessage(true)}
-              style={{
-                width: '100%',
-                padding: 12,
-                background: 'transparent',
-                border: '1px solid #1E3028',
-                color: '#666666',
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: 13,
-                fontWeight: 500,
-                letterSpacing: '0.1em',
-                cursor: 'pointer',
-                borderRadius: 3,
-              }}
-            >
-              Sign in with NHS Azure AD
-            </button>
-
-            {showNhsMessage && (
-              <p style={{ color: '#666666', fontSize: 13, textAlign: 'center', marginTop: 12 }}>
-                Contact hello@arion.industries to set this up for your Trust
-              </p>
-            )}
           </>
         )}
 
