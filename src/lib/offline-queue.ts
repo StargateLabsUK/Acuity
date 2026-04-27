@@ -87,10 +87,28 @@ export async function getReady(): Promise<QueueItem[]> {
   return all.filter(item => item.nextRetryAt <= now && item.attempts < MAX_RETRIES);
 }
 
-/** Count of pending items */
+/** Count of retryable pending items */
 export async function count(): Promise<number> {
   const all = await getAll();
   return all.filter(item => item.attempts < MAX_RETRIES).length;
+}
+
+/** Count of dead-lettered items (exhausted retry budget) */
+export async function countDeadLetters(): Promise<number> {
+  const all = await getAll();
+  return all.filter(item => item.attempts >= MAX_RETRIES).length;
+}
+
+/** Dead-letter items preserved for manual review */
+export async function getDeadLetters(): Promise<QueueItem[]> {
+  const all = await getAll();
+  return all
+    .filter(item => item.attempts >= MAX_RETRIES)
+    .sort((a, b) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      return bTime - aTime;
+    });
 }
 
 /** Remove an item after successful processing */
@@ -124,16 +142,30 @@ export async function markFailed(id: number, error: string): Promise<void> {
   });
 }
 
-/** Remove items that have exceeded max retries */
-export async function purgeExpired(): Promise<number> {
-  const all = await getAll();
-  const expired = all.filter(item => item.attempts >= MAX_RETRIES);
+/**
+ * Reset a dead-letter item back into active retry.
+ * Keeps payload/history but clears attempts and last error.
+ */
+export async function retryDeadLetter(id: number): Promise<void> {
   const db = await openDB();
   const store = tx(db, 'readwrite');
-  for (const item of expired) {
-    if (item.id != null) store.delete(item.id);
-  }
-  return expired.length;
+  return new Promise((resolve, reject) => {
+    const getReq = store.get(id);
+    getReq.onsuccess = () => {
+      const item = getReq.result as QueueItem | undefined;
+      if (!item) {
+        resolve();
+        return;
+      }
+      item.attempts = 0;
+      item.lastError = null;
+      item.nextRetryAt = new Date().toISOString();
+      const putReq = store.put(item);
+      putReq.onsuccess = () => resolve();
+      putReq.onerror = () => reject(putReq.error);
+    };
+    getReq.onerror = () => reject(getReq.error);
+  });
 }
 
 /** Clear the entire queue */

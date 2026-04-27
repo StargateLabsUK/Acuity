@@ -27,6 +27,225 @@ function sanitizeReport(raw: Record<string, unknown>): Record<string, unknown> {
   return clean;
 }
 
+interface IncidentPatientRow {
+  id: string;
+  report_id: string;
+  casualty_key: string;
+  casualty_label: string;
+  priority: string | null;
+  patient_name: string | null;
+  age_sex: string | null;
+}
+
+function cleanPatientName(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "—") return null;
+  return trimmed.slice(0, 240);
+}
+
+function extractAgeSexFromCasualty(casualty: Record<string, unknown> | null | undefined): string | null {
+  if (!casualty || typeof casualty !== "object") return null;
+  const raw = casualty.A;
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed === "—") return null;
+  return trimmed.slice(0, 240);
+}
+
+function basePriorityFromCasualtyKey(casualtyKey: string): string {
+  const match = casualtyKey.toUpperCase().match(/^P[1-4]/);
+  return match?.[0] ?? casualtyKey.toUpperCase().slice(0, 24);
+}
+
+function normalizePatientNameForMatch(name: string | null): string | null {
+  if (!name) return null;
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() || null;
+}
+
+function normalizeAgeSexForMatch(value: string | null): string | null {
+  if (!value) return null;
+  return value
+    .toLowerCase()
+    .replace(/[()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() || null;
+}
+
+function buildDefaultCasualtyLabel(casualtyKey: string, casualtyData: Record<string, unknown>): string {
+  const ageSex = extractAgeSexFromCasualty(casualtyData);
+  if (ageSex) return `${casualtyKey} — ${ageSex}`.slice(0, 240);
+  return casualtyKey.slice(0, 240);
+}
+
+async function ensureIncidentPatientsForAssessment(
+  supabase: ReturnType<typeof createClient>,
+  reportId: string,
+  assessment: Record<string, unknown> | null | undefined,
+): Promise<Record<string, string>> {
+  const result: Record<string, string> = {};
+  if (!assessment || typeof assessment !== "object") return result;
+
+  const atmistRaw = (assessment as any).atmist;
+  if (!atmistRaw || typeof atmistRaw !== "object") return result;
+  const atmistEntries = Object.entries(atmistRaw as Record<string, unknown>)
+    .filter(([_, value]) => value && typeof value === "object") as Array<[string, Record<string, unknown>]>;
+
+  if (atmistEntries.length === 0) return result;
+
+  const { data: existingRows } = await supabase
+    .from("incident_patients")
+    .select("id, report_id, casualty_key, casualty_label, priority, patient_name, age_sex")
+    .eq("report_id", reportId);
+
+  const byCasualtyKey = new Map<string, IncidentPatientRow>();
+  const existingForMatch: IncidentPatientRow[] = [];
+  for (const row of (existingRows ?? []) as IncidentPatientRow[]) {
+    byCasualtyKey.set(row.casualty_key, row);
+    existingForMatch.push(row);
+  }
+
+  const usedExistingIds = new Set<string>();
+  const inserts: Array<{
+    report_id: string;
+    casualty_key: string;
+    casualty_label: string;
+    priority: string | null;
+    patient_name: string | null;
+    age_sex: string | null;
+  }> = [];
+
+  for (const [casualtyKey, casualtyData] of atmistEntries) {
+    const ageSex = extractAgeSexFromCasualty(casualtyData);
+    const patientName =
+      cleanPatientName((casualtyData as any).name) ||
+      cleanPatientName((assessment as any).patient_name);
+    const priority = basePriorityFromCasualtyKey(casualtyKey);
+
+    const existingExact = byCasualtyKey.get(casualtyKey);
+    if (existingExact) {
+      usedExistingIds.add(existingExact.id);
+      result[casualtyKey] = existingExact.id;
+
+      const updates: Record<string, unknown> = {};
+      if (patientName && !existingExact.patient_name) updates.patient_name = patientName;
+      if (ageSex && !existingExact.age_sex) updates.age_sex = ageSex;
+      if (priority && existingExact.priority !== priority) updates.priority = priority;
+      const desiredLabel = buildDefaultCasualtyLabel(casualtyKey, casualtyData);
+      if (!existingExact.casualty_label || existingExact.casualty_label === existingExact.casualty_key) {
+        updates.casualty_label = desiredLabel;
+      }
+      if (Object.keys(updates).length > 0) {
+        await supabase.from("incident_patients").update(updates).eq("id", existingExact.id);
+      }
+      continue;
+    }
+
+    // Fallback match when casualty key changed between transmissions:
+    // prefer exact patient_name, else exact age/sex + base priority.
+    const normalizedName = normalizePatientNameForMatch(patientName);
+    const normalizedAgeSex = normalizeAgeSexForMatch(ageSex);
+    let matched: IncidentPatientRow | null = null;
+    for (const row of existingForMatch) {
+      if (usedExistingIds.has(row.id)) continue;
+      const rowName = normalizePatientNameForMatch(row.patient_name);
+      const rowAgeSex = normalizeAgeSexForMatch(row.age_sex);
+      if (normalizedName && rowName && normalizedName === rowName) {
+        matched = row;
+        break;
+      }
+      if (!normalizedName && normalizedAgeSex && rowAgeSex && normalizedAgeSex === rowAgeSex && row.priority === priority) {
+        matched = row;
+        break;
+      }
+    }
+
+    if (matched) {
+      usedExistingIds.add(matched.id);
+      result[casualtyKey] = matched.id;
+      await supabase
+        .from("incident_patients")
+        .update({
+          casualty_key: casualtyKey,
+          casualty_label: buildDefaultCasualtyLabel(casualtyKey, casualtyData),
+          priority,
+          patient_name: matched.patient_name ?? patientName,
+          age_sex: matched.age_sex ?? ageSex,
+        })
+        .eq("id", matched.id);
+      byCasualtyKey.set(casualtyKey, {
+        ...matched,
+        casualty_key: casualtyKey,
+      });
+      continue;
+    }
+
+    inserts.push({
+      report_id: reportId,
+      casualty_key: casualtyKey,
+      casualty_label: buildDefaultCasualtyLabel(casualtyKey, casualtyData),
+      priority,
+      patient_name: patientName,
+      age_sex: ageSex,
+    });
+  }
+
+  if (inserts.length > 0) {
+    const { data: insertedRows, error } = await supabase
+      .from("incident_patients")
+      .insert(inserts)
+      .select("id, casualty_key");
+    if (error) {
+      console.error("incident_patients insert error:", error);
+    } else {
+      for (const row of insertedRows ?? []) {
+        if (row?.casualty_key && row?.id) {
+          result[row.casualty_key] = row.id;
+        }
+      }
+    }
+  }
+
+  // Ensure existing mappings are present in result even if no insert was needed.
+  for (const [casualtyKey, row] of byCasualtyKey.entries()) {
+    if (!result[casualtyKey]) result[casualtyKey] = row.id;
+  }
+
+  return result;
+}
+
+function embedPatientIdsInAssessment(
+  assessment: Record<string, unknown> | null | undefined,
+  patientIdsByCasualtyKey: Record<string, string>,
+): Record<string, unknown> | null | undefined {
+  if (!assessment || typeof assessment !== "object") return assessment;
+  const atmistRaw = (assessment as any).atmist;
+  if (!atmistRaw || typeof atmistRaw !== "object") return assessment;
+
+  const nextAssessment: Record<string, unknown> = { ...assessment };
+  const nextAtmist: Record<string, unknown> = { ...(atmistRaw as Record<string, unknown>) };
+  let changed = false;
+
+  for (const [casualtyKey, value] of Object.entries(nextAtmist)) {
+    if (!value || typeof value !== "object") continue;
+    const patientId = patientIdsByCasualtyKey[casualtyKey];
+    if (!patientId) continue;
+    const casualty = value as Record<string, unknown>;
+    if (casualty.patient_id !== patientId) {
+      nextAtmist[casualtyKey] = { ...casualty, patient_id: patientId };
+      changed = true;
+    }
+  }
+
+  if (!changed) return assessment;
+  nextAssessment.atmist = nextAtmist;
+  return nextAssessment;
+}
+
 function validateReport(report: Record<string, unknown>): string | null {
   if (!report.id || typeof report.id !== 'string') return 'Missing or invalid id';
   if (!report.timestamp || typeof report.timestamp !== 'string') return 'Missing or invalid timestamp';
@@ -230,6 +449,8 @@ serve(async (req) => {
       const newAssessment = normalizeAssessmentForMerge((report.assessment as Record<string, unknown>) || {}) as any;
       const newTranscript = (report.transcript as string) || "";
 
+      await assignStablePatientIds(supabase, parentId, parentAssessment, newAssessment);
+
       let mergedActionItems = parentAssessment?.action_items || [];
       const resolvedItems: any[] = parentAssessment?.resolved_action_items || [];
       
@@ -344,6 +565,16 @@ serve(async (req) => {
         );
       }
 
+      const patientIdsByCasualtyKey = await ensureIncidentPatientsForAssessment(
+        supabase,
+        parentId,
+        mergedAssessment,
+      );
+      const mergedAssessmentWithPatientIds = embedPatientIdsInAssessment(
+        mergedAssessment,
+        patientIdsByCasualtyKey,
+      ) as Record<string, unknown>;
+
       if (parentAssessment?.clinical_findings || newAssessment?.clinical_findings) {
         mergedAssessment.clinical_findings = mergeClinicalFindings(
           (parentAssessment?.clinical_findings || {}) as Record<string, unknown>,
@@ -393,14 +624,11 @@ serve(async (req) => {
       }
 
       const updatePayload: Record<string, unknown> = {
-        assessment: mergedAssessment,
+        assessment: mergedAssessmentWithPatientIds,
         latest_transmission_at: report.timestamp,
       };
 
-      // Only update top-level priority/headline if new transmission provides them
-      if (report.priority && report.priority !== '' && report.priority !== 'null') {
-        updatePayload.priority = report.priority;
-      }
+      // Incident-level priority is deprecated; priority lives per patient (ATMIST).
       if (report.headline && report.headline !== '' && report.headline !== 'null') {
         updatePayload.headline = report.headline;
       }
@@ -473,6 +701,19 @@ serve(async (req) => {
     reportData.status = "active";
     reportData.latest_transmission_at = reportData.latest_transmission_at || report.timestamp;
     reportData.transmission_count = reportData.transmission_count || 1;
+    delete (reportData as any).priority;
+
+    if (typeof reportData.id === "string") {
+      const patientIdsByCasualtyKey = await ensureIncidentPatientsForAssessment(
+        supabase,
+        reportData.id,
+        reportData.assessment as Record<string, unknown> | null | undefined,
+      );
+      reportData.assessment = embedPatientIdsInAssessment(
+        reportData.assessment as Record<string, unknown> | null | undefined,
+        patientIdsByCasualtyKey,
+      ) as Record<string, unknown>;
+    }
 
     const { error } = await supabase.from("herald_reports").upsert(reportData, {
       onConflict: "id",
@@ -1136,4 +1377,5 @@ function deepMergeCasualtyMap(
 
   return result;
 }
+
 

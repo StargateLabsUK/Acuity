@@ -4,6 +4,7 @@ import { enqueue } from './offline-queue';
 export interface PatientTransfer {
   id: string;
   report_id: string;
+  patient_id: string | null;
   casualty_key: string;
   casualty_label: string;
   priority: string;
@@ -34,6 +35,7 @@ const headers = {
 
 export async function initiateTransfer(payload: {
   report_id: string;
+  patient_id?: string | null;
   casualty_key: string;
   casualty_label: string;
   priority: string;

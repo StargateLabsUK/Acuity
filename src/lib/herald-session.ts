@@ -48,11 +48,8 @@ export async function getSession(): Promise<HeraldSession | null> {
   try {
     const session = await readEncrypted<HeraldSession>(SESSION_KEY);
     if (!session) return null;
-    const today = new Date().toISOString().slice(0, 10);
-    if (session.session_date !== today) {
-      removeEncrypted(SESSION_KEY);
-      return null;
-    }
+    // Keep sessions across date rollover for long-running/overnight shifts.
+    // Shift validity is authoritative on the server (ensureSessionShiftId).
     return session;
   } catch {
     return null;

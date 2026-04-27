@@ -23,6 +23,7 @@ export interface HeraldReport {
   latest_transmission_at?: string;
   status?: 'active' | 'closed';
   shift_id?: string;
+  trust_id?: string;
 }
 
 export interface IncidentTransmission {
@@ -142,6 +143,7 @@ export interface DispositionFields {
 }
 
 export interface CasualtyDisposition {
+  patient_id?: string | null;
   disposition: DispositionType;
   closed_at: string;
   casualty_key: string;

@@ -54,6 +54,7 @@ export type Database = {
       }
       casualty_dispositions: {
         Row: {
+          patient_id: string | null
           casualty_key: string
           casualty_label: string
           closed_at: string
@@ -68,6 +69,7 @@ export type Database = {
           trust_id: string | null
         }
         Insert: {
+          patient_id?: string | null
           casualty_key: string
           casualty_label: string
           closed_at: string
@@ -82,6 +84,7 @@ export type Database = {
           trust_id?: string | null
         }
         Update: {
+          patient_id?: string | null
           casualty_key?: string
           casualty_label?: string
           closed_at?: string
@@ -96,6 +99,13 @@ export type Database = {
           trust_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "casualty_dispositions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "incident_patients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "casualty_dispositions_report_id_fkey"
             columns: ["report_id"]
@@ -324,6 +334,66 @@ export type Database = {
           },
         ]
       }
+      incident_patients: {
+        Row: {
+          age_sex: string | null
+          casualty_key: string
+          casualty_label: string
+          created_at: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          patient_name: string | null
+          priority: string
+          report_id: string
+          trust_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          age_sex?: string | null
+          casualty_key: string
+          casualty_label: string
+          created_at?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          patient_name?: string | null
+          priority: string
+          report_id: string
+          trust_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          age_sex?: string | null
+          casualty_key?: string
+          casualty_label?: string
+          created_at?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          patient_name?: string | null
+          priority?: string
+          report_id?: string
+          trust_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_patients_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "herald_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_patients_trust_id_fkey"
+            columns: ["trust_id"]
+            isOneToOne: false
+            referencedRelation: "trusts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_transfers: {
         Row: {
           accepted_at: string | null
@@ -339,6 +409,7 @@ export type Database = {
           handover_notes: string | null
           id: string
           initiated_at: string
+          patient_id: string | null
           priority: string
           report_id: string
           status: string
@@ -360,6 +431,7 @@ export type Database = {
           handover_notes?: string | null
           id?: string
           initiated_at?: string
+          patient_id?: string | null
           priority: string
           report_id: string
           status?: string
@@ -381,6 +453,7 @@ export type Database = {
           handover_notes?: string | null
           id?: string
           initiated_at?: string
+          patient_id?: string | null
           priority?: string
           report_id?: string
           status?: string
@@ -389,6 +462,13 @@ export type Database = {
           trust_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "patient_transfers_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "incident_patients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "patient_transfers_from_shift_id_fkey"
             columns: ["from_shift_id"]

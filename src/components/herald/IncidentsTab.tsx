@@ -33,6 +33,7 @@ interface Incident {
 
 interface CasualtyData {
   key: string;
+  patient_id?: string;
   priority: string;
   label: string;
   atmist: Record<string, string>;
@@ -250,6 +251,8 @@ function extractCasualties(inc: Incident): CasualtyData[] {
     })
     .map((key, idx) => {
       const val = (atmist as any)[key];
+      const patientIdMap = (a as any)?.patient_ids as Record<string, string> | undefined;
+      const patientId = patientIdMap?.[key] ?? undefined;
       const baseP = key.replace(/-\d+$/, '');
       const ageField = val?.A ?? '';
       const label = ageField && ageField !== '—'
@@ -278,7 +281,7 @@ function extractCasualties(inc: Incident): CasualtyData[] {
       }
 
       return {
-        key, priority: baseP, label,
+        key, patient_id: patientId, priority: baseP, label,
         atmist: {
           A: val?.A ?? '—', T: val?.T ?? '—', M: val?.M ?? '—',
           I: val?.I ?? '—', S: val?.S ?? '—', T_treatment: val?.T_treatment ?? '—',
@@ -431,8 +434,7 @@ function IncidentCard({
   transferredKeys?: Set<string>;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const p = inc.assessment?.priority ?? inc.priority ?? 'P3';
-  const col = PRIORITY_COLORS[p] ?? '#34C759';
+  const col = '#1E90FF';
   let casualties = extractCasualties(inc).filter(c => !closedKeys.has(`${inc.id}:${c.key}`));
   if (transferredKeys?.size) casualties = casualties.filter(c => transferredKeys.has(c.key));
 
@@ -446,10 +448,6 @@ function IncidentCard({
           {expanded
             ? <ChevronDown size={20} style={{ color: col }} className="flex-shrink-0" />
             : <ChevronRight size={20} style={{ color: col }} className="flex-shrink-0" />}
-          <span className="text-lg font-bold rounded-sm px-2 py-0.5 flex-shrink-0"
-            style={{ color: col, border: `1px solid ${col}66`, background: `${col}1A` }}>
-            {p}
-          </span>
           <div className="flex-1 min-w-0">
             <p className="text-lg text-foreground font-semibold leading-tight">
               {formatIncidentTitle(inc.incident_number)}
@@ -520,8 +518,7 @@ function IncidentDetailView({
   transferredKeys?: Set<string>;
 }) {
   const a = inc.assessment;
-  const p = a?.priority ?? inc.priority ?? 'P3';
-  const col = PRIORITY_COLORS[p] ?? '#34C759';
+  const col = '#1E90FF';
   let casualties = extractCasualties(inc).filter(cas => !closedKeys.has(`${inc.id}:${cas.key}`));
   if (transferredKeys?.size) casualties = casualties.filter(c => transferredKeys.has(c.key));
 
@@ -544,12 +541,6 @@ function IncidentDetailView({
               incidentNumber={inc.incident_number}
               onSave={(next) => onSaveIncidentNumber(inc.id, next)}
             />
-            <span
-              className="text-sm font-semibold rounded-sm px-2 py-0.5"
-              style={{ color: col, border: `1px solid ${col}55`, background: `${col}18` }}
-            >
-              {p}
-            </span>
           </div>
           <p className="text-sm text-muted-foreground">{incidentTime}</p>
           <p className="text-sm text-muted-foreground mb-2">{displayAddress}</p>
@@ -729,6 +720,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
     const d: CasualtyDisposition = {
       disposition,
       closed_at: new Date().toISOString(),
+      patient_id: cas.patient_id ?? null,
       casualty_key: cas.key,
       casualty_label: cas.label,
       priority: cas.priority,
@@ -750,6 +742,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
       const session = await (await import('@/lib/herald-session')).getSession();
       const syncOk = await syncDispositionOrQueue({
         report_id: inc.id,
+        patient_id: cas.patient_id ?? null,
         casualty_key: cas.key,
         casualty_label: cas.label,
         priority: cas.priority,
@@ -1383,7 +1376,11 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
     if (currentNav.view === 'casualty') {
       const allCas = extractCasualties(currentNav.incident);
       const closedChecks = await Promise.all(
-        allCas.map(async c => c.key === d.casualty_key || await isCasualtyClosed(currentNav.incident.id, c.key))
+        allCas.map(async c =>
+          (d.patient_id && c.patient_id && d.patient_id === c.patient_id) ||
+          c.key === d.casualty_key ||
+          await isCasualtyClosed(currentNav.incident.id, c.key, c.patient_id ?? null),
+        ),
       );
       const remaining = allCas.filter((c, i) => !closedChecks[i]);
       if (remaining.length === 0) {

@@ -47,7 +47,11 @@ export async function getCasualtyDispositions(): Promise<CasualtyDisposition[]> 
 
 export async function saveCasualtyDisposition(d: CasualtyDisposition): Promise<void> {
   const all = await getCasualtyDispositions();
-  const idx = all.findIndex(x => x.incident_id === d.incident_id && x.casualty_key === d.casualty_key);
+  const idx = all.findIndex((x) => {
+    if (x.incident_id !== d.incident_id) return false;
+    if (d.patient_id && x.patient_id) return x.patient_id === d.patient_id;
+    return x.casualty_key === d.casualty_key;
+  });
   if (idx !== -1) all[idx] = d;
   else all.unshift(d);
   await writeEncrypted(DISPOSITIONS_KEY, all);
@@ -68,8 +72,17 @@ export async function getDispositionsForShift(callsign: string, sessionDate: str
   });
 }
 
-export async function isCasualtyClosed(incidentId: string, casualtyKey: string): Promise<boolean> {
+export async function isCasualtyClosed(
+  incidentId: string,
+  casualtyKey: string,
+  patientId?: string | null,
+): Promise<boolean> {
   const dispositions = await getCasualtyDispositions();
+  if (patientId) {
+    return dispositions.some(
+      d => d.incident_id === incidentId && d.patient_id === patientId,
+    );
+  }
   return dispositions.some(
     d => d.incident_id === incidentId && d.casualty_key === casualtyKey
   );

@@ -85,6 +85,7 @@ serve(async (req) => {
 
     const reportId = asText(body?.report_id, 64);
     const casualtyKey = asText(body?.casualty_key, 120);
+    const patientId = asText(body?.patient_id, 64);
     const casualtyLabel = asText(body?.casualty_label, 240);
     const priority = asText(body?.priority, 24);
     const disposition = asText(body?.disposition, 64);
@@ -151,11 +152,23 @@ serve(async (req) => {
       );
     }
 
+    let resolvedPatientId = patientId;
+    if (!resolvedPatientId) {
+      const { data: mappedPatient } = await supabase
+        .from("incident_patients")
+        .select("id")
+        .eq("report_id", reportId)
+        .eq("casualty_key", casualtyKey)
+        .maybeSingle();
+      resolvedPatientId = mappedPatient?.id ?? null;
+    }
+
     const { error: upsertError } = await supabase
       .from("casualty_dispositions")
       .upsert(
         {
           report_id: reportId,
+          patient_id: resolvedPatientId,
           casualty_key: casualtyKey,
           casualty_label: casualtyLabel,
           priority,
@@ -187,6 +200,7 @@ serve(async (req) => {
       trust_id: effectiveTrustId || null,
       details: {
         report_id: reportId,
+        patient_id: resolvedPatientId || null,
         incident_number: incidentNumber || report?.incident_number || null,
         shift_id: report?.shift_id || null,
         callsign: sessionCallsign || null,

@@ -493,8 +493,7 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
   } catch {
     a = null;
   }
-  const priority = s(a?.priority ?? report.priority ?? 'P3');
-  const col = PRIORITY_COLORS[priority] ?? '#34C759';
+  const col = '#1E90FF';
   const service = s(a?.service ?? report.service ?? 'unknown');
   const serviceLabel = SERVICE_LABELS[service] ?? service.toUpperCase();
   const vtCode = (report as any).vehicle_type;
@@ -511,7 +510,6 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
   const structured = a?.structured ?? {};
   const formattedReport = s(a?.formatted_report ?? '');
   const headline = s(a?.headline ?? report.headline ?? '');
-  const priorityLabel = s(a?.priority_label ?? '');
 
   const incidentType = s(a?.incident_type ?? a?.protocol ?? 'Unknown');
   const majorIncident = a?.major_incident ?? false;
@@ -614,10 +612,6 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
                 </span>
               ) : null}
             </div>
-            <div className="flex items-baseline gap-1.5 md:gap-3">
-              <span className="font-heading text-2xl md:text-5xl leading-none" style={{ color: col }}>{priority}</span>
-              <span className="font-heading text-lg md:text-[28px] tracking-wide" style={{ color: col }}>{priorityLabel}</span>
-            </div>
             {incidentType && incidentType !== 'Unknown' && (
               <div className="text-lg font-bold mt-1 tracking-wide" style={{ color: col }}>{incidentType}</div>
             )}
@@ -657,7 +651,14 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
           <div className="flex flex-col gap-2">
             {Object.entries(atmist).map(([casualtyKey, val]: [string, any]) => {
               const cCol = PRIORITY_COLORS[casualtyKey] ?? PRIORITY_COLORS[casualtyKey.replace(/-\d+$/, '')] ?? '#1E90FF';
-              const disp = dispositions.find(d => d.report_id === report.id && d.casualty_key === casualtyKey);
+              const patientIdMap = (a as any)?.patient_ids as Record<string, string> | undefined;
+              const patientId = patientIdMap?.[casualtyKey];
+              const disp = dispositions.find(d =>
+                d.report_id === report.id && (
+                  (patientId && (d as any).patient_id === patientId) ||
+                  d.casualty_key === casualtyKey
+                )
+              );
 
               return (
                 <CasualtyCard

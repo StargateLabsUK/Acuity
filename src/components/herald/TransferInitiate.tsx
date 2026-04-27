@@ -22,6 +22,7 @@ interface Props {
   };
   casualty: {
     key: string;
+    patient_id?: string;
     label: string;
     priority: string;
     atmist: Record<string, string>;
@@ -146,6 +147,7 @@ export function TransferInitiate({ session, incident, casualty, onBack, onTransf
     const result = await initiateTransfer({
       report_id: incident.id,
       casualty_key: casualty.key,
+      patient_id: casualty.patient_id ?? null,
       casualty_label: casualty.label,
       priority: casualty.priority,
       from_callsign: session.callsign,

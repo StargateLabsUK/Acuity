@@ -10,6 +10,7 @@ type ClinicalFindings = Partial<Record<AbcdeKey, string>>;
 
 interface CasualtySummary {
   key: string;
+  patientId?: string | null;
   label: string;
   priority: string;
   atmist: Record<string, unknown> | null;
@@ -195,6 +196,17 @@ function extractAtmistForCasualty(assessment: Assessment | null | undefined, cas
   return null;
 }
 
+function extractPatientIdForCasualty(
+  assessment: Assessment | null | undefined,
+  casualtyKey: string,
+): string | null {
+  const atmist = extractAtmistForCasualty(assessment, casualtyKey);
+  if (atmist && typeof atmist.patient_id === 'string' && atmist.patient_id.trim()) {
+    return atmist.patient_id.trim();
+  }
+  return null;
+}
+
 function buildCasualties(report: OpsReport, dispositions: OpsDisposition[], transfers: PatientTransfer[]): CasualtySummary[] {
   const atmistMap = (report.assessment?.atmist ?? {}) as Record<string, Record<string, unknown> | null>;
   const atmistKeys = Object.keys(atmistMap);
@@ -207,9 +219,10 @@ function buildCasualties(report: OpsReport, dispositions: OpsDisposition[], tran
     const disposition = dispositions.find((d) => d.report_id === report.id && d.casualty_key === key) ?? null;
     const transfer = transfers.find((t) => t.report_id === report.id && t.casualty_key === key) ?? null;
     const atmist = atmistMap[key] ?? null;
+    const patientId = extractPatientIdForCasualty(report.assessment, key);
     const priority = disposition?.priority ?? priorityFromCasualtyKey(key);
     const label = disposition?.casualty_label ?? (hasMeaningfulText(atmist?.A) ? `${key} — ${String(atmist?.A)}` : key);
-    return { key, label, priority, atmist, disposition, transfer };
+    return { key, patientId, label, priority, atmist, disposition, transfer };
   });
 }
 
@@ -249,7 +262,11 @@ function buildClinicalTimeline(
     });
 
   transfers
-    .filter((t) => t.report_id === report.id && t.casualty_key === casualty.key)
+    .filter((t) => {
+      if (t.report_id !== report.id) return false;
+      if (casualty.patientId && t.patient_id) return t.patient_id === casualty.patientId;
+      return t.casualty_key === casualty.key;
+    })
     .forEach((transfer) => {
       const snapshot = transfer.clinical_snapshot;
       if (!snapshot || typeof snapshot !== 'object') return;
@@ -365,8 +382,6 @@ function IncidentCard({
   transfers: PatientTransfer[];
   onClick: () => void;
 }) {
-  const priority = String(report.assessment?.priority ?? report.priority ?? '—');
-  const color = PRIORITY_COLORS[priority] ?? '#888';
   const isClosed = report.status === 'closed';
   const hasTransfer = transfers.some((t) => t.report_id === report.id);
   const casualtyCount = Math.max(
@@ -380,7 +395,6 @@ function IncidentCard({
       className="w-full text-left rounded-lg border border-border bg-card shadow-sm p-3 cursor-pointer hover:bg-muted/30 transition-colors mb-2 block"
     >
       <div className="flex items-center gap-2 mb-1 flex-wrap">
-        <span className="text-sm font-bold" style={badgeStyle(color)}>{priority}</span>
         <span className="text-sm font-bold" style={badgeStyle(isClosed ? '#888' : '#FF9500')}>
           {isClosed ? 'CLOSED' : 'ACTIVE'}
         </span>

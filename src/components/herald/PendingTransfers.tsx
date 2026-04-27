@@ -102,6 +102,11 @@ export function PendingTransfers({ session, onTransferAccepted }: Props) {
                     <span className="text-lg text-foreground font-medium flex-1 min-w-0 truncate">
                       {t.casualty_label}
                     </span>
+                    {t.patient_id && (
+                      <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+                        PID {t.patient_id.slice(0, 8)}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 text-lg text-foreground opacity-70 mb-2">
@@ -199,6 +204,11 @@ export function PendingTransfers({ session, onTransferAccepted }: Props) {
                       {t.priority}
                     </span>
                     <span className="text-lg text-foreground font-medium truncate">{t.casualty_label}</span>
+                    {t.patient_id && (
+                      <span className="text-xs font-mono px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+                        PID {t.patient_id.slice(0, 8)}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 text-lg text-foreground opacity-60">
                     <span>Transferring to</span>
