@@ -270,6 +270,52 @@ function buildAutoIncidentNumber(now = new Date()): string {
   return `INC-${y}${m}${d}-${h}${min}${s}-${rand}`;
 }
 
+function normalizeSlugLike(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function resolveTrustIdForReport(
+  supabase: ReturnType<typeof createClient>,
+  report: Record<string, unknown>,
+): Promise<string | null> {
+  const providedTrustId = typeof report.trust_id === "string" ? report.trust_id : null;
+  if (providedTrustId) return providedTrustId;
+
+  const shiftId = typeof report.shift_id === "string" ? report.shift_id : null;
+  if (shiftId) {
+    const { data: shift } = await supabase
+      .from("shifts")
+      .select("trust_id")
+      .eq("id", shiftId)
+      .maybeSingle();
+    if (shift?.trust_id) return shift.trust_id;
+  }
+
+  const service =
+    (typeof report.session_service === "string" && report.session_service.trim()) ||
+    (typeof report.service === "string" && report.service.trim()) ||
+    "";
+  if (!service) return null;
+
+  const normalizedService = normalizeSlugLike(service);
+  const { data: trusts } = await supabase
+    .from("trusts")
+    .select("id, name, slug")
+    .eq("active", true);
+  if (!trusts || trusts.length === 0) return null;
+
+  const match = trusts.find((trust) =>
+    trust.name?.toLowerCase().trim() === service.toLowerCase().trim() ||
+    normalizeSlugLike(trust.name ?? "") === normalizedService ||
+    (trust.slug ?? "").toLowerCase().trim() === normalizedService
+  );
+  return match?.id ?? null;
+}
+
 async function ensureIncidentNumber(
   supabase: ReturnType<typeof createClient>,
   reportData: Record<string, unknown>,
@@ -331,6 +377,12 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
+
+    // Resolve trust_id server-side when client context is missing.
+    const resolvedTrustId = await resolveTrustIdForReport(supabase, report);
+    if (resolvedTrustId) {
+      report.trust_id = resolvedTrustId;
+    }
 
     // Auth: verify trust_id exists and is active
     if (report.trust_id) {
