@@ -651,7 +651,14 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
           <div className="flex flex-col gap-2">
             {Object.entries(atmist).map(([casualtyKey, val]: [string, any]) => {
               const cCol = PRIORITY_COLORS[casualtyKey] ?? PRIORITY_COLORS[casualtyKey.replace(/-\d+$/, '')] ?? '#1E90FF';
-              const disp = dispositions.find(d => d.report_id === report.id && d.casualty_key === casualtyKey);
+              const patientIdMap = (a as any)?.patient_ids as Record<string, string> | undefined;
+              const patientId = patientIdMap?.[casualtyKey];
+              const disp = dispositions.find(d =>
+                d.report_id === report.id && (
+                  (patientId && (d as any).patient_id === patientId) ||
+                  d.casualty_key === casualtyKey
+                )
+              );
 
               return (
                 <CasualtyCard

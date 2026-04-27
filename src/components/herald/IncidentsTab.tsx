@@ -33,6 +33,7 @@ interface Incident {
 
 interface CasualtyData {
   key: string;
+  patient_id?: string;
   priority: string;
   label: string;
   atmist: Record<string, string>;
@@ -250,6 +251,8 @@ function extractCasualties(inc: Incident): CasualtyData[] {
     })
     .map((key, idx) => {
       const val = (atmist as any)[key];
+      const patientIdMap = (a as any)?.patient_ids as Record<string, string> | undefined;
+      const patientId = patientIdMap?.[key] ?? undefined;
       const baseP = key.replace(/-\d+$/, '');
       const ageField = val?.A ?? '';
       const label = ageField && ageField !== '—'
@@ -278,7 +281,7 @@ function extractCasualties(inc: Incident): CasualtyData[] {
       }
 
       return {
-        key, priority: baseP, label,
+        key, patient_id: patientId, priority: baseP, label,
         atmist: {
           A: val?.A ?? '—', T: val?.T ?? '—', M: val?.M ?? '—',
           I: val?.I ?? '—', S: val?.S ?? '—', T_treatment: val?.T_treatment ?? '—',
@@ -717,6 +720,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
     const d: CasualtyDisposition = {
       disposition,
       closed_at: new Date().toISOString(),
+      patient_id: cas.patient_id ?? null,
       casualty_key: cas.key,
       casualty_label: cas.label,
       priority: cas.priority,
@@ -738,6 +742,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
       const session = await (await import('@/lib/herald-session')).getSession();
       const syncOk = await syncDispositionOrQueue({
         report_id: inc.id,
+        patient_id: cas.patient_id ?? null,
         casualty_key: cas.key,
         casualty_label: cas.label,
         priority: cas.priority,
@@ -1371,7 +1376,11 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
     if (currentNav.view === 'casualty') {
       const allCas = extractCasualties(currentNav.incident);
       const closedChecks = await Promise.all(
-        allCas.map(async c => c.key === d.casualty_key || await isCasualtyClosed(currentNav.incident.id, c.key))
+        allCas.map(async c =>
+          (d.patient_id && c.patient_id && d.patient_id === c.patient_id) ||
+          c.key === d.casualty_key ||
+          await isCasualtyClosed(currentNav.incident.id, c.key, c.patient_id ?? null),
+        ),
       );
       const remaining = allCas.filter((c, i) => !closedChecks[i]);
       if (remaining.length === 0) {

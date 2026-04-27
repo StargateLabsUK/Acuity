@@ -43,6 +43,7 @@ serve(async (req) => {
     // ── INITIATE ──
     if (action === "initiate") {
       const reportId = asText(body?.report_id, 64);
+      const patientId = asText(body?.patient_id, 64);
       const casualtyKey = asText(body?.casualty_key, 120);
       const casualtyLabel = asText(body?.casualty_label, 240);
       const priority = asText(body?.priority, 24);
@@ -75,12 +76,28 @@ serve(async (req) => {
         );
       }
 
+      // Verify patient_id belongs to this report when provided
+      if (patientId) {
+        const { data: patient } = await supabase
+          .from("incident_patients")
+          .select("id")
+          .eq("id", patientId)
+          .eq("report_id", reportId)
+          .maybeSingle();
+        if (!patient) {
+          return new Response(
+            JSON.stringify({ error: "Invalid patient_id for report" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      }
+
       // Check for existing pending transfer for this casualty
       const { data: existing } = await supabase
         .from("patient_transfers")
         .select("id")
         .eq("report_id", reportId)
-        .eq("casualty_key", casualtyKey)
+        .eq(patientId ? "patient_id" : "casualty_key", patientId ?? casualtyKey)
         .eq("status", "pending")
         .maybeSingle();
       if (existing) {
@@ -112,6 +129,7 @@ serve(async (req) => {
         .from("patient_transfers")
         .insert({
           report_id: reportId,
+          patient_id: patientId,
           casualty_key: casualtyKey,
           casualty_label: casualtyLabel,
           priority,
@@ -144,6 +162,7 @@ serve(async (req) => {
         details: {
           transfer_id: transfer.id,
           report_id: reportId,
+          patient_id: patientId || null,
           incident_number: report.incident_number ?? null,
           from_shift_id: fromShiftId || null,
           to_shift_id: toShiftId || null,
@@ -227,6 +246,7 @@ serve(async (req) => {
           system_event: true,
           event_type: "patient_transfer",
           transfer_id: transferId,
+          patient_id: transfer.patient_id ?? null,
           from_callsign: transfer.from_callsign,
           to_callsign: transfer.to_callsign,
           casualty_key: transfer.casualty_key,
@@ -242,6 +262,7 @@ serve(async (req) => {
       await supabase.from("casualty_dispositions").upsert(
         {
           report_id: transfer.report_id,
+          patient_id: transfer.patient_id ?? null,
           casualty_key: transfer.casualty_key,
           casualty_label: transfer.casualty_label,
           priority: transfer.priority,
@@ -285,6 +306,7 @@ serve(async (req) => {
         details: {
           transfer_id: transferId,
           report_id: transfer.report_id,
+          patient_id: transfer.patient_id ?? null,
           incident_number: transfer.incident_number ?? null,
           from_shift_id: transfer.from_shift_id ?? null,
           to_shift_id: transfer.to_shift_id ?? null,
@@ -360,6 +382,7 @@ serve(async (req) => {
         details: {
           transfer_id: transferId,
           report_id: transfer.report_id,
+          patient_id: transfer.patient_id ?? null,
           incident_number: transfer.incident_number ?? null,
           from_shift_id: transfer.from_shift_id ?? null,
           to_shift_id: transfer.to_shift_id ?? null,

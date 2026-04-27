@@ -143,6 +143,7 @@ export interface DispositionFields {
 }
 
 export interface CasualtyDisposition {
+  patient_id?: string | null;
   disposition: DispositionType;
   closed_at: string;
   casualty_key: string;

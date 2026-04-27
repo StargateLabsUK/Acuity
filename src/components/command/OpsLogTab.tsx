@@ -10,6 +10,7 @@ type ClinicalFindings = Partial<Record<AbcdeKey, string>>;
 
 interface CasualtySummary {
   key: string;
+  patientId?: string | null;
   label: string;
   priority: string;
   atmist: Record<string, unknown> | null;
@@ -195,6 +196,17 @@ function extractAtmistForCasualty(assessment: Assessment | null | undefined, cas
   return null;
 }
 
+function extractPatientIdForCasualty(
+  assessment: Assessment | null | undefined,
+  casualtyKey: string,
+): string | null {
+  const atmist = extractAtmistForCasualty(assessment, casualtyKey);
+  if (atmist && typeof atmist.patient_id === 'string' && atmist.patient_id.trim()) {
+    return atmist.patient_id.trim();
+  }
+  return null;
+}
+
 function buildCasualties(report: OpsReport, dispositions: OpsDisposition[], transfers: PatientTransfer[]): CasualtySummary[] {
   const atmistMap = (report.assessment?.atmist ?? {}) as Record<string, Record<string, unknown> | null>;
   const atmistKeys = Object.keys(atmistMap);
@@ -207,9 +219,10 @@ function buildCasualties(report: OpsReport, dispositions: OpsDisposition[], tran
     const disposition = dispositions.find((d) => d.report_id === report.id && d.casualty_key === key) ?? null;
     const transfer = transfers.find((t) => t.report_id === report.id && t.casualty_key === key) ?? null;
     const atmist = atmistMap[key] ?? null;
+    const patientId = extractPatientIdForCasualty(report.assessment, key);
     const priority = disposition?.priority ?? priorityFromCasualtyKey(key);
     const label = disposition?.casualty_label ?? (hasMeaningfulText(atmist?.A) ? `${key} — ${String(atmist?.A)}` : key);
-    return { key, label, priority, atmist, disposition, transfer };
+    return { key, patientId, label, priority, atmist, disposition, transfer };
   });
 }
 
@@ -249,7 +262,11 @@ function buildClinicalTimeline(
     });
 
   transfers
-    .filter((t) => t.report_id === report.id && t.casualty_key === casualty.key)
+    .filter((t) => {
+      if (t.report_id !== report.id) return false;
+      if (casualty.patientId && t.patient_id) return t.patient_id === casualty.patientId;
+      return t.casualty_key === casualty.key;
+    })
     .forEach((transfer) => {
       const snapshot = transfer.clinical_snapshot;
       if (!snapshot || typeof snapshot !== 'object') return;
