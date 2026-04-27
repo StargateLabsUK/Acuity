@@ -473,7 +473,23 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
       .eq('report_id', report.id)
       .order('timestamp', { ascending: true })
       .then(({ data }) => {
-        setTransmissions((data as unknown as IncidentTransmission[]) ?? []);
+        const rows = (data as unknown as IncidentTransmission[]) ?? [];
+        // Defensive de-dup for historical retry duplicates: keep first row per logical transmission.
+        const deduped: IncidentTransmission[] = [];
+        const seen = new Set<string>();
+        for (const tx of rows) {
+          const key = [
+            tx.report_id ?? '',
+            tx.timestamp ?? '',
+            tx.session_callsign ?? '',
+            tx.operator_id ?? '',
+            tx.transcript ?? '',
+          ].join('|');
+          if (seen.has(key)) continue;
+          seen.add(key);
+          deduped.push(tx);
+        }
+        setTransmissions(deduped);
       });
   }, [report?.id]);
 
