@@ -513,8 +513,6 @@ serve(async (req) => {
       const newAssessment = normalizeAssessmentForMerge((report.assessment as Record<string, unknown>) || {}) as any;
       const newTranscript = (report.transcript as string) || "";
 
-      await assignStablePatientIds(supabase, parentId, parentAssessment, newAssessment);
-
       let mergedActionItems = parentAssessment?.action_items || [];
       const resolvedItems: any[] = parentAssessment?.resolved_action_items || [];
       
@@ -959,10 +957,47 @@ async function enforceSingleActiveIncidentForShift(
       .is("ended_at", null);
   }
 
-  // No active assignment for this shift, so force a NEW incident.
-  // This prevents an old still-open report (e.g. transferred-out patient)
-  // from absorbing a new call just because callsign/time matched.
-  return { parentId: null };
+  // Recover from missing active_report_id pointer by checking active incidents
+  // scoped to this shift. This keeps follow-ups merging into the same open incident
+  // even if the shift pointer was lost.
+  const { data: shiftActiveReports } = await supabase
+    .from("herald_reports")
+    .select("id")
+    .eq("shift_id", shiftId)
+    .eq("status", "active")
+    .order("latest_transmission_at", { ascending: false, nullsFirst: false })
+    .limit(5);
+
+  const activeIds = (shiftActiveReports ?? []).map((r: any) => r.id).filter(Boolean);
+  if (activeIds.length === 0) {
+    // No active assignment for this shift, so force a NEW incident.
+    return { parentId: null };
+  }
+
+  // If candidateParentId is already one of this shift's active incidents,
+  // prefer it (it came from explicit matching logic above).
+  if (candidateParentId && activeIds.includes(candidateParentId)) {
+    await supabase
+      .from("shifts")
+      .update({ active_report_id: candidateParentId, crew_status: "on_incident" })
+      .eq("id", shiftId)
+      .is("ended_at", null);
+    return { parentId: candidateParentId };
+  }
+
+  // If there is exactly one active incident for the shift, it is authoritative.
+  if (activeIds.length === 1) {
+    await supabase
+      .from("shifts")
+      .update({ active_report_id: activeIds[0], crew_status: "on_incident" })
+      .eq("id", shiftId)
+      .is("ended_at", null);
+    return { parentId: activeIds[0] };
+  }
+
+  // Multiple active incidents on one shift indicates data integrity drift.
+  // Do not guess which one to merge into.
+  return { parentId: null, error: "Multiple active incidents found for shift; manual reconciliation required" };
 }
 
 function actionItemCategory(text: string): string {
