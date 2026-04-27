@@ -95,8 +95,18 @@ export function useHeraldCommand() {
       const now = new Date();
       const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
 
-      // Build queries — filter by trust_id unless user is owner
+      // Build queries — trust-scoped for non-owner.
       const tid = trustIdRef.current;
+      if (!isOwnerRef.current && !tid) {
+        // Guardrail: avoid loading cross-trust/null-trust rows if profile trust mapping is missing.
+        setReports([]);
+        setShifts([]);
+        setDispositions([]);
+        setTransfers([]);
+        setConnected(false);
+        setLoading(false);
+        return;
+      }
       let reportsQ = supabase.from('herald_reports').select('*').gte('created_at', todayStart.toISOString()).order('latest_transmission_at', { ascending: false, nullsFirst: false }).limit(200);
       let shiftsQ = supabase.from('shifts').select('*').is('ended_at', null).order('created_at', { ascending: false }).limit(50);
       let disposQ = supabase.from('casualty_dispositions').select('*').gte('created_at', todayStart.toISOString()).order('closed_at', { ascending: false }).limit(500);

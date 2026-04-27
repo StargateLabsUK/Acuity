@@ -13,6 +13,37 @@ function validateString(val: unknown, maxLen = MAX_STRING_LENGTH): boolean {
   return !val || (typeof val === 'string' && val.length <= maxLen);
 }
 
+function normalizeSlugLike(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function resolveTrustIdForShiftStart(
+  supabase: ReturnType<typeof createClient>,
+  providedTrustId: string | null,
+  service: string,
+): Promise<string | null> {
+  if (providedTrustId) return providedTrustId;
+  const normalizedService = normalizeSlugLike(service);
+  if (!normalizedService) return null;
+
+  const { data: trusts } = await supabase
+    .from("trusts")
+    .select("id, name, slug")
+    .eq("active", true);
+  if (!trusts || trusts.length === 0) return null;
+
+  const match = trusts.find((trust) =>
+    trust.name?.toLowerCase().trim() === service.toLowerCase().trim() ||
+    normalizeSlugLike(trust.name ?? "") === normalizedService ||
+    (trust.slug ?? "").toLowerCase().trim() === normalizedService
+  );
+  return match?.id ?? null;
+}
+
 function isMissingShiftLifecycleColumnError(error: { message?: string | null; details?: string | null; code?: string | null } | null | undefined): boolean {
   if (!error) return false;
   const text = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
@@ -58,12 +89,18 @@ serve(async (req) => {
         );
       }
 
+      const effectiveTrustId = await resolveTrustIdForShiftStart(
+        supabase,
+        typeof trust_id === "string" ? trust_id : null,
+        String(service),
+      );
+
       // Auth: verify trust_id exists and is active
-      if (trust_id) {
+      if (effectiveTrustId) {
         const { data: trust } = await supabase
           .from("trusts")
           .select("id")
-          .eq("id", trust_id)
+          .eq("id", effectiveTrustId)
           .eq("active", true)
           .maybeSingle();
         if (!trust) {
@@ -85,7 +122,7 @@ serve(async (req) => {
         vehicle_type: vehicle_type || null,
         can_transport: can_transport ?? true,
         critical_care: critical_care ?? false,
-        trust_id: trust_id || null,
+        trust_id: effectiveTrustId || null,
       };
       const lifecycleInsert = {
         ...baseInsert,
@@ -124,7 +161,7 @@ serve(async (req) => {
 
       await supabase.from("audit_log").insert({
         action: "shift_started",
-        trust_id: trust_id || null,
+        trust_id: effectiveTrustId || null,
         details: {
           shift_id: data.id,
           callsign,

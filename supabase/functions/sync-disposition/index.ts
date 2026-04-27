@@ -28,6 +28,46 @@ function sanitizeJsonObject(value: unknown): Record<string, unknown> {
   return JSON.parse(JSON.stringify(value));
 }
 
+function normalizeSlugLike(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function resolveTrustIdForDisposition(
+  supabase: ReturnType<typeof createClient>,
+  reportId: string,
+  providedTrustId: string | null,
+): Promise<string | null> {
+  if (providedTrustId) return providedTrustId;
+
+  const { data: report } = await supabase
+    .from("herald_reports")
+    .select("trust_id, session_service")
+    .eq("id", reportId)
+    .maybeSingle();
+
+  if (report?.trust_id) return report.trust_id;
+  const sessionService = typeof report?.session_service === "string" ? report.session_service.trim() : "";
+  if (!sessionService) return null;
+
+  const normalizedService = normalizeSlugLike(sessionService);
+  const { data: trusts } = await supabase
+    .from("trusts")
+    .select("id, name, slug")
+    .eq("active", true);
+  if (!trusts || trusts.length === 0) return null;
+
+  const match = trusts.find((trust) =>
+    trust.name?.toLowerCase().trim() === sessionService.toLowerCase().trim() ||
+    normalizeSlugLike(trust.name ?? "") === normalizedService ||
+    (trust.slug ?? "").toLowerCase().trim() === normalizedService
+  );
+  return match?.id ?? null;
+}
+
 serve(async (req) => {
   const preflight = handleCors(req);
   if (preflight) return preflight;
@@ -80,11 +120,13 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    if (trustId) {
+    const effectiveTrustId = await resolveTrustIdForDisposition(supabase, reportId, trustId);
+
+    if (effectiveTrustId) {
       const { data: trust } = await supabase
         .from("trusts")
         .select("id")
-        .eq("id", trustId)
+        .eq("id", effectiveTrustId)
         .eq("active", true)
         .maybeSingle();
 
@@ -122,7 +164,7 @@ serve(async (req) => {
           incident_number: incidentNumber,
           closed_at: closedAt,
           session_callsign: sessionCallsign,
-          trust_id: trustId,
+          trust_id: effectiveTrustId,
         },
         { onConflict: "report_id,casualty_key" },
       );
@@ -142,7 +184,7 @@ serve(async (req) => {
 
     await supabase.from("audit_log").insert({
       action: "disposition_recorded",
-      trust_id: trustId || null,
+      trust_id: effectiveTrustId || null,
       details: {
         report_id: reportId,
         incident_number: incidentNumber || report?.incident_number || null,
