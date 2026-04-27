@@ -365,8 +365,6 @@ function IncidentCard({
   transfers: PatientTransfer[];
   onClick: () => void;
 }) {
-  const priority = String(report.assessment?.priority ?? report.priority ?? '—');
-  const color = PRIORITY_COLORS[priority] ?? '#888';
   const isClosed = report.status === 'closed';
   const hasTransfer = transfers.some((t) => t.report_id === report.id);
   const casualtyCount = Math.max(
@@ -380,7 +378,6 @@ function IncidentCard({
       className="w-full text-left rounded-lg border border-border bg-card shadow-sm p-3 cursor-pointer hover:bg-muted/30 transition-colors mb-2 block"
     >
       <div className="flex items-center gap-2 mb-1 flex-wrap">
-        <span className="text-sm font-bold" style={badgeStyle(color)}>{priority}</span>
         <span className="text-sm font-bold" style={badgeStyle(isClosed ? '#888' : '#FF9500')}>
           {isClosed ? 'CLOSED' : 'ACTIVE'}
         </span>

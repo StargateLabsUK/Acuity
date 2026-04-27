@@ -431,8 +431,7 @@ function IncidentCard({
   transferredKeys?: Set<string>;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const p = inc.assessment?.priority ?? inc.priority ?? 'P3';
-  const col = PRIORITY_COLORS[p] ?? '#34C759';
+  const col = '#1E90FF';
   let casualties = extractCasualties(inc).filter(c => !closedKeys.has(`${inc.id}:${c.key}`));
   if (transferredKeys?.size) casualties = casualties.filter(c => transferredKeys.has(c.key));
 
@@ -446,10 +445,6 @@ function IncidentCard({
           {expanded
             ? <ChevronDown size={20} style={{ color: col }} className="flex-shrink-0" />
             : <ChevronRight size={20} style={{ color: col }} className="flex-shrink-0" />}
-          <span className="text-lg font-bold rounded-sm px-2 py-0.5 flex-shrink-0"
-            style={{ color: col, border: `1px solid ${col}66`, background: `${col}1A` }}>
-            {p}
-          </span>
           <div className="flex-1 min-w-0">
             <p className="text-lg text-foreground font-semibold leading-tight">
               {formatIncidentTitle(inc.incident_number)}
@@ -520,8 +515,7 @@ function IncidentDetailView({
   transferredKeys?: Set<string>;
 }) {
   const a = inc.assessment;
-  const p = a?.priority ?? inc.priority ?? 'P3';
-  const col = PRIORITY_COLORS[p] ?? '#34C759';
+  const col = '#1E90FF';
   let casualties = extractCasualties(inc).filter(cas => !closedKeys.has(`${inc.id}:${cas.key}`));
   if (transferredKeys?.size) casualties = casualties.filter(c => transferredKeys.has(c.key));
 
@@ -544,12 +538,6 @@ function IncidentDetailView({
               incidentNumber={inc.incident_number}
               onSave={(next) => onSaveIncidentNumber(inc.id, next)}
             />
-            <span
-              className="text-sm font-semibold rounded-sm px-2 py-0.5"
-              style={{ color: col, border: `1px solid ${col}55`, background: `${col}18` }}
-            >
-              {p}
-            </span>
           </div>
           <p className="text-sm text-muted-foreground">{incidentTime}</p>
           <p className="text-sm text-muted-foreground mb-2">{displayAddress}</p>

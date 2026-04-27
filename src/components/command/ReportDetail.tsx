@@ -493,8 +493,7 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
   } catch {
     a = null;
   }
-  const priority = s(a?.priority ?? report.priority ?? 'P3');
-  const col = PRIORITY_COLORS[priority] ?? '#34C759';
+  const col = '#1E90FF';
   const service = s(a?.service ?? report.service ?? 'unknown');
   const serviceLabel = SERVICE_LABELS[service] ?? service.toUpperCase();
   const vtCode = (report as any).vehicle_type;
@@ -511,7 +510,6 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
   const structured = a?.structured ?? {};
   const formattedReport = s(a?.formatted_report ?? '');
   const headline = s(a?.headline ?? report.headline ?? '');
-  const priorityLabel = s(a?.priority_label ?? '');
 
   const incidentType = s(a?.incident_type ?? a?.protocol ?? 'Unknown');
   const majorIncident = a?.major_incident ?? false;
@@ -613,10 +611,6 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
                   ACTIVE
                 </span>
               ) : null}
-            </div>
-            <div className="flex items-baseline gap-1.5 md:gap-3">
-              <span className="font-heading text-2xl md:text-5xl leading-none" style={{ color: col }}>{priority}</span>
-              <span className="font-heading text-lg md:text-[28px] tracking-wide" style={{ color: col }}>{priorityLabel}</span>
             </div>
             {incidentType && incidentType !== 'Unknown' && (
               <div className="text-lg font-bold mt-1 tracking-wide" style={{ color: col }}>{incidentType}</div>
