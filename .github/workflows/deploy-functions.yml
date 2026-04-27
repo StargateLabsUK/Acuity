@@ -21,6 +21,23 @@ jobs:
 
       - name: Deploy all edge functions
         run: |
-          supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+          set -euo pipefail
+          max_attempts=4
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Deploy attempt $attempt/$max_attempts"
+            if supabase functions deploy --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"; then
+              echo "Deploy succeeded on attempt $attempt"
+              exit 0
+            fi
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "Deploy failed after $max_attempts attempts"
+              exit 1
+            fi
+            sleep_seconds=$((attempt * 10))
+            echo "Deploy attempt $attempt failed; retrying in ${sleep_seconds}s..."
+            sleep "$sleep_seconds"
+            attempt=$((attempt + 1))
+          done
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
