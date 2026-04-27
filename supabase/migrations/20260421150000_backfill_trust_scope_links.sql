@@ -36,7 +36,7 @@ WHERE s.id = c.shift_id
 WITH shift_report_trust AS (
   SELECT
     r.shift_id,
-    MIN(r.trust_id) AS trust_id
+    (array_agg(r.trust_id ORDER BY r.trust_id))[1] AS trust_id
   FROM public.herald_reports r
   WHERE r.shift_id IS NOT NULL
     AND r.trust_id IS NOT NULL
