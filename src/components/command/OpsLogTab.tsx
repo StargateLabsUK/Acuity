@@ -234,11 +234,23 @@ function buildClinicalTimeline(
   totalCasualties: number,
 ): ClinicalTimelineEntry[] {
   const timeline: ClinicalTimelineEntry[] = [];
+  const seenTransmissionFingerprint = new Set<string>();
 
   transmissions
     .filter((tx) => tx.report_id === report.id)
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
     .forEach((tx) => {
+      // Defensive de-duplication: collapse replay duplicates to one clinical entry.
+      const fingerprint = [
+        tx.report_id,
+        tx.timestamp,
+        tx.session_callsign ?? '',
+        tx.headline ?? '',
+        tx.transcript ?? '',
+      ].join('|');
+      if (seenTransmissionFingerprint.has(fingerprint)) return;
+      seenTransmissionFingerprint.add(fingerprint);
+
       const assessment = tx.assessment as Assessment | null;
       const atmist = extractAtmistForCasualty(assessment, casualty.key);
       const clinicalFindings = normalizeClinicalFindings(assessment?.clinical_findings);
@@ -313,9 +325,24 @@ function latestClinicalFindings(
   reportAssessment: Assessment | null | undefined,
   totalCasualties: number,
 ): ClinicalFindings {
+  const mergedLatest: ClinicalFindings = {};
+
   for (let i = timeline.length - 1; i >= 0; i -= 1) {
-    if (hasClinicalFindings(timeline[i].clinicalFindings)) return timeline[i].clinicalFindings;
+    const findings = timeline[i].clinicalFindings;
+    (['A', 'B', 'C', 'D', 'E'] as AbcdeKey[]).forEach((key) => {
+      if (!mergedLatest[key] && hasMeaningfulText(findings[key])) {
+        mergedLatest[key] = findings[key];
+      }
+    });
+    if ((['A', 'B', 'C', 'D', 'E'] as AbcdeKey[]).every((key) => hasMeaningfulText(mergedLatest[key]))) {
+      return mergedLatest;
+    }
   }
+
+  if (hasClinicalFindings(mergedLatest)) {
+    return mergedLatest;
+  }
+
   if (totalCasualties === 1) return normalizeClinicalFindings(reportAssessment?.clinical_findings);
   return {};
 }

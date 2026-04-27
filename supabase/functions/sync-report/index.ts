@@ -348,6 +348,49 @@ async function ensureIncidentNumber(
   reportData.incident_number = `${buildAutoIncidentNumber()}-${Math.floor(Math.random() * 10)}`;
 }
 
+function timestampMs(value: unknown): number {
+  if (typeof value !== "string") return Number.NaN;
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) ? Number.NaN : ms;
+}
+
+type ExistingTransmission = {
+  id: string;
+  timestamp: string;
+  created_at?: string | null;
+};
+
+async function findMatchingTransmission(
+  supabase: ReturnType<typeof createClient>,
+  reportId: string,
+  report: Record<string, unknown>,
+): Promise<ExistingTransmission | null> {
+  const timestamp = typeof report.timestamp === "string" ? report.timestamp : null;
+  if (!timestamp) return null;
+
+  let query = supabase
+    .from("incident_transmissions")
+    .select("id, timestamp, created_at")
+    .eq("report_id", reportId)
+    .eq("timestamp", timestamp)
+    .eq("transcript", (report.transcript as string) ?? null)
+    .limit(1);
+
+  const callsign = typeof report.session_callsign === "string" ? report.session_callsign : null;
+  const operatorId = typeof report.session_operator_id === "string" ? report.session_operator_id : null;
+
+  query = callsign ? query.eq("session_callsign", callsign) : query.is("session_callsign", null);
+  query = operatorId ? query.eq("operator_id", operatorId) : query.is("operator_id", null);
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("findMatchingTransmission error:", error);
+    return null;
+  }
+
+  return ((data ?? [])[0] as ExistingTransmission | undefined) ?? null;
+}
+
 serve(async (req) => {
   const preflight = handleCors(req);
   if (preflight) return preflight;
@@ -419,24 +462,45 @@ serve(async (req) => {
 
     if (parentId) {
       // --- FOLLOW-UP: append transmission to existing incident ---
-      const { error: txError } = await supabase.from("incident_transmissions").insert({
-        report_id: parentId,
-        timestamp: report.timestamp,
-        transcript: report.transcript ?? null,
-        assessment: report.assessment ?? null,
-        priority: report.priority ?? null,
-        headline: report.headline ?? null,
-        operator_id: report.session_operator_id ?? null,
-        session_callsign: report.session_callsign ?? null,
-        trust_id: report.trust_id ?? null,
-      });
+      // Idempotency guard: avoid duplicating timeline rows on queue retries.
+      // We treat (report_id + timestamp + transcript + callsign + operator_id) as the
+      // logical transmission identity from the field device.
+      const normalizedTranscript = typeof report.transcript === "string" ? report.transcript.trim() : "";
+      const normalizedCallsign = typeof report.session_callsign === "string" ? report.session_callsign.trim() : "";
+      const normalizedOperator = typeof report.session_operator_id === "string" ? report.session_operator_id.trim() : "";
 
-      if (txError) {
-        console.error("Insert transmission error:", txError);
-        return new Response(
-          JSON.stringify({ error: "Failed to save transmission" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      const { data: existingTx } = await supabase
+        .from("incident_transmissions")
+        .select("id")
+        .eq("report_id", parentId)
+        .eq("timestamp", report.timestamp as string)
+        .eq("transcript", normalizedTranscript || null)
+        .eq("session_callsign", normalizedCallsign || null)
+        .eq("operator_id", normalizedOperator || null)
+        .maybeSingle();
+
+      let insertedNewTransmission = false;
+      if (!existingTx) {
+        const { error: txError } = await supabase.from("incident_transmissions").insert({
+          report_id: parentId,
+          timestamp: report.timestamp,
+          transcript: normalizedTranscript || null,
+          assessment: report.assessment ?? null,
+          priority: report.priority ?? null,
+          headline: report.headline ?? null,
+          operator_id: normalizedOperator || null,
+          session_callsign: normalizedCallsign || null,
+          trust_id: report.trust_id ?? null,
+        });
+
+        if (txError) {
+          console.error("Insert transmission error:", txError);
+          return new Response(
+            JSON.stringify({ error: "Failed to save transmission" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        insertedNewTransmission = true;
       }
 
       const parentReport = await supabase
@@ -552,6 +616,11 @@ serve(async (req) => {
         newAssessment || {},
       ) as Record<string, unknown>;
 
+      const mergedClinicalFindings = mergeClinicalFindings(
+        (parentAssessment?.clinical_findings || {}) as Record<string, unknown>,
+        (newAssessment?.clinical_findings || {}) as Record<string, unknown>,
+      );
+
       // Explicitly set merged action items (overrides any spread value)
       mergedAssessment.action_items = mergedActionItems;
       mergedAssessment.resolved_action_items = resolvedItems;
@@ -570,17 +639,11 @@ serve(async (req) => {
         parentId,
         mergedAssessment,
       );
+      mergedAssessment.clinical_findings = mergedClinicalFindings;
       const mergedAssessmentWithPatientIds = embedPatientIdsInAssessment(
         mergedAssessment,
         patientIdsByCasualtyKey,
       ) as Record<string, unknown>;
-
-      if (parentAssessment?.clinical_findings || newAssessment?.clinical_findings) {
-        mergedAssessment.clinical_findings = mergeClinicalFindings(
-          (parentAssessment?.clinical_findings || {}) as Record<string, unknown>,
-          (newAssessment?.clinical_findings || {}) as Record<string, unknown>,
-        );
-      }
 
       if (parentAssessment?.vitals || newAssessment?.vitals) {
         mergedAssessment.vitals = mergeShallow(
@@ -646,19 +709,39 @@ serve(async (req) => {
 
       if (updateError) {
         console.error("Update parent error:", updateError);
+        return new Response(
+          JSON.stringify({ error: "Failed to update incident state" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
-      const { data: parentData } = await supabase
+      const { data: parentData, error: parentDataError } = await supabase
         .from("herald_reports")
         .select("transmission_count")
         .eq("id", parentId)
         .single();
 
-      if (parentData) {
-        await supabase
+      if (parentDataError) {
+        console.error("Read parent transmission_count error:", parentDataError);
+        return new Response(
+          JSON.stringify({ error: "Failed to read incident counters" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (parentData && insertedNewTransmission) {
+        const nextTransmissionCount = Math.max((parentData.transmission_count ?? 0) + 1, 2);
+        const { error: countUpdateError } = await supabase
           .from("herald_reports")
-          .update({ transmission_count: (parentData.transmission_count ?? 1) + 1 })
+          .update({ transmission_count: nextTransmissionCount })
           .eq("id", parentId);
+        if (countUpdateError) {
+          console.error("Update transmission_count error:", countUpdateError);
+          return new Response(
+            JSON.stringify({ error: "Failed to update incident counters" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
 
       const { data: parentMeta } = await supabase
