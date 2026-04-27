@@ -259,7 +259,7 @@ const IncidentsPage = () => {
           setSession(targetSession);
           await saveSession(targetSession);
         }
-        const result = await endShiftRemote(targetSession.shift_id, targetSession);
+        const result = await endShiftRemote(targetSession.shift_id);
         if (!result.ok) {
           const openIncidents = result.open_incident_ids?.length ?? 0;
           const transferredPatients = result.outstanding_accepted_transfer_count ?? 0;
