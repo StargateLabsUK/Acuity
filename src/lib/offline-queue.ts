@@ -168,6 +168,17 @@ export async function retryDeadLetter(id: number): Promise<void> {
   });
 }
 
+/** Remove only dead-lettered items (keeps active retry queue intact) */
+export async function clearDeadLetters(): Promise<void> {
+  const items = await getDeadLetters();
+  await Promise.all(
+    items
+      .map((item) => item.id)
+      .filter((id): id is number => typeof id === 'number')
+      .map((id) => remove(id)),
+  );
+}
+
 /** Clear the entire queue */
 export async function clearAll(): Promise<void> {
   const db = await openDB();
