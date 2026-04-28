@@ -28,6 +28,13 @@ interface HospitalAlert {
   headline: string | null;
 }
 
+function toHeraldReport(row: Record<string, unknown>): HeraldReport {
+  return {
+    ...(row as unknown as HeraldReport),
+    assessment: (row.assessment as HeraldReport['assessment']) ?? null,
+  };
+}
+
 const IncidentsPage = () => {
   const location = useLocation();
   const initialTab = (location.state as any)?.tab === 'reports' ? 'reports' : 'incidents';
@@ -107,36 +114,50 @@ const IncidentsPage = () => {
       const mergedReports = new Map<string, HeraldReport>();
       for (const r of localReports) mergedReports.set(r.id, r);
       for (const r of remoteReports) {
-        mergedReports.set(r.id as string, {
-          ...(r as unknown as HeraldReport),
-          assessment: (r.assessment as unknown as HeraldReport['assessment']) ?? null,
+        mergedReports.set(r.id as string, toHeraldReport(r));
+      }
+
+      const mergedDisps = new Map<string, CasualtyDisposition>();
+      for (const row of remoteDisps as any[]) {
+        const key = `${row.report_id}-${row.casualty_key}`;
+        mergedDisps.set(key, {
+          disposition: row.disposition as CasualtyDisposition['disposition'],
+          closed_at: row.closed_at,
+          patient_id: row.patient_id ?? null,
+          casualty_key: row.casualty_key,
+          casualty_label: row.casualty_label,
+          priority: row.priority,
+          incident_id: row.report_id,
+          incident_number: row.incident_number,
+          session_callsign: row.session_callsign,
+          fields: (row.fields as CasualtyDisposition['fields']) ?? {},
         });
       }
-      setReports(Array.from(mergedReports.values()));
-
-      if (remoteDisps.length > 0) {
-        const mergedDisps = new Map<string, CasualtyDisposition>();
-        for (const row of remoteDisps as any[]) {
-          const key = `${row.report_id}-${row.casualty_key}`;
-          mergedDisps.set(key, {
-            disposition: row.disposition as CasualtyDisposition['disposition'],
-            closed_at: row.closed_at,
-            casualty_key: row.casualty_key,
-            casualty_label: row.casualty_label,
-            priority: row.priority,
-            incident_id: row.report_id,
-            incident_number: row.incident_number,
-            session_callsign: row.session_callsign,
-            fields: (row.fields as CasualtyDisposition['fields']) ?? {},
-          });
-        }
-        for (const d of localDisps) {
-          mergedDisps.set(`${d.incident_id}-${d.casualty_key}`, d);
-        }
-        setClosedCasualties(Array.from(mergedDisps.values()));
-      } else {
-        setClosedCasualties(localDisps);
+      for (const d of localDisps) {
+        mergedDisps.set(`${d.incident_id}-${d.casualty_key}`, d);
       }
+
+      // Closed casualties can outlive "active incidents"; hydrate any missing parent reports
+      // so ePRFs still have full clinical context after handover.
+      const missingReportIds = Array.from(
+        new Set(
+          Array.from(mergedDisps.values())
+            .map((d) => d.incident_id)
+            .filter((incidentId) => !mergedReports.has(incidentId)),
+        ),
+      );
+      if (missingReportIds.length > 0) {
+        const { data: closedReports } = await supabase
+          .from('herald_reports')
+          .select('*')
+          .in('id', missingReportIds);
+        for (const reportRow of closedReports ?? []) {
+          mergedReports.set(reportRow.id, toHeraldReport(reportRow as unknown as Record<string, unknown>));
+        }
+      }
+
+      setReports(Array.from(mergedReports.values()));
+      setClosedCasualties(Array.from(mergedDisps.values()));
     } catch {
       setFetchOk(false);
       setReports(localReports);
