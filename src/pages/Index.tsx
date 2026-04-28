@@ -29,12 +29,9 @@ const Index = () => {
       });
       return;
     }
-    getSession().then(s => {
-      if (s && s.operator_id) {
-        setSession(s);
-      } else {
-        setSession(null);
-      }
+    getSession().then((s) => {
+      // Accept any valid session. Operator ID can be null on trust-managed flows.
+      setSession(s ?? null);
     });
   }, []);
   const { syncStatus, queuedCount, triggerSync } = useHeraldSync();

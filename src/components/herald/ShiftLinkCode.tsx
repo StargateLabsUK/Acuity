@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { ensureSessionShiftId, generateLinkCode } from '@/lib/herald-session';
+import { normalizeLatestCrewRows } from '@/lib/normalize-latest-crew-rows';
 import { supabase } from '@/integrations/supabase/client';
 import type { HeraldSession } from '@/lib/herald-session';
 
