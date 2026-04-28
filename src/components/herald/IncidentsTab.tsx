@@ -318,34 +318,9 @@ function extractCasualties(inc: Incident): CasualtyData[] {
 
   const atmist = a.atmist;
   if (!atmist || Object.keys(atmist).length === 0) {
-    const hasClinic = a.clinical_findings || a.clinical_history || a.headline;
-    if (!hasClinic) return [];
-
-    const singleAtmist: Record<string, string> = {};
-    if (a.clinical_findings) {
-      singleAtmist.A = a.clinical_findings.A ?? '—';
-      singleAtmist.S = [a.clinical_findings.B, a.clinical_findings.C, a.clinical_findings.D]
-        .filter(Boolean).join('; ') || '—';
-    }
-    if (a.clinical_history) singleAtmist.M = a.clinical_history;
-    if (a.treatment_given?.length) singleAtmist.T_treatment = a.treatment_given.join('; ');
-
-    const assessHospital: string[] = a.receiving_hospital ?? [];
-    const reportHospital = inc.receiving_hospital;
-    const hospital = reportHospital || (assessHospital.length > 0 ? assessHospital[0] : '');
-    const demo = a.headline ?? 'Casualty';
-    const p = a.priority ?? inc.priority ?? 'P3';
-
-    return [{
-      key: p,
-      priority: p,
-      label: `${p} — ${demo}`,
-      atmist: singleAtmist,
-      receivingHospital: hospital,
-      actionItems: filterActionItemsForCasualty(a, p, true),
-      resolvedItems: filterResolvedForCasualty(a, p, true),
-      patientName: a.patient_name ?? undefined,
-    }];
+    // Ops view only treats explicit ATMIST casualties as patients.
+    // Keep crew behavior aligned to avoid showing incident-level data as a fake P1/P2/P3 patient.
+    return [];
   }
 
   const assessHospitals: string[] = a.receiving_hospital ?? [];
@@ -594,24 +569,30 @@ function IncidentCard({
           <p className="text-lg font-bold tracking-[0.15em] mt-2 mb-2" style={{ color: '#1E90FF' }}>
             PATIENTS
           </p>
-          {casualties.map(cas => {
-            const casCol = PRIORITY_COLORS[cas.priority] ?? '#34C759';
-            return (
-              <button key={cas.key} onClick={() => onSelectCasualty(cas)}
-                className="w-full text-left mb-1.5 rounded-lg border border-border bg-background p-3 hover:border-primary transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="text-lg font-bold rounded-sm px-2 py-0.5 flex-shrink-0"
-                    style={{ color: casCol, border: `1px solid ${casCol}66`, background: `${casCol}1A` }}>
-                    {cas.priority}
-                  </span>
-                  <span className="text-lg text-foreground font-medium flex-1 min-w-0 truncate">
-                    {cas.label.replace(/^P\d\s*—\s*/, '')}
-                  </span>
-                  <ChevronRight size={18} className="text-foreground opacity-40 flex-shrink-0" />
-                </div>
-              </button>
-            );
-          })}
+          {casualties.length === 0 ? (
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-lg text-foreground opacity-60">No patients captured yet.</p>
+            </div>
+          ) : (
+            casualties.map(cas => {
+              const casCol = PRIORITY_COLORS[cas.priority] ?? '#34C759';
+              return (
+                <button key={cas.key} onClick={() => onSelectCasualty(cas)}
+                  className="w-full text-left mb-1.5 rounded-lg border border-border bg-background p-3 hover:border-primary transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold rounded-sm px-2 py-0.5 flex-shrink-0"
+                      style={{ color: casCol, border: `1px solid ${casCol}66`, background: `${casCol}1A` }}>
+                      {cas.priority}
+                    </span>
+                    <span className="text-lg text-foreground font-medium flex-1 min-w-0 truncate">
+                      {cas.label.replace(/^P\d\s*—\s*/, '')}
+                    </span>
+                    <ChevronRight size={18} className="text-foreground opacity-40 flex-shrink-0" />
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
       )}
     </div>
@@ -673,7 +654,7 @@ function IncidentDetailView({
         </p>
 
         {casualties.length === 0 ? (
-          <p className="text-lg text-foreground opacity-50">All casualties handed over</p>
+          <p className="text-lg text-foreground opacity-50">No patients captured yet</p>
         ) : (
           casualties.map(cas => {
             const casCol = PRIORITY_COLORS[cas.priority] ?? '#34C759';
@@ -1705,11 +1686,8 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
     return all.filter(c => transferredKeys.has(c.key));
   }, [isOwnIncident, transferredCasualties]);
 
-  // Filter to only show incidents with open casualties
-  const activeWithCasualties = incidents.filter(inc => {
-    const cas = extractVisibleCasualties(inc);
-    return cas.some(c => !closedKeys.has(`${inc.id}:${c.key}`));
-  });
+  // Keep active incidents visible even before patient-level data exists.
+  const visibleActiveIncidents = incidents;
 
   // ── Render based on nav state ──
 
@@ -1782,13 +1760,13 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
         </div>
 
         <p className="text-lg font-bold tracking-[0.2em] mb-3" style={{ color: '#FF9500' }}>
-          ACTIVE INCIDENTS ({activeWithCasualties.length})
+          ACTIVE INCIDENTS ({visibleActiveIncidents.length})
         </p>
-        {activeWithCasualties.length === 0 ? (
+        {visibleActiveIncidents.length === 0 ? (
           <p className="text-lg text-foreground opacity-50">No active incidents</p>
         ) : (
           <div className="flex flex-col gap-2 md:gap-3">
-            {activeWithCasualties.map(inc => (
+            {visibleActiveIncidents.map(inc => (
               <IncidentCard
                 key={inc.id}
                 inc={inc}
