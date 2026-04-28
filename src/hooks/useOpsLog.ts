@@ -206,7 +206,7 @@ export function useOpsLog() {
   }, [fetchData, ready]);
 
   const uniqueServices = Array.from(new Set(shifts.map((s) => s.service).filter(Boolean))).sort();
-  const uniqueStations = Array.from(new Set(shifts.map((s) => s.station).filter(Boolean) as string[])).sort();
+  const uniqueStations = Array.from(new Set(reports.map((r) => r.session_station).filter(Boolean) as string[])).sort();
   const uniqueCallsigns = Array.from(new Set(reports.map(r => r.session_callsign).filter(Boolean) as string[])).sort();
   const uniqueOperatorIds = Array.from(new Set(reports.map(r => r.session_operator_id).filter(Boolean) as string[])).sort();
 
