@@ -330,6 +330,7 @@ const IncidentsPage = () => {
         syncStatus={!fetchOk ? 'offline' : !fieldOnline ? 'offline' : syncStatus}
         queuedCount={queuedCount}
         deadLetterCount={deadLetterCount}
+        onQueueReview={openDeadLetterReview}
         onDeadLetterReview={openDeadLetterReview}
         onEndShift={handleEndShift}
         onRefresh={async () => {
