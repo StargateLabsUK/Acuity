@@ -801,6 +801,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
   transferInfo?: TransferInfo;
 }) {
   const col = PRIORITY_COLORS[cas.priority] ?? '#34C759';
+  const dispositionColor = 'hsl(var(--primary))';
   const [showEprf, setShowEprf] = useState(false);
   const [timelineEntries, setTimelineEntries] = useState<ClinicalTimelineEntry[]>([]);
   const [disposition, setDisposition] = useState<DispositionType>('conveyed');
@@ -1165,179 +1166,186 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
 
         {/* Disposition selector */}
         <div className="mb-4">
-          <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: col }}>DISPOSITION</p>
-          <div className="flex flex-col gap-1.5 mb-3">
-            {(Object.entries(DISPOSITION_LABELS) as [DispositionType, string][])
-              .filter(([key]) => key !== 'transferred')
-              .map(([key, label]) => (
-              <button key={key} onClick={() => setDisposition(key)}
-                className="text-left text-lg px-3 py-2.5 rounded-lg border transition-colors"
-                style={{
-                  borderColor: disposition === key ? col : 'hsl(var(--border))',
-                  background: disposition === key ? `${col}1A` : 'transparent',
-                  color: disposition === key ? col : 'hsl(var(--foreground))',
-                  fontWeight: disposition === key ? 700 : 400,
-                }}>
-                {label}
-              </button>
-            ))}
+          <div className="border border-border rounded-lg bg-card p-3">
+            <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: dispositionColor }}>
+              DISPOSITION
+            </p>
+            <p className="text-lg text-foreground opacity-60 mb-3">
+              Select the patient handover/discharge outcome below.
+            </p>
+            <div className="flex flex-col gap-1.5 mb-3">
+              {(Object.entries(DISPOSITION_LABELS) as [DispositionType, string][])
+                .filter(([key]) => key !== 'transferred')
+                .map(([key, label]) => (
+                <button key={key} onClick={() => setDisposition(key)}
+                  className="text-left text-lg px-3 py-2.5 rounded-lg border transition-colors"
+                  style={{
+                    borderColor: disposition === key ? dispositionColor : 'hsl(var(--border))',
+                    background: disposition === key ? 'rgba(5,150,105,0.12)' : 'transparent',
+                    color: disposition === key ? dispositionColor : 'hsl(var(--foreground))',
+                    fontWeight: disposition === key ? 700 : 400,
+                  }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* ── CONVEYED ── */}
+            {disposition === 'conveyed' && (
+              <div className="border-t border-border pt-3 flex flex-col gap-3">
+                <div>
+                  <FieldLabel>Receiving hospital</FieldLabel>
+                  <TextInput value={fields.receiving_hospital ?? cas.receivingHospital ?? ''} onChange={v => updateField('receiving_hospital', v)} placeholder="Hospital name" />
+                </div>
+                <div>
+                  <FieldLabel>Time of handover</FieldLabel>
+                  <div className="flex gap-2">
+                    <TextInput value={fields.time_of_handover ?? ''} onChange={v => updateField('time_of_handover', v)} placeholder="HH:MMZ" />
+                    <button onClick={() => updateField('time_of_handover', nowTime())}
+                      className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel>Handover given to</FieldLabel>
+                  <TextInput value={fields.handover_given_to ?? ''} onChange={v => updateField('handover_given_to', v)} placeholder="Name / role of receiving clinician" />
+                </div>
+                <Toggle value={fields.eprf_handed_over ?? false} onChange={v => updateField('eprf_handed_over', v)} label="ePRF generated and handed over" />
+              </div>
+            )}
+
+            {/* ── SEE AND TREAT ── */}
+            {disposition === 'see_and_treat' && (
+              <div className="border-t border-border pt-3 flex flex-col gap-3">
+                <div>
+                  <FieldLabel>Clinical justification for discharge</FieldLabel>
+                  <TextArea value={fields.clinical_justification ?? ''} onChange={v => updateField('clinical_justification', v)} placeholder="Clinical reasoning..." />
+                </div>
+                <div>
+                  <FieldLabel>Observations at time of discharge</FieldLabel>
+                  <TextInput value={fields.discharge_observations ?? ''} onChange={v => updateField('discharge_observations', v)} placeholder="Vitals at discharge" />
+                </div>
+                <div>
+                  <FieldLabel>Advice given to patient</FieldLabel>
+                  <TextArea value={fields.advice_given ?? ''} onChange={v => updateField('advice_given', v)} placeholder="Advice provided..." />
+                </div>
+                <Toggle value={fields.safety_net_given ?? false} onChange={v => updateField('safety_net_given', v)} label="Safety net instructions given" />
+                <Toggle value={fields.patient_understands ?? false} onChange={v => updateField('patient_understands', v)} label="Patient confirmed they understand advice" />
+                <div>
+                  <FieldLabel>Time of discharge</FieldLabel>
+                  <div className="flex gap-2">
+                    <TextInput value={fields.time_of_discharge ?? ''} onChange={v => updateField('time_of_discharge', v)} placeholder="HH:MMZ" />
+                    <button onClick={() => updateField('time_of_discharge', nowTime())}
+                      className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── SEE AND REFER ── */}
+            {disposition === 'see_and_refer' && (
+              <div className="border-t border-border pt-3 flex flex-col gap-3">
+                <div>
+                  <FieldLabel>Clinical justification for discharge</FieldLabel>
+                  <TextArea value={fields.clinical_justification ?? ''} onChange={v => updateField('clinical_justification', v)} placeholder="Clinical reasoning..." />
+                </div>
+                <div>
+                  <FieldLabel>Observations at time of discharge</FieldLabel>
+                  <TextInput value={fields.discharge_observations ?? ''} onChange={v => updateField('discharge_observations', v)} placeholder="Vitals at discharge" />
+                </div>
+                <div>
+                  <FieldLabel>Advice given to patient</FieldLabel>
+                  <TextArea value={fields.advice_given ?? ''} onChange={v => updateField('advice_given', v)} placeholder="Advice provided..." />
+                </div>
+                <Toggle value={fields.safety_net_given ?? false} onChange={v => updateField('safety_net_given', v)} label="Safety net instructions given" />
+                <Toggle value={fields.patient_understands ?? false} onChange={v => updateField('patient_understands', v)} label="Patient confirmed they understand advice" />
+                <div>
+                  <FieldLabel>Time of discharge</FieldLabel>
+                  <div className="flex gap-2">
+                    <TextInput value={fields.time_of_discharge ?? ''} onChange={v => updateField('time_of_discharge', v)} placeholder="HH:MMZ" />
+                    <button onClick={() => updateField('time_of_discharge', nowTime())}
+                      className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel>Referral destination</FieldLabel>
+                  <TextInput value={fields.referral_destination ?? ''} onChange={v => updateField('referral_destination', v)} placeholder="Service or provider" />
+                </div>
+                <div>
+                  <FieldLabel>Referral pathway</FieldLabel>
+                  <DropdownSelect value={fields.referral_pathway ?? ''} onChange={v => updateField('referral_pathway', v)} options={REFERRAL_PATHWAYS} placeholder="Select pathway..." />
+                </div>
+                <Toggle value={fields.referral_accepted ?? false} onChange={v => updateField('referral_accepted', v)} label={fields.referral_accepted ? 'Referral accepted' : 'Advised only'} />
+                <div>
+                  <FieldLabel>Reference number (if given)</FieldLabel>
+                  <TextInput value={fields.reference_number ?? ''} onChange={v => updateField('reference_number', v)} placeholder="Reference #" />
+                </div>
+              </div>
+            )}
+
+            {/* ── REFUSED TRANSPORT ── */}
+            {disposition === 'refused_transport' && (
+              <div className="border-t border-border pt-3 flex flex-col gap-3">
+                <Toggle value={fields.capacity_assessed ?? false} onChange={v => updateField('capacity_assessed', v)} label="Mental capacity assessment completed" />
+                <Toggle value={fields.patient_has_capacity ?? false} onChange={v => updateField('patient_has_capacity', v)} label="Patient has capacity" />
+                <Toggle value={fields.risks_explained ?? false} onChange={v => updateField('risks_explained', v)} label="Risks of refusal explained to patient" />
+                <Toggle value={fields.patient_understanding_confirmed ?? false} onChange={v => updateField('patient_understanding_confirmed', v)} label="Patient understanding confirmed" />
+                <div>
+                  <FieldLabel>Refusal witnessed by</FieldLabel>
+                  <TextInput value={fields.refusal_witnessed_by ?? ''} onChange={v => updateField('refusal_witnessed_by', v)} placeholder="Name of witness" />
+                </div>
+                <div>
+                  <FieldLabel>Time of refusal</FieldLabel>
+                  <div className="flex gap-2">
+                    <TextInput value={fields.time_of_refusal ?? ''} onChange={v => updateField('time_of_refusal', v)} placeholder="HH:MMZ" />
+                    <button onClick={() => updateField('time_of_refusal', nowTime())}
+                      className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
+                  </div>
+                </div>
+                <Toggle value={fields.safeguarding_concern ?? false} onChange={v => updateField('safeguarding_concern', v)} label="Safeguarding concern identified" />
+                {!fields.patient_has_capacity && (
+                  <div>
+                    <FieldLabel>Best interests decision</FieldLabel>
+                    <TextArea value={fields.best_interests_decision ?? ''} onChange={v => updateField('best_interests_decision', v)} placeholder="Document best interests decision..." />
+                  </div>
+                )}
+                <Toggle value={fields.signed_refusal_form ?? false} onChange={v => updateField('signed_refusal_form', v)} label="Signed refusal form obtained" />
+              </div>
+            )}
+
+            {/* ── ROLE ── */}
+            {disposition === 'role' && (
+              <div className="border-t border-border pt-3 flex flex-col gap-3">
+                <div className="rounded-lg p-3 mb-1" style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.3)' }}>
+                  <p className="text-lg" style={{ color: '#FF3B30' }}>
+                    Recognition of Life Extinct — ensure all documentation is complete.
+                  </p>
+                </div>
+                <div>
+                  <FieldLabel>Time of recognition</FieldLabel>
+                  <div className="flex gap-2">
+                    <TextInput value={fields.time_of_recognition ?? ''} onChange={v => updateField('time_of_recognition', v)} placeholder="HH:MMZ" />
+                    <button onClick={() => updateField('time_of_recognition', nowTime())}
+                      className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel>Criteria used</FieldLabel>
+                  <DropdownSelect value={fields.role_criteria ?? ''} onChange={v => updateField('role_criteria', v)} options={ROLE_CRITERIA} placeholder="Select criteria..." />
+                </div>
+                <Toggle value={fields.resuscitation_attempted ?? false} onChange={v => updateField('resuscitation_attempted', v)} label="Resuscitation attempted" />
+                {fields.resuscitation_attempted && (
+                  <div>
+                    <FieldLabel>Duration and outcome</FieldLabel>
+                    <TextInput value={fields.resuscitation_details ?? ''} onChange={v => updateField('resuscitation_details', v)} placeholder="Duration, interventions, outcome" />
+                  </div>
+                )}
+                <Toggle value={fields.gp_notified ?? false} onChange={v => updateField('gp_notified', v)} label="GP notified" />
+                <Toggle value={fields.police_notified ?? false} onChange={v => updateField('police_notified', v)} label="Police notified" />
+                <Toggle value={fields.coroner_referral ?? false} onChange={v => updateField('coroner_referral', v)} label="Coroner referral required" />
+                <Toggle value={fields.nok_notified ?? false} onChange={v => updateField('nok_notified', v)} label="Next of kin notified" />
+              </div>
+            )}
           </div>
-
-          {/* ── CONVEYED ── */}
-          {disposition === 'conveyed' && (
-            <div className="border-t border-border pt-3 flex flex-col gap-3">
-              <div>
-                <FieldLabel>Receiving hospital</FieldLabel>
-                <TextInput value={fields.receiving_hospital ?? cas.receivingHospital ?? ''} onChange={v => updateField('receiving_hospital', v)} placeholder="Hospital name" />
-              </div>
-              <div>
-                <FieldLabel>Time of handover</FieldLabel>
-                <div className="flex gap-2">
-                  <TextInput value={fields.time_of_handover ?? ''} onChange={v => updateField('time_of_handover', v)} placeholder="HH:MMZ" />
-                  <button onClick={() => updateField('time_of_handover', nowTime())}
-                    className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
-                </div>
-              </div>
-              <div>
-                <FieldLabel>Handover given to</FieldLabel>
-                <TextInput value={fields.handover_given_to ?? ''} onChange={v => updateField('handover_given_to', v)} placeholder="Name / role of receiving clinician" />
-              </div>
-              <Toggle value={fields.eprf_handed_over ?? false} onChange={v => updateField('eprf_handed_over', v)} label="ePRF generated and handed over" />
-            </div>
-          )}
-
-          {/* ── SEE AND TREAT ── */}
-          {disposition === 'see_and_treat' && (
-            <div className="border-t border-border pt-3 flex flex-col gap-3">
-              <div>
-                <FieldLabel>Clinical justification for discharge</FieldLabel>
-                <TextArea value={fields.clinical_justification ?? ''} onChange={v => updateField('clinical_justification', v)} placeholder="Clinical reasoning..." />
-              </div>
-              <div>
-                <FieldLabel>Observations at time of discharge</FieldLabel>
-                <TextInput value={fields.discharge_observations ?? ''} onChange={v => updateField('discharge_observations', v)} placeholder="Vitals at discharge" />
-              </div>
-              <div>
-                <FieldLabel>Advice given to patient</FieldLabel>
-                <TextArea value={fields.advice_given ?? ''} onChange={v => updateField('advice_given', v)} placeholder="Advice provided..." />
-              </div>
-              <Toggle value={fields.safety_net_given ?? false} onChange={v => updateField('safety_net_given', v)} label="Safety net instructions given" />
-              <Toggle value={fields.patient_understands ?? false} onChange={v => updateField('patient_understands', v)} label="Patient confirmed they understand advice" />
-              <div>
-                <FieldLabel>Time of discharge</FieldLabel>
-                <div className="flex gap-2">
-                  <TextInput value={fields.time_of_discharge ?? ''} onChange={v => updateField('time_of_discharge', v)} placeholder="HH:MMZ" />
-                  <button onClick={() => updateField('time_of_discharge', nowTime())}
-                    className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── SEE AND REFER ── */}
-          {disposition === 'see_and_refer' && (
-            <div className="border-t border-border pt-3 flex flex-col gap-3">
-              <div>
-                <FieldLabel>Clinical justification for discharge</FieldLabel>
-                <TextArea value={fields.clinical_justification ?? ''} onChange={v => updateField('clinical_justification', v)} placeholder="Clinical reasoning..." />
-              </div>
-              <div>
-                <FieldLabel>Observations at time of discharge</FieldLabel>
-                <TextInput value={fields.discharge_observations ?? ''} onChange={v => updateField('discharge_observations', v)} placeholder="Vitals at discharge" />
-              </div>
-              <div>
-                <FieldLabel>Advice given to patient</FieldLabel>
-                <TextArea value={fields.advice_given ?? ''} onChange={v => updateField('advice_given', v)} placeholder="Advice provided..." />
-              </div>
-              <Toggle value={fields.safety_net_given ?? false} onChange={v => updateField('safety_net_given', v)} label="Safety net instructions given" />
-              <Toggle value={fields.patient_understands ?? false} onChange={v => updateField('patient_understands', v)} label="Patient confirmed they understand advice" />
-              <div>
-                <FieldLabel>Time of discharge</FieldLabel>
-                <div className="flex gap-2">
-                  <TextInput value={fields.time_of_discharge ?? ''} onChange={v => updateField('time_of_discharge', v)} placeholder="HH:MMZ" />
-                  <button onClick={() => updateField('time_of_discharge', nowTime())}
-                    className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
-                </div>
-              </div>
-              <div>
-                <FieldLabel>Referral destination</FieldLabel>
-                <TextInput value={fields.referral_destination ?? ''} onChange={v => updateField('referral_destination', v)} placeholder="Service or provider" />
-              </div>
-              <div>
-                <FieldLabel>Referral pathway</FieldLabel>
-                <DropdownSelect value={fields.referral_pathway ?? ''} onChange={v => updateField('referral_pathway', v)} options={REFERRAL_PATHWAYS} placeholder="Select pathway..." />
-              </div>
-              <Toggle value={fields.referral_accepted ?? false} onChange={v => updateField('referral_accepted', v)} label={fields.referral_accepted ? 'Referral accepted' : 'Advised only'} />
-              <div>
-                <FieldLabel>Reference number (if given)</FieldLabel>
-                <TextInput value={fields.reference_number ?? ''} onChange={v => updateField('reference_number', v)} placeholder="Reference #" />
-              </div>
-            </div>
-          )}
-
-          {/* ── REFUSED TRANSPORT ── */}
-          {disposition === 'refused_transport' && (
-            <div className="border-t border-border pt-3 flex flex-col gap-3">
-              <Toggle value={fields.capacity_assessed ?? false} onChange={v => updateField('capacity_assessed', v)} label="Mental capacity assessment completed" />
-              <Toggle value={fields.patient_has_capacity ?? false} onChange={v => updateField('patient_has_capacity', v)} label="Patient has capacity" />
-              <Toggle value={fields.risks_explained ?? false} onChange={v => updateField('risks_explained', v)} label="Risks of refusal explained to patient" />
-              <Toggle value={fields.patient_understanding_confirmed ?? false} onChange={v => updateField('patient_understanding_confirmed', v)} label="Patient understanding confirmed" />
-              <div>
-                <FieldLabel>Refusal witnessed by</FieldLabel>
-                <TextInput value={fields.refusal_witnessed_by ?? ''} onChange={v => updateField('refusal_witnessed_by', v)} placeholder="Name of witness" />
-              </div>
-              <div>
-                <FieldLabel>Time of refusal</FieldLabel>
-                <div className="flex gap-2">
-                  <TextInput value={fields.time_of_refusal ?? ''} onChange={v => updateField('time_of_refusal', v)} placeholder="HH:MMZ" />
-                  <button onClick={() => updateField('time_of_refusal', nowTime())}
-                    className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
-                </div>
-              </div>
-              <Toggle value={fields.safeguarding_concern ?? false} onChange={v => updateField('safeguarding_concern', v)} label="Safeguarding concern identified" />
-              {!fields.patient_has_capacity && (
-                <div>
-                  <FieldLabel>Best interests decision</FieldLabel>
-                  <TextArea value={fields.best_interests_decision ?? ''} onChange={v => updateField('best_interests_decision', v)} placeholder="Document best interests decision..." />
-                </div>
-              )}
-              <Toggle value={fields.signed_refusal_form ?? false} onChange={v => updateField('signed_refusal_form', v)} label="Signed refusal form obtained" />
-            </div>
-          )}
-
-          {/* ── ROLE ── */}
-          {disposition === 'role' && (
-            <div className="border-t border-border pt-3 flex flex-col gap-3">
-              <div className="rounded-lg p-3 mb-1" style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.3)' }}>
-                <p className="text-lg" style={{ color: '#FF3B30' }}>
-                  Recognition of Life Extinct — ensure all documentation is complete.
-                </p>
-              </div>
-              <div>
-                <FieldLabel>Time of recognition</FieldLabel>
-                <div className="flex gap-2">
-                  <TextInput value={fields.time_of_recognition ?? ''} onChange={v => updateField('time_of_recognition', v)} placeholder="HH:MMZ" />
-                  <button onClick={() => updateField('time_of_recognition', nowTime())}
-                    className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
-                </div>
-              </div>
-              <div>
-                <FieldLabel>Criteria used</FieldLabel>
-                <DropdownSelect value={fields.role_criteria ?? ''} onChange={v => updateField('role_criteria', v)} options={ROLE_CRITERIA} placeholder="Select criteria..." />
-              </div>
-              <Toggle value={fields.resuscitation_attempted ?? false} onChange={v => updateField('resuscitation_attempted', v)} label="Resuscitation attempted" />
-              {fields.resuscitation_attempted && (
-                <div>
-                  <FieldLabel>Duration and outcome</FieldLabel>
-                  <TextInput value={fields.resuscitation_details ?? ''} onChange={v => updateField('resuscitation_details', v)} placeholder="Duration, interventions, outcome" />
-                </div>
-              )}
-              <Toggle value={fields.gp_notified ?? false} onChange={v => updateField('gp_notified', v)} label="GP notified" />
-              <Toggle value={fields.police_notified ?? false} onChange={v => updateField('police_notified', v)} label="Police notified" />
-              <Toggle value={fields.coroner_referral ?? false} onChange={v => updateField('coroner_referral', v)} label="Coroner referral required" />
-              <Toggle value={fields.nok_notified ?? false} onChange={v => updateField('nok_notified', v)} label="Next of kin notified" />
-            </div>
-          )}
         </div>
 
         {/* Active action items */}
@@ -1406,7 +1414,14 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
                 className="flex-1 py-2.5 text-lg font-bold border border-border rounded-lg bg-transparent text-foreground">CANCEL</button>
               <button onClick={doHandover}
                 className="flex-1 py-2.5 text-lg font-bold rounded-lg"
-                style={{ background: `${col}22`, border: `2px solid ${col}`, color: col }}>CONFIRM HANDOVER</button>
+                style={{
+                  background: 'rgba(5,150,105,0.12)',
+                  border: '2px solid hsl(var(--primary))',
+                  color: 'hsl(var(--primary))',
+                }}
+              >
+                CONFIRM HANDOVER
+              </button>
             </div>
           </div>
         ) : (
@@ -1418,7 +1433,11 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
             </button>
             <button onClick={() => setConfirming(true)}
               className="flex-1 py-3 text-lg font-bold rounded-lg tracking-wide"
-              style={{ background: `${col}15`, border: `2px solid ${col}`, color: col }}>
+              style={{
+                background: 'rgba(5,150,105,0.12)',
+                border: '2px solid hsl(var(--primary))',
+                color: 'hsl(var(--primary))',
+              }}>
               HANDOVER
             </button>
           </div>
@@ -1768,7 +1787,7 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
         {activeWithCasualties.length === 0 ? (
           <p className="text-lg text-foreground opacity-50">No active incidents</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+          <div className="flex flex-col gap-2 md:gap-3">
             {activeWithCasualties.map(inc => (
               <IncidentCard
                 key={inc.id}
