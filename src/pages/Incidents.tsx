@@ -16,6 +16,7 @@ import { useCommandPull } from '@/lib/useCommandPull';
 import { getReports, getDispositionsForShift } from '@/lib/herald-storage';
 import { getSession } from '@/lib/herald-session';
 import { fetchIncidentsRemote } from '@/lib/herald-api';
+import { normalizeLatestCrewRows } from '@/lib/normalize-latest-crew-rows';
 import { getDeadLetters, retryDeadLetter, countDeadLetters, remove } from '@/lib/offline-queue';
 import type { HeraldReport, CasualtyDisposition } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
@@ -475,25 +476,6 @@ const IncidentsPage = () => {
 function CrewTab({ session }: { session: import('@/lib/herald-session').HeraldSession }) {
   const [crew, setCrew] = useState<{ operator_id: string | null; used_at: string | null; left_at: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const normalizeLatestCrewRows = (rows: { operator_id: string | null; used_at: string | null; left_at: string | null }[]) => {
-    const latestByOperator = new Map<string, { operator_id: string | null; used_at: string | null; left_at: string | null }>();
-    for (const row of rows) {
-      const operatorKey = (row.operator_id ?? '').trim();
-      if (!operatorKey) continue;
-      const existing = latestByOperator.get(operatorKey);
-      const existingTs = existing?.used_at ? new Date(existing.used_at).getTime() : 0;
-      const nextTs = row.used_at ? new Date(row.used_at).getTime() : 0;
-      if (!existing || nextTs >= existingTs) {
-        latestByOperator.set(operatorKey, row);
-      }
-    }
-    return Array.from(latestByOperator.values()).sort((a, b) => {
-      const aTs = a.used_at ? new Date(a.used_at).getTime() : 0;
-      const bTs = b.used_at ? new Date(b.used_at).getTime() : 0;
-      return bTs - aTs;
-    });
-  };
 
   const fetchCrew = useCallback(async () => {
     if (!session.shift_id) return;
