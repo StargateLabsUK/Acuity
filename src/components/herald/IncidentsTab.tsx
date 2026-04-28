@@ -49,6 +49,20 @@ interface Props {
   refreshKey?: number;
 }
 
+type AbcdeKey = 'A' | 'B' | 'C' | 'D' | 'E';
+type ClinicalFindings = Partial<Record<AbcdeKey, string>>;
+
+interface ClinicalTimelineEntry {
+  id: string;
+  timestamp: string;
+  source: 'transmission' | 'transfer';
+  headline: string;
+  transcript?: string | null;
+  note?: string | null;
+  atmist: Record<string, unknown> | null;
+  clinicalFindings: ClinicalFindings;
+}
+
 type ReportPatch = {
   incident_number?: string | null;
   receiving_hospital?: string | null;
@@ -77,6 +91,102 @@ function getDateTime(ts: string | null) {
   const d = new Date(ts);
   const date = d.toISOString().slice(0, 10);
   return `${date} ${getTime(ts)}`;
+}
+
+const ABCDE_LABELS: Record<AbcdeKey, string> = {
+  A: 'Airway',
+  B: 'Breathing',
+  C: 'Circulation',
+  D: 'Disability',
+  E: 'Exposure',
+};
+
+function safeString(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return '';
+}
+
+function hasMeaningfulClinicalText(value: unknown): boolean {
+  const text = safeString(value).trim();
+  if (!text) return false;
+  return !['not assessed', 'unknown', 'n/a', '—'].includes(text.toLowerCase());
+}
+
+function normalizeClinicalFindings(value: unknown): ClinicalFindings {
+  if (!value || typeof value !== 'object') return {};
+  const findings = value as Record<string, unknown>;
+  const normalized: ClinicalFindings = {};
+  (['A', 'B', 'C', 'D', 'E'] as AbcdeKey[]).forEach((key) => {
+    if (hasMeaningfulClinicalText(findings[key])) {
+      normalized[key] = safeString(findings[key]).trim();
+    }
+  });
+  return normalized;
+}
+
+function hasClinicalFindings(findings: ClinicalFindings): boolean {
+  return (['A', 'B', 'C', 'D', 'E'] as AbcdeKey[]).some((key) => hasMeaningfulClinicalText(findings[key]));
+}
+
+function extractAtmistSnapshot(
+  assessment: Assessment | null | undefined,
+  casualtyKey: string,
+): Record<string, unknown> | null {
+  const atmist = assessment?.atmist;
+  if (!atmist || typeof atmist !== 'object') return null;
+  const atmistMap = atmist as Record<string, unknown>;
+
+  const exact = atmistMap[casualtyKey];
+  if (exact && typeof exact === 'object') {
+    return exact as Record<string, unknown>;
+  }
+
+  const baseKey = casualtyKey.replace(/-\d+$/, '');
+  const base = atmistMap[baseKey];
+  if (base && typeof base === 'object') {
+    return base as Record<string, unknown>;
+  }
+
+  const related = Object.entries(atmistMap).filter(([key, value]) => {
+    if (!value || typeof value !== 'object') return false;
+    return key === baseKey || key.startsWith(`${baseKey}-`);
+  });
+  if (related.length === 1) {
+    return related[0][1] as Record<string, unknown>;
+  }
+  return null;
+}
+
+function latestClinicalFindingsFromTimeline(
+  timeline: ClinicalTimelineEntry[],
+  fallback: Assessment['clinical_findings'] | undefined,
+  totalCasualties: number,
+): ClinicalFindings {
+  const mergedLatest: ClinicalFindings = {};
+
+  for (let i = timeline.length - 1; i >= 0; i -= 1) {
+    const findings = timeline[i].clinicalFindings;
+    (['A', 'B', 'C', 'D', 'E'] as AbcdeKey[]).forEach((key) => {
+      if (!mergedLatest[key] && hasMeaningfulClinicalText(findings[key])) {
+        mergedLatest[key] = findings[key];
+      }
+    });
+    if ((['A', 'B', 'C', 'D', 'E'] as AbcdeKey[]).every((key) => hasMeaningfulClinicalText(mergedLatest[key]))) {
+      return mergedLatest;
+    }
+  }
+
+  if (hasClinicalFindings(mergedLatest)) {
+    return mergedLatest;
+  }
+
+  if (totalCasualties <= 1) {
+    return normalizeClinicalFindings(fallback);
+  }
+
+  return {};
 }
 
 function deriveAddress(inc: Incident): string {
@@ -338,6 +448,7 @@ function buildCasualtyEprf(cas: CasualtyData, inc: Incident, disposition: Dispos
   const incidentNum = inc.incident_number ?? (a?.structured as any)?.incident_number ?? '—';
   const activeItems = cas.actionItems.map(i => typeof i === 'object' ? (i as ActionItem).text : i);
   const dispLabel = DISPOSITION_LABELS[disposition];
+  const clinicalFindings = a?.clinical_findings ?? {};
 
   let header = `ePRF — PATIENT HANDOVER
 ═══════════════════════════
@@ -357,6 +468,13 @@ ATMIST:
   Injuries: ${cas.atmist.I}${cas.atmist.status ? `\n  Status: ${cas.atmist.status}` : ''}
   Signs/Vitals: ${cas.atmist.S}${cas.atmist.downtime ? `\n  Downtime: ${cas.atmist.downtime}` : ''}
   Treatment: ${cas.atmist.T_treatment}
+
+ABCDE:
+  A: ${clinicalFindings.A ?? '—'}
+  B: ${clinicalFindings.B ?? '—'}
+  C: ${clinicalFindings.C ?? '—'}
+  D: ${clinicalFindings.D ?? '—'}
+  E: ${clinicalFindings.E ?? '—'}
 
 DISPOSITION: ${dispLabel}`;
 
@@ -684,11 +802,18 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
 }) {
   const col = PRIORITY_COLORS[cas.priority] ?? '#34C759';
   const [showEprf, setShowEprf] = useState(false);
+  const [timelineEntries, setTimelineEntries] = useState<ClinicalTimelineEntry[]>([]);
   const [disposition, setDisposition] = useState<DispositionType>('conveyed');
   const [fields, setFields] = useState<DispositionFields>({
     receiving_hospital: cas.receivingHospital || '',
   });
   const [confirming, setConfirming] = useState(false);
+  const totalCasualties = extractCasualties(inc).length;
+  const latestAbcde = latestClinicalFindingsFromTimeline(
+    timelineEntries,
+    inc.assessment?.clinical_findings,
+    totalCasualties,
+  );
 
   // Save an ATMIST field edit back to the report assessment
   const saveAtmistField = useCallback(async (fieldKey: string, newValue: string) => {
@@ -710,6 +835,80 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
   const updateField = useCallback(<K extends keyof DispositionFields>(key: K, val: DispositionFields[K]) => {
     setFields(prev => ({ ...prev, [key]: val }));
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTimeline = async () => {
+      try {
+        const { data } = await supabase
+          .from('incident_transmissions')
+          .select('id, report_id, timestamp, transcript, assessment, headline, session_callsign, operator_id')
+          .eq('report_id', inc.id)
+          .order('timestamp', { ascending: true });
+
+        const rows = (data ?? []) as Array<{
+          id: string;
+          timestamp: string;
+          transcript?: string | null;
+          assessment?: Assessment | null;
+          headline?: string | null;
+          session_callsign?: string | null;
+          operator_id?: string | null;
+        }>;
+        const entries: ClinicalTimelineEntry[] = [];
+        const seen = new Set<string>();
+
+        for (const row of rows) {
+          const fingerprint = [
+            row.timestamp ?? '',
+            row.session_callsign ?? '',
+            row.operator_id ?? '',
+            row.headline ?? '',
+            row.transcript ?? '',
+          ].join('|');
+          if (seen.has(fingerprint)) continue;
+          seen.add(fingerprint);
+
+          const assessment = row.assessment ? sanitizeAssessment(row.assessment as Assessment) : null;
+          const atmist = extractAtmistSnapshot(assessment, cas.key);
+          const clinicalFindings = normalizeClinicalFindings(assessment?.clinical_findings);
+          if (!atmist && !hasClinicalFindings(clinicalFindings)) continue;
+          if (!atmist && totalCasualties > 1) continue;
+
+          entries.push({
+            id: `tx-${row.id}`,
+            timestamp: row.timestamp,
+            source: 'transmission',
+            headline: row.headline ?? 'Clinical update',
+            transcript: row.transcript ?? null,
+            atmist,
+            clinicalFindings,
+          });
+        }
+
+        if (transferInfo && (transferInfo.accepted_at || transferInfo.handover_notes)) {
+          entries.push({
+            id: `transfer-${inc.id}-${cas.key}`,
+            timestamp: transferInfo.accepted_at ?? inc.timestamp,
+            source: 'transfer',
+            headline: `Transfer accepted from ${transferInfo.from_callsign}`,
+            note: transferInfo.handover_notes,
+            atmist: null,
+            clinicalFindings: {},
+          });
+        }
+
+        entries.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        if (!cancelled) setTimelineEntries(entries);
+      } catch {
+        if (!cancelled) setTimelineEntries([]);
+      }
+    };
+
+    loadTimeline();
+    return () => { cancelled = true; };
+  }, [inc.id, inc.timestamp, cas.key, totalCasualties, transferInfo]);
 
   const doHandover = useCallback(async () => {
     const conveyedHospital =
@@ -879,6 +1078,78 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transfer
               <EditableField2 value={cas.atmist.T_treatment ?? ''} onSave={v => saveAtmistField('T_treatment', v)} />
             </div>
           </div>
+        </div>
+
+        {/* 3. ABCDE */}
+        <div className="mb-4">
+          <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>ABCDE (LATEST)</p>
+          <div className="border border-border rounded-lg bg-card p-3">
+            {hasClinicalFindings(latestAbcde) ? (
+              (Object.keys(ABCDE_LABELS) as AbcdeKey[]).map((key) => (
+                <div key={key} className="mb-2 last:mb-0">
+                  <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>{key} — {ABCDE_LABELS[key]}: </span>
+                  <span className="text-lg text-foreground break-words">{latestAbcde[key] ?? '—'}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-lg text-foreground opacity-60">No clinical findings recorded yet.</p>
+            )}
+          </div>
+        </div>
+
+        {/* 4. Clinical timeline */}
+        <div className="mb-4">
+          <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>CLINICAL TIMELINE</p>
+          {timelineEntries.length === 0 ? (
+            <div className="border border-border rounded-lg bg-card p-3">
+              <p className="text-lg text-foreground opacity-60">No timestamped clinical updates recorded for this patient yet.</p>
+            </div>
+          ) : (
+            <div className="relative pl-6">
+              <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border" />
+              <div className="space-y-3">
+                {timelineEntries.map((entry, index) => (
+                  <div key={entry.id} className="relative rounded-lg border border-border p-3 bg-card">
+                    <span
+                      className="absolute -left-[22px] top-4 h-3 w-3 rounded-full border-2 bg-background"
+                      style={{ borderColor: entry.source === 'transfer' ? '#8B5CF6' : '#1E90FF' }}
+                    />
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                      <span className="text-lg font-bold rounded-sm px-2 py-0.5" style={badgeStyle(entry.source === 'transfer' ? '#8B5CF6' : '#1E90FF')}>
+                        {entry.source === 'transfer' ? 'TRANSFER' : `UPDATE #${index + 1}`}
+                      </span>
+                      <span className="text-lg text-foreground opacity-60">{getDateTime(entry.timestamp)}</span>
+                    </div>
+                    <p className="text-lg font-bold text-foreground mb-1.5 break-words">{entry.headline}</p>
+                    {hasClinicalFindings(entry.clinicalFindings) && (
+                      <div className="space-y-1 mb-2">
+                        {(Object.keys(ABCDE_LABELS) as AbcdeKey[]).map((key) => (
+                          <div key={key} className="text-lg">
+                            <span className="font-bold mr-1" style={{ color: '#1E90FF' }}>{key}:</span>
+                            <span className="text-foreground break-words">{entry.clinicalFindings[key] ?? '—'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {entry.atmist && (
+                      <p className="text-lg text-foreground opacity-80 break-words">
+                        <span className="font-bold" style={{ color: '#1E90FF' }}>ATMIST snapshot:</span>{' '}
+                        {[entry.atmist.A, entry.atmist.M, entry.atmist.I].map(safeString).filter(Boolean).join(' · ') || '—'}
+                      </p>
+                    )}
+                    {entry.note && (
+                      <p className="text-lg text-foreground mt-1 break-words">
+                        <span className="font-bold" style={{ color: '#1E90FF' }}>Note:</span> {entry.note}
+                      </p>
+                    )}
+                    {entry.transcript && (
+                      <p className="text-lg text-foreground opacity-70 italic mt-1 break-words">"{entry.transcript}"</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Patient name (if extracted from transmission) */}
