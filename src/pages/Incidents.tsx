@@ -447,6 +447,25 @@ function CrewTab({ session }: { session: import('@/lib/herald-session').HeraldSe
   const [crew, setCrew] = useState<{ operator_id: string | null; used_at: string | null; left_at: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const normalizeLatestCrewRows = (rows: { operator_id: string | null; used_at: string | null; left_at: string | null }[]) => {
+    const latestByOperator = new Map<string, { operator_id: string | null; used_at: string | null; left_at: string | null }>();
+    for (const row of rows) {
+      const operatorKey = (row.operator_id ?? '').trim();
+      if (!operatorKey) continue;
+      const existing = latestByOperator.get(operatorKey);
+      const existingTs = existing?.used_at ? new Date(existing.used_at).getTime() : 0;
+      const nextTs = row.used_at ? new Date(row.used_at).getTime() : 0;
+      if (!existing || nextTs >= existingTs) {
+        latestByOperator.set(operatorKey, row);
+      }
+    }
+    return Array.from(latestByOperator.values()).sort((a, b) => {
+      const aTs = a.used_at ? new Date(a.used_at).getTime() : 0;
+      const bTs = b.used_at ? new Date(b.used_at).getTime() : 0;
+      return bTs - aTs;
+    });
+  };
+
   const fetchCrew = useCallback(async () => {
     if (!session.shift_id) return;
     try {
@@ -456,7 +475,7 @@ function CrewTab({ session }: { session: import('@/lib/herald-session').HeraldSe
         .eq('shift_id', session.shift_id)
         .not('used_at', 'is', null)
         .not('operator_id', 'is', null);
-      setCrew((data ?? []) as any);
+      setCrew(normalizeLatestCrewRows(((data ?? []) as any)));
     } catch { /* silent */ }
     setLoading(false);
   }, [session.shift_id]);

@@ -115,8 +115,9 @@ async function handleCrewLink(
       .select("id")
       .eq("shift_id", codeRow.shift_id)
       .eq("operator_id", opId)
+      .order("used_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       // Rejoin: clear left_at
