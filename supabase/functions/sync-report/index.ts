@@ -505,11 +505,14 @@ serve(async (req) => {
 
       const parentReport = await supabase
         .from("herald_reports")
-        .select("assessment")
+        .select("assessment, incident_number")
         .eq("id", parentId)
         .single();
 
       const parentAssessment = normalizeAssessmentForMerge((parentReport?.data?.assessment as Record<string, unknown>) || {}) as any;
+      const parentIncidentNumber = typeof parentReport?.data?.incident_number === "string"
+        ? parentReport.data.incident_number.trim()
+        : "";
       const newAssessment = normalizeAssessmentForMerge((report.assessment as Record<string, unknown>) || {}) as any;
       const newTranscript = (report.transcript as string) || "";
 
@@ -694,9 +697,15 @@ serve(async (req) => {
         updatePayload.headline = report.headline;
       }
 
-      const incomingIncidentNumber = report.incident_number ||
+      const incomingIncidentNumberRaw = report.incident_number ||
         (report.assessment as any)?.structured?.incident_number;
-      if (incomingIncidentNumber && incomingIncidentNumber !== "null") {
+      const incomingIncidentNumber = typeof incomingIncidentNumberRaw === "string"
+        ? incomingIncidentNumberRaw.trim()
+        : "";
+
+      // Preserve operator-edited incident numbers during follow-ups.
+      // Only set from incoming data when parent incident doesn't already have one.
+      if (!parentIncidentNumber && incomingIncidentNumber && incomingIncidentNumber !== "null") {
         updatePayload.incident_number = incomingIncidentNumber;
       }
 
@@ -909,9 +918,12 @@ async function findMatchingIncident(
         }
       }
 
-      // Intentionally no "single candidate fallback" here.
-      // A lone active incident in the time window is not enough signal and can
-      // incorrectly merge the next callout into an existing incident.
+      // If there is exactly one active incident for this callsign in-window,
+      // treat it as the ongoing call for this crew and keep merging follow-ups.
+      // This prevents manual incident-number edits from fragmenting transmissions.
+      if (data.length === 1) {
+        return data[0].id;
+      }
     }
   }
 
