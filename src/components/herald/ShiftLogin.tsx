@@ -10,6 +10,14 @@ interface Props {
   onShiftStarted: (session: HeraldSession) => void;
 }
 
+interface StationOption {
+  id: string;
+  name: string;
+}
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 const inputStyle: React.CSSProperties = {
   width: '100%',
   background: '#FFFFFF',
@@ -37,12 +45,63 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const [vehicleType, setVehicleType] = useState('');
 
   const [trust, setTrust] = useState<CachedTrust | null>(null);
+  const [stations, setStations] = useState<StationOption[]>([]);
+  const [stationsLoading, setStationsLoading] = useState(false);
+  const [stationError, setStationError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [startError, setStartError] = useState('');
 
   useEffect(() => {
     getCachedTrust().then(setTrust);
   }, []);
+  useEffect(() => {
+    if (!trust?.trust_id) return;
+    let cancelled = false;
+    const loadStations = async () => {
+      setStationsLoading(true);
+      setStationError('');
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/list-stations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+          },
+          body: JSON.stringify({ trust_id: trust.trust_id }),
+        });
+        const payload = await res.json();
+        if (!res.ok) {
+          throw new Error(payload?.error || `Failed to load stations (${res.status})`);
+        }
+        const options = Array.isArray(payload?.stations)
+          ? payload.stations
+            .filter((s: any) => typeof s?.id === 'string' && typeof s?.name === 'string')
+            .map((s: any) => ({ id: s.id as string, name: s.name as string }))
+          : [];
+        if (!cancelled) {
+          setStations(options);
+          if (options.length > 0) {
+            setStation((prev) => (prev ? prev : options[0].name));
+          } else {
+            setStation('');
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStations([]);
+          setStation('');
+          setStationError(error instanceof Error ? error.message : 'Failed to load stations');
+        }
+      } finally {
+        if (!cancelled) setStationsLoading(false);
+      }
+    };
+    void loadStations();
+    return () => {
+      cancelled = true;
+    };
+  }, [trust?.trust_id]);
   const [linkMode, setLinkMode] = useState(false);
   const [linkDigits, setLinkDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [linkError, setLinkError] = useState('');
@@ -53,7 +112,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const CALLSIGN_PATTERN = /^[a-zA-Z0-9\-_ ]{1,30}$/;
   const isCallsignValid = callsign.trim() !== '' && CALLSIGN_PATTERN.test(callsign.trim());
   const stationTrimmed = station.trim();
-  const isStationValid = stationTrimmed.length >= 2 && stationTrimmed.length <= 60;
+  const isStationValid = stationTrimmed.length >= 2 && stationTrimmed.length <= 80;
   const canSubmit = isCallsignValid && isStationValid && vehicleType !== '';
 
   if (!trust) {
@@ -269,16 +328,31 @@ export function ShiftLogin({ onShiftStarted }: Props) {
           />
         </div>
 
-        {/* VEHICLE TYPE */}
+        {/* STATION */}
         <div className="mb-5">
           <label style={labelStyle}>STATION / BASE</label>
-          <input
-            type="text"
+          <select
             value={station}
             onChange={(e) => setStation(e.target.value)}
-            placeholder="e.g. South Central, Station 12"
-            style={inputStyle}
-          />
+            disabled={stationsLoading || stations.length === 0}
+            style={{
+              ...inputStyle,
+              color: station ? '#E0E8E4' : '#4A6058',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+            }}
+          >
+            {stationsLoading && <option value="">Loading stations...</option>}
+            {!stationsLoading && stations.length === 0 && <option value="">No stations available</option>}
+            {!stationsLoading && stations.map((option) => (
+              <option key={option.id} value={option.name}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+          {stationError && (
+            <p style={{ color: '#FF3B30', fontSize: 12, marginTop: 6 }}>{stationError}</p>
+          )}
         </div>
 
         {/* VEHICLE TYPE */}

@@ -440,6 +440,7 @@ function applyFilters(reports: OpsReport[], dispositions: OpsDisposition[], filt
 
   if (filters.callsign) filtered = filtered.filter((r) => r.session_callsign === filters.callsign);
   if (filters.operatorId) filtered = filtered.filter((r) => r.session_operator_id === filters.operatorId);
+  if (filters.station) filtered = filtered.filter((r) => r.session_station === filters.station);
 
   if (filters.dateFrom) {
     const from = new Date(filters.dateFrom).getTime();
@@ -600,7 +601,7 @@ function PatientDetailView({
 
 export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) => void } = {}) {
   void onSelectReport;
-  const { reports, transmissions, dispositions, transfers, loading, uniqueCallsigns, uniqueOperatorIds } = useOpsLog();
+  const { reports, transmissions, dispositions, transfers, loading, uniqueCallsigns, uniqueOperatorIds, uniqueStations } = useOpsLog();
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
   const [selectedPatientKey, setSelectedPatientKey] = useState<string | null>(null);
   const [filters, setFilters] = useState<OpsFilters>({
@@ -642,6 +643,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
     || filters.incidentType
     || filters.callsign
     || filters.operatorId
+    || filters.station
     || filters.safeguarding,
   );
 
@@ -759,6 +761,17 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
             <option value="">All collar numbers</option>
             {uniqueOperatorIds.map((operatorId) => (
               <option key={operatorId} value={operatorId}>{operatorId}</option>
+            ))}
+          </select>
+
+          <select
+            value={filters.station}
+            onChange={(event) => updateFilter('station', event.target.value)}
+            style={{ ...selectStyle, width: 'auto', minWidth: 160 }}
+          >
+            <option value="">All stations</option>
+            {uniqueStations.map((station) => (
+              <option key={station} value={station}>{station}</option>
             ))}
           </select>
 

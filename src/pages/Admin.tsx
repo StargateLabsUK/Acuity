@@ -13,6 +13,14 @@ interface Trust {
   created_at: string;
 }
 
+interface StationRow {
+  id: string;
+  trust_id: string;
+  name: string;
+  active: boolean;
+  created_at: string;
+}
+
 interface UserRow {
   id: string;
   email: string | null;
@@ -316,6 +324,9 @@ export default function Admin() {
   const [generatedPin, setGeneratedPin] = useState('');
   const [resetPinTrustId, setResetPinTrustId] = useState<string | null>(null);
   const [resetPinValue, setResetPinValue] = useState('');
+  const [stations, setStations] = useState<StationRow[]>([]);
+  const [newStationName, setNewStationName] = useState('');
+  const [stationStatus, setStationStatus] = useState('');
 
   // Users state
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -448,6 +459,21 @@ export default function Admin() {
     }
   }, []);
 
+  const loadStations = useCallback(async () => {
+    const trustId = role === 'admin' ? userTrustId : newUserTrust || userTrustId;
+    if (!trustId) {
+      setStations([]);
+      return;
+    }
+    const res = await callAdminApi({ action: 'list_stations', trust_id: trustId });
+    const payload = await res.json();
+    if (res.ok) {
+      setStations((payload.stations ?? []) as StationRow[]);
+    } else {
+      setStationStatus(payload.error || 'Failed to load stations');
+    }
+  }, [role, userTrustId, newUserTrust]);
+
   useEffect(() => {
     const hydrateAuditContext = async () => {
       if (auditLogs.length === 0) {
@@ -514,6 +540,13 @@ export default function Admin() {
     else if (activeTab === 'audit') loadAudit();
     else if (activeTab === 'devices') loadShifts();
   }, [role, activeTab, loadTrusts, loadUsers, loadAudit, loadShifts]);
+
+  useEffect(() => {
+    if (!role) return;
+    if (role === 'admin' && adminTab === 'my-trust') {
+      void loadStations();
+    }
+  }, [role, adminTab, loadStations]);
 
   const callAdminApi = async (body: Record<string, unknown>) => {
     const session = (await supabase.auth.getSession()).data.session;
@@ -643,6 +676,43 @@ export default function Admin() {
       );
     });
   }, [auditRows, auditFilter]);
+
+  const handleCreateStation = async () => {
+    const trustId = userTrustId;
+    if (!trustId || !newStationName.trim()) {
+      setStationStatus('Station name is required');
+      return;
+    }
+    setStationStatus('Creating station...');
+    const res = await callAdminApi({
+      action: 'create_station',
+      trust_id: trustId,
+      name: newStationName.trim(),
+    });
+    const payload = await res.json();
+    if (res.ok) {
+      setNewStationName('');
+      setStationStatus(`Station created: ${payload.station?.name ?? newStationName.trim()}`);
+      await loadStations();
+    } else {
+      setStationStatus(payload.error || 'Failed to create station');
+    }
+  };
+
+  const handleToggleStation = async (stationId: string, active: boolean) => {
+    const res = await callAdminApi({
+      action: 'toggle_station',
+      station_id: stationId,
+      active,
+    });
+    const payload = await res.json();
+    if (res.ok) {
+      setStationStatus(active ? 'Station activated' : 'Station deactivated');
+      await loadStations();
+    } else {
+      setStationStatus(payload.error || 'Failed to update station');
+    }
+  };
 
   if (loading) {
     return (
@@ -794,24 +864,85 @@ export default function Admin() {
         {role === 'admin' && adminTab === 'my-trust' && (
           <div>
             {myTrust ? (
-              <div className="p-4 rounded" style={{ background: '#FFFFFF', border: '1px solid #E2E2DE' }}>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p style={{ color: '#666666', fontSize: 12, letterSpacing: '0.15em', marginBottom: 8 }}>TRUST DETAILS</p>
-                    <p style={{ color: '#1A1A1A', fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{myTrust.name}</p>
-                    <p style={{ color: '#666666', fontSize: 13 }}>Slug: {myTrust.slug}</p>
-                    <p style={{ color: '#666666', fontSize: 13 }}>Created: {new Date(myTrust.created_at).toLocaleDateString()}</p>
-                    <p style={{ color: myTrust.active ? 'hsl(147, 100%, 62%)' : '#FF3B30', fontSize: 13, marginTop: 4 }}>
-                      {myTrust.active ? 'ACTIVE' : 'INACTIVE'}
-                    </p>
-                  </div>
-                  <div>
-                    <button onClick={() => handleResetPin(myTrust.id)} style={btnSmall}>RESET CREW PIN</button>
-                    {resetPinTrustId === myTrust.id && resetPinValue && (
-                      <p style={{ color: 'hsl(147, 100%, 62%)', fontSize: 14, marginTop: 8, fontFamily: "'IBM Plex Mono', monospace" }}>
-                        New PIN: <strong>{resetPinValue}</strong>
+              <div className="space-y-4">
+                <div className="p-4 rounded" style={{ background: '#FFFFFF', border: '1px solid #E2E2DE' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p style={{ color: '#666666', fontSize: 12, letterSpacing: '0.15em', marginBottom: 8 }}>TRUST DETAILS</p>
+                      <p style={{ color: '#1A1A1A', fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{myTrust.name}</p>
+                      <p style={{ color: '#666666', fontSize: 13 }}>Slug: {myTrust.slug}</p>
+                      <p style={{ color: '#666666', fontSize: 13 }}>Created: {new Date(myTrust.created_at).toLocaleDateString()}</p>
+                      <p style={{ color: myTrust.active ? 'hsl(147, 100%, 62%)' : '#FF3B30', fontSize: 13, marginTop: 4 }}>
+                        {myTrust.active ? 'ACTIVE' : 'INACTIVE'}
                       </p>
-                    )}
+                    </div>
+                    <div>
+                      <button onClick={() => handleResetPin(myTrust.id)} style={btnSmall}>RESET CREW PIN</button>
+                      {resetPinTrustId === myTrust.id && resetPinValue && (
+                        <p style={{ color: 'hsl(147, 100%, 62%)', fontSize: 14, marginTop: 8, fontFamily: "'IBM Plex Mono', monospace" }}>
+                          New PIN: <strong>{resetPinValue}</strong>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded" style={{ background: '#FFFFFF', border: '1px solid #E2E2DE' }}>
+                  <p style={{ color: '#666666', fontSize: 12, letterSpacing: '0.15em', marginBottom: 12 }}>STATIONS</p>
+                  <div className="flex gap-3 items-end flex-wrap mb-3">
+                    <div>
+                      <label style={{ color: '#666666', fontSize: 11, display: 'block', marginBottom: 4 }}>ADD STATION</label>
+                      <input
+                        value={newStationName}
+                        onChange={(e) => setNewStationName(e.target.value)}
+                        placeholder="e.g. North Hub"
+                        style={{ ...inputSmall, width: 240 }}
+                      />
+                    </div>
+                    <button onClick={handleCreateStation} style={btnSmall}>ADD STATION</button>
+                  </div>
+                  {stationStatus && (
+                    <p style={{ color: stationStatus.toLowerCase().includes('failed') || stationStatus.toLowerCase().includes('required') ? '#FF9500' : 'hsl(147, 100%, 62%)', fontSize: 13, marginBottom: 12 }}>
+                      {stationStatus}
+                    </p>
+                  )}
+                  <div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          <th style={headerCellStyle}>NAME</th>
+                          <th style={headerCellStyle}>STATUS</th>
+                          <th style={headerCellStyle}>ACTIONS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stations.map((station) => (
+                          <tr key={station.id}>
+                            <td style={cellStyle}>{station.name}</td>
+                            <td style={cellStyle}>
+                              <span style={{ color: station.active ? 'hsl(147, 100%, 62%)' : '#FF9500' }}>
+                                {station.active ? 'ACTIVE' : 'INACTIVE'}
+                              </span>
+                            </td>
+                            <td style={cellStyle}>
+                              <button
+                                onClick={() => handleToggleStation(station.id, !station.active)}
+                                style={btnSmall}
+                              >
+                                {station.active ? 'DEACTIVATE' : 'ACTIVATE'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {stations.length === 0 && (
+                          <tr>
+                            <td colSpan={3} style={{ ...cellStyle, color: '#666666', textAlign: 'center' }}>
+                              No stations yet
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>

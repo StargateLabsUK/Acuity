@@ -245,6 +245,168 @@ serve(async (req) => {
       });
     }
 
+    if (body.action === "list_stations") {
+      const { trust_id } = body;
+      if (!trust_id || typeof trust_id !== "string") {
+        return new Response(JSON.stringify({ error: "trust_id required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Trust admins can only access their own trust.
+      if (isAdmin && !isOwner) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("trust_id")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile?.trust_id !== trust_id) {
+          return new Response(JSON.stringify({ error: "You can only view stations for your own trust" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      const { data, error } = await supabase
+        .from("stations")
+        .select("id, trust_id, name, active, created_at")
+        .eq("trust_id", trust_id)
+        .order("name", { ascending: true });
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ ok: true, stations: data ?? [] }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (body.action === "create_station") {
+      const { trust_id, name } = body;
+      const stationName = typeof name === "string" ? name.trim() : "";
+      if (!trust_id || typeof trust_id !== "string" || !stationName) {
+        return new Response(JSON.stringify({ error: "trust_id and station name are required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (stationName.length < 2 || stationName.length > 80) {
+        return new Response(JSON.stringify({ error: "Station name must be 2-80 characters" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (isAdmin && !isOwner) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("trust_id")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile?.trust_id !== trust_id) {
+          return new Response(JSON.stringify({ error: "You can only add stations to your own trust" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      const { data, error } = await supabase
+        .from("stations")
+        .insert({ trust_id, name: stationName, active: true })
+        .select("id, trust_id, name, active, created_at")
+        .single();
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        user_email: user.email,
+        action: "station_created",
+        trust_id,
+        details: { station_id: data.id, station_name: data.name },
+      });
+
+      return new Response(JSON.stringify({ ok: true, station: data }), {
+        status: 201,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (body.action === "toggle_station") {
+      const { station_id, active } = body;
+      if (!station_id || typeof station_id !== "string" || typeof active !== "boolean") {
+        return new Response(JSON.stringify({ error: "station_id and active are required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: station, error: lookupError } = await supabase
+        .from("stations")
+        .select("id, trust_id, name")
+        .eq("id", station_id)
+        .maybeSingle();
+
+      if (lookupError || !station) {
+        return new Response(JSON.stringify({ error: "Station not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (isAdmin && !isOwner) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("trust_id")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile?.trust_id !== station.trust_id) {
+          return new Response(JSON.stringify({ error: "You can only manage stations in your own trust" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      const { error } = await supabase
+        .from("stations")
+        .update({ active, updated_at: new Date().toISOString() })
+        .eq("id", station_id);
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        user_email: user.email,
+        action: active ? "station_activated" : "station_deactivated",
+        trust_id: station.trust_id,
+        details: { station_id: station.id, station_name: station.name },
+      });
+
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
