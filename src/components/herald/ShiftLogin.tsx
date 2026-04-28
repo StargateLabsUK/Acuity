@@ -34,7 +34,6 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const service = 'ambulance';
   const [callsign, setCallsign] = useState('');
   const [station, setStation] = useState('');
-  const [operatorId, setOperatorId] = useState('');
   const [vehicleType, setVehicleType] = useState('');
 
   const [trust, setTrust] = useState<CachedTrust | null>(null);
@@ -52,13 +51,10 @@ export function ShiftLogin({ onShiftStarted }: Props) {
 
   // Input validation: alphanumeric, hyphens, spaces, max 30 chars
   const CALLSIGN_PATTERN = /^[a-zA-Z0-9\-_ ]{1,30}$/;
-  const OPERATOR_PATTERN = /^[a-zA-Z0-9\-_ ]{1,30}$/;
   const isCallsignValid = callsign.trim() !== '' && CALLSIGN_PATTERN.test(callsign.trim());
   const stationTrimmed = station.trim();
   const isStationValid = stationTrimmed.length >= 2 && stationTrimmed.length <= 60;
-  const operatorTrimmed = operatorId.trim();
-  const isOperatorValid = !operatorTrimmed || OPERATOR_PATTERN.test(operatorTrimmed);
-  const canSubmit = isCallsignValid && isStationValid && isOperatorValid && vehicleType !== '';
+  const canSubmit = isCallsignValid && isStationValid && vehicleType !== '';
 
   if (!trust) {
     return <TrustPinEntry onValidated={(t) => setTrust(t)} />;
@@ -73,7 +69,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       service,
       service_emoji: '',
       callsign: callsign.trim(),
-      operator_id: operatorTrimmed || null,
+      operator_id: null,
       station: stationTrimmed,
       session_date: new Date().toISOString().slice(0, 10),
       shift_started: new Date().toISOString(),
@@ -281,17 +277,6 @@ export function ShiftLogin({ onShiftStarted }: Props) {
             value={station}
             onChange={(e) => setStation(e.target.value)}
             placeholder="e.g. South Central, Station 12"
-            style={inputStyle}
-          />
-        </div>
-
-        <div className="mb-5">
-          <label style={labelStyle}>PRIMARY OPERATOR ID (OPTIONAL)</label>
-          <input
-            type="text"
-            value={operatorId}
-            onChange={(e) => setOperatorId(e.target.value)}
-            placeholder="e.g. 12345A"
             style={inputStyle}
           />
         </div>
