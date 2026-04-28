@@ -63,7 +63,7 @@ const Index = () => {
     setSession(null);
   }, []);
 
-  useShiftEndedPoll(handleEndShift);
+  useShiftEndedPoll(session, handleEndShift);
 
   useEffect(() => {
     const refresh = async () => {

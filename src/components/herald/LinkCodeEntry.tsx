@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { saveSession, redeemLinkCode } from '@/lib/herald-session';
+import { saveSession, redeemLinkCode, getSession } from '@/lib/herald-session';
+import { clearAll as clearOfflineQueue } from '@/lib/offline-queue';
 import type { HeraldSession } from '@/lib/herald-session';
 
 interface Props {
@@ -69,6 +70,18 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
     }
     const session = result.session_data;
     session.operator_id = collarNumber.trim() || null;
+    const previousSession = await getSession();
+    // Field devices are shared. Clear offline queue when login context changes
+    // to prevent one collar number seeing another user's queued/dead-letter items.
+    if (
+      previousSession
+      && (
+        previousSession.operator_id !== session.operator_id
+        || previousSession.shift_id !== session.shift_id
+      )
+    ) {
+      await clearOfflineQueue();
+    }
     await saveSession(session);
     onShiftLinked(session);
     setSubmitting(false);

@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getSession, clearSession } from '@/lib/herald-session';
+import { clearSession } from '@/lib/herald-session';
+import type { HeraldSession } from '@/lib/herald-session';
 
 /**
  * Subscribes to realtime changes on the shifts table to detect when
  * the shift has been ended (e.g. from another device).
  * Falls back to a single check on mount + focus.
  */
-export function useShiftEndedPoll(onShiftEnded: () => void) {
+export function useShiftEndedPoll(session: HeraldSession | null, onShiftEnded: () => void) {
   const cbRef = useRef(onShiftEnded);
   cbRef.current = onShiftEnded;
 
@@ -18,7 +19,6 @@ export function useShiftEndedPoll(onShiftEnded: () => void) {
     let pollInterval: ReturnType<typeof setInterval> | null = null;
 
     const setup = async () => {
-      const session = await getSession();
       if (!session?.shift_id || disposed) return;
 
       const shiftId = session.shift_id;
@@ -101,5 +101,5 @@ export function useShiftEndedPoll(onShiftEnded: () => void) {
       if (channel) supabase.removeChannel(channel);
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, []);
+  }, [session?.shift_id, session?.operator_id]);
 }
