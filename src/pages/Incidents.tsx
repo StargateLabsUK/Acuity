@@ -494,7 +494,7 @@ function CrewTab({ session }: { session: import('@/lib/herald-session').HeraldSe
                   borderColor: isActive ? 'rgba(5,150,105,0.15)' : 'rgba(136,136,136,0.15)',
                 }}>
                 <div>
-                  <p style={{ fontSize: 16, fontWeight: 700, color: isActive ? '#FFFFFF' : '#888' }}>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: isActive ? '#1A1A1A' : '#888' }}>
                     {c.operator_id || 'Unknown'}
                   </p>
                   <p style={{ fontSize: 12, color: '#666666' }}>
