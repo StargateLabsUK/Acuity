@@ -77,8 +77,9 @@ export function TopBar({
           {(queuedCount ?? 0) > 0 && (
             <button
               onClick={() => onQueueReview?.()}
+              type="button"
               className="flex items-center gap-1 px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(255,149,0,0.15)', border: '1px solid rgba(255,149,0,0.3)' }}
+              style={{ background: 'rgba(255,149,0,0.15)', border: '1px solid rgba(255,149,0,0.3)', cursor: 'pointer' }}
             >
               <span className="text-lg font-bold" style={{ color: '#FF9500' }}>{queuedCount}</span>
               <span className="text-lg" style={{ color: '#FF9500' }}>queued</span>
@@ -86,9 +87,10 @@ export function TopBar({
           )}
           {(deadLetterCount ?? 0) > 0 && (
             <button
-              onClick={() => onDeadLetterReview?.() ?? onQueueReview?.()}
+              onClick={() => (onDeadLetterReview ?? onQueueReview)?.()}
+              type="button"
               className="flex items-center gap-1 px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(255,59,48,0.15)', border: '1px solid rgba(255,59,48,0.3)' }}
+              style={{ background: 'rgba(255,59,48,0.15)', border: '1px solid rgba(255,59,48,0.3)', cursor: 'pointer' }}
             >
               <span className="text-lg font-bold" style={{ color: '#FF3B30' }}>{deadLetterCount}</span>
               <span className="text-lg" style={{ color: '#FF3B30' }}>dead-letter</span>
