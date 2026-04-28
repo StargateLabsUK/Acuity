@@ -50,6 +50,8 @@ export function useShiftEndedPoll(onShiftEnded: () => void) {
               .eq('shift_id', shiftId)
               .eq('operator_id', operatorId)
               .not('used_at', 'is', null)
+              .order('used_at', { ascending: false })
+              .limit(1)
               .maybeSingle();
 
             if (linkData?.left_at) {

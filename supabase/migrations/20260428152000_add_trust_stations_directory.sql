@@ -39,6 +39,7 @@ FROM public.shifts s
 WHERE s.trust_id IS NOT NULL
   AND s.station IS NOT NULL
   AND btrim(s.station) <> ''
+  AND char_length(btrim(s.station)) BETWEEN 2 AND 80
 ON CONFLICT (trust_id, lower(btrim(name))) DO NOTHING;
 
 -- Backfill from historical report snapshots.
@@ -50,4 +51,5 @@ FROM public.herald_reports r
 WHERE r.trust_id IS NOT NULL
   AND r.session_station IS NOT NULL
   AND btrim(r.session_station) <> ''
+  AND char_length(btrim(r.session_station)) BETWEEN 2 AND 80
 ON CONFLICT (trust_id, lower(btrim(name))) DO NOTHING;

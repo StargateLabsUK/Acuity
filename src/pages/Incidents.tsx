@@ -16,7 +16,7 @@ import { useCommandPull } from '@/lib/useCommandPull';
 import { getReports, getDispositionsForShift } from '@/lib/herald-storage';
 import { getSession } from '@/lib/herald-session';
 import { fetchIncidentsRemote } from '@/lib/herald-api';
-import { getDeadLetters, retryDeadLetter, countDeadLetters } from '@/lib/offline-queue';
+import { getDeadLetters, retryDeadLetter, countDeadLetters, remove } from '@/lib/offline-queue';
 import type { HeraldReport, CasualtyDisposition } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 
@@ -201,6 +201,20 @@ const IncidentsPage = () => {
     }
   }, [refreshDeadLetterSummary]);
 
+  const handleDismissDeadLetter = useCallback(async (id: number | undefined) => {
+    if (typeof id !== 'number') return;
+    await remove(id);
+    const items = await getDeadLetters();
+    setDeadLetters(items.map((item) => ({
+      id: item.id,
+      type: item.type,
+      attempts: item.attempts,
+      lastError: item.lastError,
+      createdAt: item.createdAt,
+    })));
+    await refreshDeadLetterSummary();
+  }, [refreshDeadLetterSummary]);
+
   useCommandPull(refreshReports);
 
   useEffect(() => {
@@ -316,6 +330,7 @@ const IncidentsPage = () => {
         syncStatus={!fetchOk ? 'offline' : !fieldOnline ? 'offline' : syncStatus}
         queuedCount={queuedCount}
         deadLetterCount={deadLetterCount}
+        onQueueReview={openDeadLetterReview}
         onDeadLetterReview={openDeadLetterReview}
         onEndShift={handleEndShift}
         onRefresh={async () => {
@@ -419,18 +434,32 @@ const IncidentsPage = () => {
                           <p style={{ color: '#FF3B30', fontSize: 13, marginTop: 4 }}>{item.lastError}</p>
                         )}
                       </div>
-                      <button
-                        onClick={() => void handleRetryDeadLetter(item.id)}
-                        disabled={retryingDeadLetterId === item.id}
-                        className="px-3 py-2 rounded border"
-                        style={{
-                          borderColor: '#FF9500',
-                          color: '#FF9500',
-                          opacity: retryingDeadLetterId === item.id ? 0.6 : 1,
-                        }}
-                      >
-                        {retryingDeadLetterId === item.id ? 'Retrying...' : 'Retry'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => void handleRetryDeadLetter(item.id)}
+                          disabled={retryingDeadLetterId === item.id}
+                          className="px-3 py-2 rounded border"
+                          style={{
+                            borderColor: '#FF9500',
+                            color: '#FF9500',
+                            opacity: retryingDeadLetterId === item.id ? 0.6 : 1,
+                          }}
+                        >
+                          {retryingDeadLetterId === item.id ? 'Retrying...' : 'Retry'}
+                        </button>
+                        <button
+                          onClick={() => void handleDismissDeadLetter(item.id)}
+                          disabled={retryingDeadLetterId === item.id}
+                          className="px-3 py-2 rounded border"
+                          style={{
+                            borderColor: 'rgba(0,0,0,0.25)',
+                            color: '#333333',
+                            opacity: retryingDeadLetterId === item.id ? 0.6 : 1,
+                          }}
+                        >
+                          Dismiss
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -447,6 +476,25 @@ function CrewTab({ session }: { session: import('@/lib/herald-session').HeraldSe
   const [crew, setCrew] = useState<{ operator_id: string | null; used_at: string | null; left_at: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const normalizeLatestCrewRows = (rows: { operator_id: string | null; used_at: string | null; left_at: string | null }[]) => {
+    const latestByOperator = new Map<string, { operator_id: string | null; used_at: string | null; left_at: string | null }>();
+    for (const row of rows) {
+      const operatorKey = (row.operator_id ?? '').trim();
+      if (!operatorKey) continue;
+      const existing = latestByOperator.get(operatorKey);
+      const existingTs = existing?.used_at ? new Date(existing.used_at).getTime() : 0;
+      const nextTs = row.used_at ? new Date(row.used_at).getTime() : 0;
+      if (!existing || nextTs >= existingTs) {
+        latestByOperator.set(operatorKey, row);
+      }
+    }
+    return Array.from(latestByOperator.values()).sort((a, b) => {
+      const aTs = a.used_at ? new Date(a.used_at).getTime() : 0;
+      const bTs = b.used_at ? new Date(b.used_at).getTime() : 0;
+      return bTs - aTs;
+    });
+  };
+
   const fetchCrew = useCallback(async () => {
     if (!session.shift_id) return;
     try {
@@ -456,7 +504,7 @@ function CrewTab({ session }: { session: import('@/lib/herald-session').HeraldSe
         .eq('shift_id', session.shift_id)
         .not('used_at', 'is', null)
         .not('operator_id', 'is', null);
-      setCrew((data ?? []) as any);
+      setCrew(normalizeLatestCrewRows(((data ?? []) as any)));
     } catch { /* silent */ }
     setLoading(false);
   }, [session.shift_id]);

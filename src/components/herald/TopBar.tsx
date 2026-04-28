@@ -7,6 +7,7 @@ interface TopBarProps {
   syncStatus: 'ok' | 'error' | 'offline';
   queuedCount?: number;
   deadLetterCount?: number;
+  onQueueReview?: () => void;
   onDeadLetterReview?: () => void;
   onEndShift?: () => void;
   onRefresh?: () => Promise<void> | void;
@@ -18,6 +19,7 @@ export function TopBar({
   syncStatus,
   queuedCount,
   deadLetterCount,
+  onQueueReview,
   onDeadLetterReview,
   onEndShift,
   onRefresh,
@@ -73,14 +75,18 @@ export function TopBar({
           {aiStatus != null && dot('AI', aiStatus === 'ok')}
           {dot('SYNC', syncStatus === 'ok', syncStatus === 'offline')}
           {(queuedCount ?? 0) > 0 && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,149,0,0.15)', border: '1px solid rgba(255,149,0,0.3)' }}>
+            <button
+              onClick={() => onQueueReview?.()}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded"
+              style={{ background: 'rgba(255,149,0,0.15)', border: '1px solid rgba(255,149,0,0.3)' }}
+            >
               <span className="text-lg font-bold" style={{ color: '#FF9500' }}>{queuedCount}</span>
               <span className="text-lg" style={{ color: '#FF9500' }}>queued</span>
-            </div>
+            </button>
           )}
           {(deadLetterCount ?? 0) > 0 && (
             <button
-              onClick={() => onDeadLetterReview?.()}
+              onClick={() => onDeadLetterReview?.() ?? onQueueReview?.()}
               className="flex items-center gap-1 px-1.5 py-0.5 rounded"
               style={{ background: 'rgba(255,59,48,0.15)', border: '1px solid rgba(255,59,48,0.3)' }}
             >
