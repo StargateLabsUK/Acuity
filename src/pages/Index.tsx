@@ -37,7 +37,7 @@ const Index = () => {
       }
     });
   }, []);
-  const { syncStatus, queuedCount } = useHeraldSync();
+  const { syncStatus, queuedCount, triggerSync } = useHeraldSync();
   const [deadLetterCount, setDeadLetterCount] = useState(0);
   // Join shift presence so crew page can see this device is online
   useShiftPresence(session?.shift_id ?? session?.callsign, 'field');
@@ -75,7 +75,9 @@ const Index = () => {
         syncStatus={syncStatus}
         queuedCount={queuedCount}
         deadLetterCount={deadLetterCount}
-        onRefresh={() => window.location.reload()}
+        onRefresh={async () => {
+          await Promise.all([triggerSync(), getSession().then(setSession)]);
+        }}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">

@@ -9,7 +9,7 @@ interface TopBarProps {
   deadLetterCount?: number;
   onDeadLetterReview?: () => void;
   onEndShift?: () => void;
-  onRefresh?: () => void;
+  onRefresh?: () => Promise<void> | void;
 }
 
 export function TopBar({
@@ -53,11 +53,14 @@ export function TopBar({
   const handleRefresh = async () => {
     if (!onRefresh || refreshing) return;
     setRefreshing(true);
+    const startedAt = Date.now();
     try {
       await Promise.resolve(onRefresh());
     } finally {
       // Keep animation visible briefly so users get feedback.
-      setTimeout(() => setRefreshing(false), 450);
+      const elapsedMs = Date.now() - startedAt;
+      const remainingMs = Math.max(0, 450 - elapsedMs);
+      setTimeout(() => setRefreshing(false), remainingMs);
     }
   };
 
@@ -94,9 +97,9 @@ export function TopBar({
             >
               <RefreshCw
                 size={16}
-                className="text-muted-foreground"
+                className={`text-muted-foreground ${refreshing ? 'animate-spin-acuity' : ''}`}
                 style={{
-                  animation: refreshing ? 'spin 0.8s linear infinite' : undefined,
+                  animation: refreshing ? 'spin-acuity 0.8s linear infinite' : undefined,
                 }}
               />
             </button>

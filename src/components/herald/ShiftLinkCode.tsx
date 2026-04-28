@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { ensureSessionShiftId, generateLinkCode } from '@/lib/herald-session';
 import { supabase } from '@/integrations/supabase/client';
 import type { HeraldSession } from '@/lib/herald-session';
@@ -183,14 +183,12 @@ export function ShiftLinkCode({ session }: Props) {
             gap: 6,
           }}
         >
-          {generating ? (
-            <>
-              <Loader2 size={12} style={{ animation: 'spin 0.9s linear infinite' }} />
-              {code ? 'REFRESHING' : 'GENERATING'}
-            </>
-          ) : (
-            code ? 'REFRESH' : 'GENERATE'
-          )}
+          <RefreshCw
+            size={12}
+            className={generating ? 'animate-spin-acuity' : ''}
+            style={{ animation: generating ? 'spin-acuity 0.9s linear infinite' : 'none' }}
+          />
+          {generating ? (code ? 'REFRESHING' : 'GENERATING') : (code ? 'REFRESH' : 'GENERATE')}
         </button>
 
         <button
@@ -224,9 +222,10 @@ export function ShiftLinkCode({ session }: Props) {
             justifyContent: 'center',
           }}
         >
-          <Loader2
+          <RefreshCw
             size={12}
-            style={{ animation: refreshingCrew ? 'spin 0.9s linear infinite' : 'none' }}
+            className={refreshingCrew ? 'animate-spin-acuity' : ''}
+            style={{ animation: refreshingCrew ? 'spin-acuity 0.9s linear infinite' : 'none' }}
           />
         </button>
 
