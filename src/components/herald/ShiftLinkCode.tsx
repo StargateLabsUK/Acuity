@@ -15,6 +15,25 @@ interface LinkedCrew {
   left_at: string | null;
 }
 
+function normalizeLatestCrewRows(rows: LinkedCrew[]): LinkedCrew[] {
+  const latestByOperator = new Map<string, LinkedCrew>();
+  for (const row of rows) {
+    const operatorKey = (row.operator_id ?? '').trim();
+    if (!operatorKey) continue;
+    const existing = latestByOperator.get(operatorKey);
+    const existingTs = existing?.used_at ? new Date(existing.used_at).getTime() : 0;
+    const nextTs = row.used_at ? new Date(row.used_at).getTime() : 0;
+    if (!existing || nextTs >= existingTs) {
+      latestByOperator.set(operatorKey, row);
+    }
+  }
+  return Array.from(latestByOperator.values()).sort((a, b) => {
+    const aTs = a.used_at ? new Date(a.used_at).getTime() : 0;
+    const bTs = b.used_at ? new Date(b.used_at).getTime() : 0;
+    return bTs - aTs;
+  });
+}
+
 export function ShiftLinkCode({ session }: Props) {
   const [code, setCode] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
