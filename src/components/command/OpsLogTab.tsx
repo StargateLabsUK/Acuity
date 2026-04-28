@@ -4,6 +4,7 @@ import { useOpsLog, type OpsReport, type OpsTransmission, type OpsDisposition, t
 import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
 import type { Assessment, DispositionType } from '@/lib/herald-types';
 import type { PatientTransfer } from '@/lib/transfer-types';
+import { PatientReportView } from '@/components/shared/PatientReportView';
 
 type AbcdeKey = 'A' | 'B' | 'C' | 'D' | 'E';
 type ClinicalFindings = Partial<Record<AbcdeKey, string>>;
@@ -27,27 +28,6 @@ interface ClinicalTimelineEntry {
   note?: string | null;
   atmist: Record<string, unknown> | null;
   clinicalFindings: ClinicalFindings;
-}
-
-function CopyTextButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // no-op
-    }
-  };
-  return (
-    <button
-      onClick={copy}
-      className="px-2.5 py-1 text-[11px] font-semibold tracking-[0.1em] rounded border border-border text-muted-foreground hover:text-foreground transition-colors"
-    >
-      {copied ? 'COPIED' : 'COPY ePRF'}
-    </button>
-  );
 }
 
 const inputStyle: CSSProperties = {
@@ -77,23 +57,6 @@ const badgeStyle = (color: string) => ({
   borderRadius: 4,
   whiteSpace: 'nowrap' as const,
 });
-
-const ATMIST_FIELD_LABELS: Record<string, string> = {
-  A: 'Age / Sex',
-  T: 'Time of Injury',
-  M: 'Mechanism',
-  I: 'Injuries',
-  S: 'Signs / Vitals',
-  T_treatment: 'Treatment Given',
-};
-
-const ABCDE_LABELS: Record<AbcdeKey, string> = {
-  A: 'Airway',
-  B: 'Breathing',
-  C: 'Circulation',
-  D: 'Disability',
-  E: 'Exposure',
-};
 
 const INCIDENT_TYPE_OPTIONS = [
   'cardiac arrest',
@@ -608,10 +571,8 @@ function PatientDetailView({
   onBack: () => void;
 }) {
   const latestAbcde = latestClinicalFindings(timeline, report.assessment, totalCasualties);
-  const atmist = casualty.atmist;
-  const outcome = casualty.disposition;
-  const transfer = casualty.transfer;
   const eprfText = buildOpsEprf(report, casualty, latestAbcde, timeline);
+  const outcomeLines = buildOutcomeLines(casualty);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -622,142 +583,17 @@ function PatientDetailView({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-4">
-        <div className="sticky top-0 z-10 -mx-4 px-4 py-3 border-b border-border bg-background/95 backdrop-blur">
-          <div className="rounded-lg p-3 border border-border bg-card shadow-sm">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="text-sm font-bold" style={badgeStyle(PRIORITY_COLORS[casualty.priority] ?? '#888')}>{casualty.priority}</span>
-              <span className="text-lg font-bold text-foreground">{casualty.label}</span>
-            </div>
-            <div className="text-xs text-muted-foreground tracking-wide">
-              {incidentTitle(report)} • {fmtDateTime(report.latest_transmission_at ?? report.created_at ?? report.timestamp)}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] mt-4">
-          <div className="space-y-4">
-            <div className="rounded-lg border border-border p-3">
-              <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">ATMIST</h3>
-              {atmist ? (
-                <div className="space-y-1.5">
-                  {Object.entries(ATMIST_FIELD_LABELS).map(([field, label]) => (
-                    <div key={field} className="grid grid-cols-[130px_minmax(0,1fr)] items-start gap-2 text-[13px] leading-5">
-                      <span className="font-semibold text-muted-foreground">{label}</span>
-                      <span className="text-foreground break-words">{safeString(atmist[field]) || '—'}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[13px] text-muted-foreground">No ATMIST data recorded for this patient.</p>
-              )}
-            </div>
-
-            <div className="rounded-lg border border-border p-3">
-              <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">ABCDE (LATEST)</h3>
-              {hasClinicalFindings(latestAbcde) ? (
-                <div className="space-y-1.5">
-                  {(Object.keys(ABCDE_LABELS) as AbcdeKey[]).map((key) => (
-                    <div key={key} className="grid grid-cols-[130px_minmax(0,1fr)] items-start gap-2 text-[13px] leading-5">
-                      <span className="font-semibold" style={{ color: '#1E90FF' }}>{key} — {ABCDE_LABELS[key]}</span>
-                      <span className="text-foreground break-words">{latestAbcde[key] ?? '—'}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[13px] text-muted-foreground">No clinical findings recorded yet.</p>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-border p-3">
-            <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">CLINICAL TIMELINE</h3>
-            {timeline.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">No timestamped clinical updates recorded for this patient yet.</p>
-            ) : (
-              <div className="relative pl-6">
-                <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border" />
-                <div className="space-y-3">
-                {timeline.map((entry, index) => (
-                  <div key={entry.id} className="relative rounded-lg border border-border p-3 bg-card">
-                    <span
-                      className="absolute -left-[22px] top-4 h-3 w-3 rounded-full border-2 bg-background"
-                      style={{ borderColor: entry.source === 'transfer' ? '#8B5CF6' : '#1E90FF' }}
-                    />
-                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                      <span className="text-[11px] font-bold" style={badgeStyle(entry.source === 'transfer' ? '#8B5CF6' : '#1E90FF')}>
-                        {entry.source === 'transfer' ? 'TRANSFER' : `UPDATE #${index + 1}`}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground tracking-wide">{fmtDateTime(entry.timestamp)}</span>
-                    </div>
-                    <p className="text-[13px] font-semibold text-foreground mb-1.5 leading-5">{entry.headline}</p>
-
-                    {hasClinicalFindings(entry.clinicalFindings) && (
-                      <div className="space-y-1 mb-1.5">
-                        {(Object.keys(ABCDE_LABELS) as AbcdeKey[]).map((key) => (
-                          <div key={key} className="grid grid-cols-[18px_minmax(0,1fr)] gap-1.5 text-[12px] leading-4.5">
-                            <span className="font-bold" style={{ color: '#1E90FF' }}>{key}</span>
-                            <span className="text-foreground break-words">{entry.clinicalFindings[key] ?? '—'}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {entry.atmist && (
-                      <div className="text-[12px] text-foreground leading-4.5">
-                        <span className="font-semibold text-muted-foreground">ATMIST snapshot:</span>{' '}
-                        {[entry.atmist.A, entry.atmist.M, entry.atmist.I].map(safeString).filter(Boolean).join(' • ') || '—'}
-                      </div>
-                    )}
-
-                    {entry.note && <p className="text-[12px] text-foreground mt-1.5 leading-4.5"><span className="font-semibold text-muted-foreground">Note:</span> {entry.note}</p>}
-                    {entry.transcript && <p className="text-[12px] text-muted-foreground mt-1 italic leading-4.5">"{entry.transcript}"</p>}
-                  </div>
-                ))}
-              </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-border p-3">
-          <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground mb-2">OUTCOME</h3>
-          {outcome ? (
-            <div className="space-y-1.5 text-[13px]">
-              <div className="text-foreground font-semibold">
-                {DISPOSITION_LABELS[outcome.disposition as DispositionType] ?? outcome.disposition}
-              </div>
-              <div className="text-muted-foreground">Closed: {fmtDateTime(outcome.closed_at)}</div>
-              {(outcome.fields as Record<string, unknown> | null)?.notes && (
-                <div className="text-foreground">Notes: {safeString((outcome.fields as Record<string, unknown>).notes)}</div>
-              )}
-            </div>
-          ) : transfer ? (
-            <div className="space-y-1.5 text-[13px]">
-              <div className="text-foreground font-semibold">
-                Transfer {transfer.status}: {transfer.from_callsign} {'->'} {transfer.to_callsign}
-              </div>
-              <div className="text-muted-foreground">
-                {transfer.accepted_at
-                  ? `Accepted: ${fmtDateTime(transfer.accepted_at)}`
-                  : `Initiated: ${fmtDateTime(transfer.initiated_at)}`}
-              </div>
-            </div>
-          ) : (
-            <p className="text-[13px] text-muted-foreground">Patient still open — no final outcome recorded.</p>
-          )}
-        </div>
-
-        <div className="rounded-lg border border-border p-3">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <h3 className="text-[11px] font-bold tracking-[0.18em] text-muted-foreground">ePRF</h3>
-            <CopyTextButton text={eprfText} />
-          </div>
-          <div className="rounded border border-border bg-card p-3">
-            <pre className="text-[12px] text-foreground leading-5 whitespace-pre-wrap break-words font-mono">
-              {eprfText}
-            </pre>
-          </div>
-        </div>
+        <PatientReportView
+          incidentTitle={incidentTitle(report)}
+          incidentDateTime={fmtDateTime(report.latest_transmission_at ?? report.created_at ?? report.timestamp)}
+          casualtyLabel={casualty.label}
+          casualtyPriority={casualty.priority}
+          atmist={casualty.atmist}
+          latestAbcde={latestAbcde}
+          timeline={timeline}
+          outcomeLines={outcomeLines}
+          eprfText={eprfText}
+        />
       </div>
     </div>
   );
