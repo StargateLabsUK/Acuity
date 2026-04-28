@@ -75,7 +75,7 @@ const IncidentsPage = () => {
   }>>([]);
   const [retryingDeadLetterId, setRetryingDeadLetterId] = useState<number | null>(null);
   const knownHospitalsRef = useRef<Map<string, string>>(new Map());
-  const { syncStatus, queuedCount } = useHeraldSync();
+  const { syncStatus, queuedCount, triggerSync } = useHeraldSync();
   const { fieldOnline } = useShiftPresence(session?.shift_id ?? session?.callsign, 'crew');
   const navigate = useNavigate();
 
@@ -318,9 +318,8 @@ const IncidentsPage = () => {
         deadLetterCount={deadLetterCount}
         onDeadLetterReview={openDeadLetterReview}
         onEndShift={handleEndShift}
-        onRefresh={() => {
-          void refreshReports();
-          void refreshDeadLetterSummary();
+        onRefresh={async () => {
+          await Promise.all([triggerSync(), refreshReports(), refreshDeadLetterSummary()]);
         }}
       />
       {endShiftError && (
